@@ -21,7 +21,7 @@ pub(super) fn interp_fn(name: &String, stmts: Vec<&Stmt>, env: Rc<Env>) -> Rc<Va
 
 fn interp_let(id: &String, expr: &Expr, env: Rc<Env>) -> Rc<Env> {
     let val = interp_expr::interp_expr(expr, Rc::clone(&env));
-    env.extend(id.clone(), val)
+    Env::extend(env, id.clone(), val)
 }
 
 fn interp_read(type_of_expr: &Type, id: &String, env: Rc<Env>) -> Rc<Env> {

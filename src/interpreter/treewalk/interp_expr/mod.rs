@@ -63,7 +63,7 @@ fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<&Expr>) -> Rc<Env> {
     let mut local_env = Rc::clone(&env);
     for (binding, arg) in params.into_iter().zip(args) {
         let arg_val = interp_expr(arg, Rc::clone(&local_env));
-        local_env = local_env.extend(binding.id.clone(), arg_val);
+        local_env = Env::extend(local_env, binding.id.clone(), arg_val);
     }
 
     local_env
@@ -142,16 +142,23 @@ fn interp_match(expr: &Expr, arms: &Vec<(String, Vec<Binding>, Expr)>, env: Rc<E
     match &*expr_val {
         Value::Adt(adt_type, constructor, fields) => {
             for (arm_constructor, arm_bindings, arm_expr) in arms {
-                if constructor == arm_constructor {
-                    let mut local_env = Rc::clone(&env);
-                    for binding in arm_bindings {
-                        match fields.get(&binding.id) {
-                            Some(val) => local_env = local_env.extend(binding.id.clone(), Rc::clone(val)),
-                            None => panic!("FATAL ERROR: expected field {} in constructor {}, found none", binding.id, constructor),
-                        }
-                    }
-                    return interp_expr(arm_expr, local_env);
+                if !(constructor == arm_constructor) {
+                    continue;
                 }
+                let mut local_env = Rc::clone(&env);
+                for arm_binding in arm_bindings {
+                    match fields.get(&arm_binding.id) {
+                        Some(field_val) => {
+                            local_env = Env::extend(
+                                local_env,
+                                arm_binding.id.clone(),
+                                Rc::clone(field_val)
+                            );
+                        }
+                        None => panic!("FATAL ERROR: no field named {} in constructor {}", arm_binding.id, constructor),
+                    }
+                }
+                return interp_expr(arm_expr, local_env);
             }
             panic!("FATAL ERROR: no match arms matched");
         }

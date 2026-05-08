@@ -13,8 +13,11 @@ impl Env {
         todo!()
     }
 
-    pub(super) fn extend(&self, id: String, val: Rc<Value>) -> Rc<Env> {
-        todo!()
+    pub(super) fn extend(curr: Rc<Env>, id: String, val: Rc<Value>) -> Rc<Env> {
+        Env {
+            next: Some(curr),
+            binding: (id, val),
+        }.into()
     }
 
     pub(super) fn lookup(&self, key: &str) -> Option<Rc<Value>> {

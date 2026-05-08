@@ -33,7 +33,8 @@ fn process_global_env(defns: Vec<Defn>) -> Rc<Env> {
 fn add_typedef(env: Rc<Env>, adt_type: Type, bindings: Vec<(String, Vec<Binding>)>) -> Rc<Env> {
     let mut new_env = env;
     for (name, bindings) in bindings {
-        new_env = new_env.extend(
+        new_env = Env::extend(
+            new_env,
             name.clone(),
             Value::Constructor(name, adt_type.clone(), bindings).into()
         )
@@ -45,5 +46,5 @@ fn add_typedef(env: Rc<Env>, adt_type: Type, bindings: Vec<(String, Vec<Binding>
 /// add a function definition to the environment. this involves adding the function name and its
 /// implementation to the environment.
 fn add_fn_def(env: Rc<Env>, id: String, bindings: Vec<Binding>, stmts: Vec<Stmt>) -> Rc<Env> {
-    env.extend(id.clone(), Value::Fn(id, bindings, stmts).into())
+    Env::extend(env, id.clone(), Value::Fn(id, bindings, stmts).into())
 }
