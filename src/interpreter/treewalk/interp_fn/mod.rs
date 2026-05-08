@@ -1,20 +1,17 @@
 use std::rc::Rc;
 
 use crate::{
-    frontend::parser::ast::{Binding, Expr, Stmt},
+    frontend::parser::ast::{Expr, Stmt, Type},
     interpreter::treewalk::{Env, interp_expr, types::Value},
 };
 
-pub(super) fn interp_fn(name: String, stmts: Vec<&Stmt>, env: Rc<Env>) -> Rc<Value> {
+pub(super) fn interp_fn(name: &String, stmts: Vec<&Stmt>, env: Rc<Env>) -> Rc<Value> {
     let mut local_env = Rc::clone(&env);
     for stmt in stmts {
         match stmt {
-            Stmt::Let(id, expr) => {
-                let val = interp_expr::interp_expr(expr, Rc::clone(&local_env));
-                local_env = local_env.extend(id.clone(), val);
-            }
-            Stmt::Read(type_of_expr, id) => todo!(),
-            Stmt::Echo(type_of_expr, expr) => todo!(),
+            Stmt::Let(id, expr) => local_env = interp_let(id, expr, local_env),
+            Stmt::Read(type_of_expr, id) => local_env = interp_read(type_of_expr, id, local_env),
+            Stmt::Echo(type_of_expr, expr) => interp_echo(type_of_expr, expr, Rc::clone(&local_env)),
             Stmt::Return(expr) => return interp_expr::interp_expr(expr, Rc::clone(&local_env)),
         }
     }
@@ -22,6 +19,15 @@ pub(super) fn interp_fn(name: String, stmts: Vec<&Stmt>, env: Rc<Env>) -> Rc<Val
     panic!("FATAL ERROR: function {} does not return", name)
 }
 
-fn bind_args(env: Rc<Env>, params: Vec<Binding>, args: Vec<Expr>) -> Rc<Env> {
-    unimplemented!()
+fn interp_let(id: &String, expr: &Expr, env: Rc<Env>) -> Rc<Env> {
+    let val = interp_expr::interp_expr(expr, Rc::clone(&env));
+    env.extend(id.clone(), val)
+}
+
+fn interp_read(type_of_expr: &Type, id: &String, env: Rc<Env>) -> Rc<Env> {
+    todo!()
+}
+
+fn interp_echo(type_of_expr: &Type, expr: &Expr, env: Rc<Env>) {
+    todo!()
 }
