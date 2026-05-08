@@ -29,7 +29,7 @@ pub(super) fn interp_expr(expr: &Expr, env: Rc<Env>) -> Rc<Value> {
         Expr::Or(left, right) => interp_if(left, &Expr::Bool(true), right, env),
         Expr::And(left, right) => interp_if(left, right, &Expr::Bool(false), env),
         Expr::If(cond, then_expr, else_expr) => interp_if(cond, then_expr, else_expr, env),
-        Expr::Match(expr, arms) => todo!(),
+        Expr::Match(expr, arms) => interp_match(expr, arms, env),
     }
 }
 
@@ -78,7 +78,7 @@ fn interp_call(func: &Expr, args: Vec<&Expr>, env: Rc<Env>) -> Rc<Value> {
 
         Value::Fn(name, bindings, stmts) => {
             let local_env = bind_args(Rc::clone(&env), bindings.iter().collect(), args);
-            interp_fn(name.clone(), stmts.iter().collect(), local_env)
+            interp_fn(name, stmts.iter().collect(), local_env)
         }
 
         Value::Constructor(name, adt_type, bindings) => {
@@ -134,5 +134,28 @@ fn interp_if(cond: &Expr, then_expr: &Expr, else_expr: &Expr, env: Rc<Env>) -> R
         Value::Bool(true) => interp_expr(then_expr, env),
         Value::Bool(false) => interp_expr(else_expr, env),
         val => panic!("FATAL ERROR: expected boolean value, found {val:?}"),
+    }
+}
+
+fn interp_match(expr: &Expr, arms: &Vec<(String, Vec<Binding>, Expr)>, env: Rc<Env>) -> Rc<Value> {
+    let expr_val = interp_expr(expr, Rc::clone(&env));
+    match &*expr_val {
+        Value::Adt(adt_type, constructor, fields) => {
+            for (arm_constructor, arm_bindings, arm_expr) in arms {
+                if constructor == arm_constructor {
+                    let mut local_env = Rc::clone(&env);
+                    for binding in arm_bindings {
+                        match fields.get(&binding.id) {
+                            Some(val) => local_env = local_env.extend(binding.id.clone(), Rc::clone(val)),
+                            None => panic!("FATAL ERROR: expected field {} in constructor {}, found none", binding.id, constructor),
+                        }
+                    }
+                    return interp_expr(arm_expr, local_env);
+                }
+            }
+            panic!("FATAL ERROR: no match arms matched");
+        }
+
+        val => panic!("FATAL ERROR: expected ADT value in match expression, found {val:?}"),
     }
 }
