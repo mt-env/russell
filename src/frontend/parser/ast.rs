@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::frontend::lexer::token::Token;
 
 #[derive(Debug, PartialEq)]
@@ -90,10 +92,28 @@ pub enum Type {
     Fn(Box<Type>, Box<Type>),
 }
 
+impl Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Int => write!(f, "int"),
+            Type::Float => write!(f, "float"),
+            Type::Bool => write!(f, "bool"),
+            Type::TypeId(id) => write!(f, "{id}"),
+            Type::Fn(arg_type, ret_type) => write!(f, "({arg_type} -> {ret_type})"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Binding {
     pub id: String,
     pub typ: Type,
+}
+
+impl Display for Binding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.id, self.typ)
+    }
 }
 
 impl Binding {
