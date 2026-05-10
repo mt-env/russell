@@ -11,7 +11,7 @@ pub(super) fn interp_fn(name: &String, stmts: Vec<&Stmt>, env: Rc<Env>) -> Rc<Va
         match stmt {
             Stmt::Let(id, expr) => local_env = interp_let(id, expr, local_env),
             Stmt::Read(type_of_expr, id) => local_env = interp_read(type_of_expr, id, local_env),
-            Stmt::Echo(type_of_expr, expr) => interp_echo(type_of_expr, expr, Rc::clone(&local_env)),
+            Stmt::Echo(_, expr) => interp_echo(expr, Rc::clone(&local_env)),
             Stmt::Return(expr) => return interp_expr::interp_expr(expr, Rc::clone(&local_env)),
         }
     }
@@ -28,6 +28,7 @@ fn interp_read(type_of_expr: &Type, id: &String, env: Rc<Env>) -> Rc<Env> {
     todo!()
 }
 
-fn interp_echo(type_of_expr: &Type, expr: &Expr, env: Rc<Env>) {
-    todo!()
+fn interp_echo(expr: &Expr, env: Rc<Env>) {
+    let val = interp_expr::interp_expr(expr, env);
+    println!("{val}");
 }
