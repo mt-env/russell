@@ -8,10 +8,7 @@ fn fibonacci(x: Int) -> Int {
 }
 
 fn main() -> Int {
-    echo Int fibonacci(0);
-    echo Int fibonacci(1);
-    echo Int fibonacci(10);
-    echo Int fibonacci(20);
-    echo Int fibonacci(100);
+    read Int num;
+    echo Int fibonacci(num);
     return 0;
 }
