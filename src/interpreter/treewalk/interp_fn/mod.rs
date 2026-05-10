@@ -19,12 +19,12 @@ pub(super) fn interp_fn(name: &String, stmts: Vec<&Stmt>, env: Rc<Env>) -> Rc<Va
     panic!("FATAL ERROR: function {} does not return", name)
 }
 
-fn interp_let(id: &String, expr: &Expr, env: Rc<Env>) -> Rc<Env> {
+fn interp_let(id: &str, expr: &Expr, env: Rc<Env>) -> Rc<Env> {
     let val = interp_expr::interp_expr(expr, Rc::clone(&env));
-    Env::extend(env, id.clone(), val)
+    Env::extend(env, id.to_owned(), val)
 }
 
-fn interp_read(type_of_expr: &Type, id: &String, env: Rc<Env>) -> Rc<Env> {
+fn interp_read(type_of_expr: &Type, id: &str, env: Rc<Env>) -> Rc<Env> {
     todo!()
 }
 

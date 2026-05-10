@@ -142,7 +142,7 @@ fn interp_match(expr: &Expr, arms: &Vec<(String, Vec<Binding>, Expr)>, env: Rc<E
     match &*expr_val {
         Value::Adt(adt_type, constructor, fields) => {
             for (arm_constructor, arm_bindings, arm_expr) in arms {
-                if !(constructor == arm_constructor) {
+                if constructor != arm_constructor {
                     continue;
                 }
                 let mut local_env = Rc::clone(&env);
