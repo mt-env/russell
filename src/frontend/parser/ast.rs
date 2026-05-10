@@ -61,6 +61,52 @@ pub enum Expr {
     Match(Box<Expr>, Vec<(String, Vec<Binding>, Expr)>),
 }
 
+impl Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Int(num) => write!(f, "{num}"),
+            Expr::Float(num) => write!(f, "{num}"),
+            Expr::Bool(val) => write!(f, "{val}"),
+            Expr::Id(id) => write!(f, "{id}"),
+            Expr::Fn(binding, body) => write!(f, "(fn ({binding}) -> {body})"),
+            Expr::Neg(expr) => write!(f, "-{expr}"),
+            Expr::Bang(expr) => write!(f, "!{expr}"),
+            Expr::Call(func, args) => {
+                let args_str = args.iter().map(
+                    |arg| format!("{arg}")
+                ).collect::<Vec<_>>().join(", ");
+                write!(f, "{func}({args_str})")
+            }
+            Expr::Plus(left, right) => write!(f, "({left} + {right})"),
+            Expr::Minus(left, right) => write!(f, "({left} - {right})"),
+            Expr::Mult(left, right) => write!(f, "({left} * {right})"),
+            Expr::Div(left, right) => write!(f, "({left} / {right})"),
+            Expr::Pipe(left, right) => write!(f, "({left} |> {right})"),
+            Expr::Less(left, right) => write!(f, "({left} < {right})"),
+            Expr::LessEq(left, right) => write!(f, "({left} <= {right})"),
+            Expr::Greater(left, right) => write!(f, "({left} > {right})"),
+            Expr::GreaterEq(left, right) => write!(f, "({left} >= {right})"),
+            Expr::Eq(left, right) => write!(f, "({left} == {right})"),
+            Expr::NotEq(left, right) => write!(f, "({left} != {right})"),
+            Expr::Or(left, right) => write!(f, "({left} || {right})"),
+            Expr::And(left, right) => write!(f, "({left} && {right})"),
+            Expr::If(cond, then_branch, else_branch) => write!(
+                f,
+                "if {cond} then {then_branch} else {else_branch}"
+            ),
+            Expr::Match(expr, cases) => {
+                let cases_str = cases.iter().map(|(id, bindings, case_expr)| {
+                    let bindings_str = bindings.iter().map(
+                        |binding| format!("{binding}")
+                    ).collect::<Vec<_>>().join(", ");
+                    format!("{id}({bindings_str}) -> {case_expr}")
+                }).collect::<Vec<_>>().join(", ");
+                write!(f, "match {expr} {{ {cases_str} }}")
+            }
+        }
+    }
+}
+
 impl Expr {
     pub fn binop(op: Token, left: Expr, right: Expr) -> Expr {
         let (left, right) = (Box::new(left), Box::new(right));
@@ -99,7 +145,10 @@ impl Display for Type {
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::TypeId(id) => write!(f, "{id}"),
-            Type::Fn(arg_type, ret_type) => write!(f, "({arg_type} -> {ret_type})"),
+            Type::Fn(arg_type, ret_type) => write!(
+                f,
+                "({arg_type} -> {ret_type})"
+            ),
         }
     }
 }
