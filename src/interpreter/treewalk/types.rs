@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::frontend::parser::ast::{Binding, Expr, Stmt, Type};
 
@@ -46,4 +46,28 @@ pub(super) enum Value {
     Constructor(String, Type, Vec<Binding>),
     Fn(String, Vec<Binding>, Vec<Stmt>),
     Adt(Type, String, HashMap<String, Rc<Value>>),
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(num) => write!(f, "{num}"),
+            Value::Float(num) => write!(f, "{num}"),
+            Value::Bool(val) => write!(f, "{val}"),
+            Value::Closure(_, binding, expr) => write!(f, "<function ({binding}) -> {expr}>"),
+            Value::Constructor(name, _, fields) => {
+                let joined = fields.iter().map(
+                    |b| b.to_string()
+                ).collect::<Vec<_>>().join(", ");
+                write!(f, "<constructor {name} {joined}>")
+            }
+            Value::Fn(name, _, _) => write!(f, "<function {name}>"),
+            Value::Adt(adt_type, name, data) => {
+                let fields = data.iter().map(
+                    |(k, v)| format!("{k}: {v}")
+                ).collect::<Vec<_>>().join(", ");
+                write!(f, "<ADT {adt_type} {name} {{{fields}}}>")
+            }
+        }
+    }
 }
