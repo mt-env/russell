@@ -25,7 +25,17 @@ fn interp_let(id: &str, expr: &Expr, env: Rc<Env>) -> Rc<Env> {
 }
 
 fn interp_read(type_of_expr: &Type, id: &str, env: Rc<Env>) -> Rc<Env> {
-    todo!()
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    let val = match type_of_expr {
+        Type::Int => Value::Int(input.trim().parse::<i64>().expect("Failed to parse integer")),
+        Type::Float => Value::Float(input.trim().parse::<f64>().expect("Failed to parse float")),
+        Type::Bool => Value::Bool(input.trim().parse::<bool>().expect("Failed to parse boolean")),
+        _ => panic!("FATAL ERROR: cannot read value of type {type_of_expr}"),
+    };
+
+    Env::extend(env, id.to_owned(), val.into())
 }
 
 fn interp_echo(expr: &Expr, env: Rc<Env>) {
