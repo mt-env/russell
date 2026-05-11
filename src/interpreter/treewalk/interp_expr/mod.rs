@@ -145,34 +145,28 @@ fn interp_if(cond: &Expr, then_expr: &Expr, else_expr: &Expr, env: Rc<Env>) -> R
 }
 
 fn interp_match(expr: &Expr, arms: &Vec<(String, Vec<Binding>, Expr)>, env: Rc<Env>) -> Rc<Value> {
+    // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
-    match &*expr_val {
-        Value::Adt(adt_type, constructor, fields) => {
-            for (arm_constructor, arm_bindings, arm_expr) in arms {
-                if constructor != arm_constructor {
-                    continue;
-                }
-                if fields.len() != arm_bindings.len() {
-                    panic!("FATAL ERROR: expected {} fields in constructor {}, found {}", arm_bindings.len(), constructor, fields.len());
-                }
-                let mut local_env = Rc::clone(&env);
-                for arm_binding in arm_bindings {
-                    match fields.get(&arm_binding.id) {
-                        Some(field_val) => {
-                            local_env = Env::extend(
-                                local_env,
-                                arm_binding.id.clone(),
-                                Rc::clone(field_val)
-                            );
-                        }
-                        None => panic!("FATAL ERROR: no field named {} in constructor {}", arm_binding.id, constructor),
-                    }
-                }
-                return interp_expr(arm_expr, local_env);
-            }
-            panic!("FATAL ERROR: no match arms matched");
-        }
+    let Value::Adt(adt_type, constructor, fields) = &*expr_val else {
+        panic!("FATAL ERROR: expected ADT value in match expression, found {:?}", expr_val);
+    };
 
-        val => panic!("FATAL ERROR: expected ADT value in match expression, found {val:?}"),
+    // find the correct constructor and bind it
+    for (arm_constructor, arm_bindings, arm_expr) in arms {
+        if constructor != arm_constructor {
+            continue;
+        }
+        if fields.len() != arm_bindings.len() {
+            panic!("FATAL ERROR: expected {} fields in constructor {}, found {}", arm_bindings.len(), constructor, fields.len());
+        }
+        let mut local_env = Rc::clone(&env);
+        for arm_binding in arm_bindings {
+            let Some(field_val) = fields.get(&arm_binding.id) else {
+                panic!("FATAL ERROR: no field named {} in constructor {}", arm_binding.id, constructor);
+            };
+            local_env = Env::extend(local_env, arm_binding.id.clone(), Rc::clone(field_val));
+        }
+        return interp_expr(arm_expr, local_env);
     }
+    panic!("FATAL ERROR: no match arms matched");
 }
