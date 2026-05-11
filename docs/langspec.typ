@@ -113,9 +113,20 @@ A Russell program is a list of definitions, and obeys the following grammar.
 Here we define the expected output of a Russell program.
 
 === Definitions
-A special function, `fn main() -> Int` is the entry point of the program. All statements in `main` will be executed sequentially.
+A definition of the form `typedef <typeId> { <id>(<binding>, ...), ... }` introduces an algebraic data type named `<typeId>`. Each arm introduces a constructor `<id>` into the global environment. When called with arguments matching its bindings, a constructor produces a value of type `<typeId>`.
+
+A definition of the form `fn <id>(<binding>, ...) -> <type> { <stmnt>; ... }` introduces a named function `<id>` into the global environment.
+
+A special function, `fn main() -> Int`, is the entry point of the program. All statements in `main` will be executed sequentially.
 
 === Statements
+A statement of the form `let <id> = <expr>;` evaluates `<expr>` and binds the result to `<id>` in the current environment. Subsequent statements may reference `<id>`.
+
+A statement of the form `read <type> <id>;` reads a line from standard input, parses it as `<type>`, and binds the result to `<id>` in the current environment. `<type>` must be one of `Int`, `Float`, or `Bool`; any other type will cause an error.
+
+A statement of the form `echo <type> <expr>;` evaluates `<expr>` and prints the result to standard output, followed by a newline.
+
+A statement of the form `return <expr>;` evaluates `<expr>` and returns the result as the value of the enclosing function. All remaining statements in the function are not executed.
 
 === Expressions
 Integers, floats, and booleans are in their canonical form.
@@ -126,7 +137,11 @@ A closure represents a function with a single argument. It captures the environm
 
 Expressions of the form `- <A>` will evaluate to an expression equivalent to `0 - <A>`. Expressions of the form `! <B>` will evaluate to an expression equivalent to `if <B> then false else true`.
 
-Expressions of the form `<B> (<A>)` will // todo
+Expressions of the form `<B>(<A>, ...)` will evaluate to:
+- If `<B>` evaluates to a closure, `<A>` is bound to the closure's parameter and the body is evaluated in the closure's captured environment extended with that binding. The expression will cause an error if more or fewer than one argument is provided.
+- If `<B>` evaluates to a named function, each argument is bound to the corresponding parameter and the function body is evaluated. The expression will cause an error if the number of arguments does not match the number of parameters.
+- If `<B>` evaluates to a constructor, each argument is bound to the corresponding field and a value of the constructor's type is produced. The expression will cause an error if the number of arguments does not match the number of fields.
+- Otherwise, the expression will cause a type error.
 
 Expressions of the form `<A> + <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the integer `<A> + <B>`
@@ -182,6 +197,11 @@ Expressions of the form `if <A> then <B> else <C>` will evaluate to:
 
 Expressions of the form `( <expr> )` will evaluate to an expression equivalent to `<expr>`.
 
+Expressions of the form `match <A> { <id>(<binding>, ...) -> <B>, ... }` will evaluate to:
+- `<A>` must evaluate to an ADT value. Each arm is tested in order; the first arm whose constructor name matches the ADT's constructor is selected. The ADT's fields are bound to the arm's bindings, and `<B>` is evaluated in the environment extended with those bindings.
+- If no arm matches the constructor, the expression will cause an error.
+- If `<A>` does not evaluate to an ADT value, the expression will cause a type error.
+
 === Binary Operators
 The grammar contains a variety of binary operators. All binary expressions are left-associative (i.e., `+`, `-`, `*`, `/`, `<`, `<=`, `>`, `>=`, `==`, `!=`, `||`, `&&`, `|>`). Function type annotations (`->`) are right-associative.
 
@@ -198,5 +218,3 @@ The precedence of binary expressions follows the below chart.
   [2], [`||`], [logical or],
   [1 (lowest)], [`|>`], [pipe],
 )
-
-=== Standard Library
