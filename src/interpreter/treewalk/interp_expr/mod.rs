@@ -152,6 +152,9 @@ fn interp_match(expr: &Expr, arms: &Vec<(String, Vec<Binding>, Expr)>, env: Rc<E
                 if constructor != arm_constructor {
                     continue;
                 }
+                if fields.len() != arm_bindings.len() {
+                    panic!("FATAL ERROR: expected {} fields in constructor {}, found {}", arm_bindings.len(), constructor, fields.len());
+                }
                 let mut local_env = Rc::clone(&env);
                 for arm_binding in arm_bindings {
                     match fields.get(&arm_binding.id) {
