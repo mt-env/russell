@@ -52,7 +52,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Int(num) => write!(f, "{num}"),
-            Value::Float(num) => write!(f, "{num}"),
+            Value::Float(num) => write!(f, "{num:?}"),
             Value::Bool(val) => write!(f, "{val}"),
             Value::Closure(_, binding, expr) => write!(f, "<function ({binding}) -> {expr}>"),
             Value::Constructor(name, _, fields) => {
