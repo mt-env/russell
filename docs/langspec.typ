@@ -181,7 +181,7 @@ Expressions of the form `<A> >= <B>` will evaluate to an expression equivalent t
 
 Expressions of the form `<A> == <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the Boolean true if and only if `<A>` is equal to `<B>`.
-- If `<A>` and `<B>` both evaluate to floats, the Boolean true if and only if `<A>` is equal to `<B>`.
+- If `<A>` and `<B>` both evaluate to floats, the Boolean true if and only if `<A>` is equal to `<B>`. Note that this uses bitwise equality.
 - Otherwise, the expression will cause a type error.
 
 Expressions of the form `<A> != <B>` will evaluate to an expression equivalent to `! (<A> == <B>)`.
