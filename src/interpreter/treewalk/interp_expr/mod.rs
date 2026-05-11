@@ -55,15 +55,14 @@ fn interp_bang(expr: &Expr, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<&Expr>) -> Rc<Env> {
+fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<Rc<Value>>) -> Rc<Env> {
     if params.len() != args.len() {
         panic!("FATAL ERROR: expected {} arguments, found {}", params.len(), args.len());
     }
 
     let mut local_env = Rc::clone(&env);
     for (binding, arg) in params.into_iter().zip(args) {
-        let arg_val = interp_expr(arg, Rc::clone(&local_env));
-        local_env = Env::extend(local_env, binding.id.clone(), arg_val);
+        local_env = Env::extend(local_env, binding.id.clone(), arg);
     }
 
     local_env
@@ -72,12 +71,20 @@ fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<&Expr>) -> Rc<Env> {
 fn interp_call(func: &Expr, args: Vec<&Expr>, env: Rc<Env>) -> Rc<Value> {
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
-            let local_env = bind_args(Rc::clone(closure_env), vec![binding], args);
+            let local_env = bind_args(
+                Rc::clone(closure_env),
+                vec![binding],
+                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
+            );
             interp_expr(body, local_env)
         }
 
         Value::Fn(name, bindings, stmts) => {
-            let local_env = bind_args(Rc::clone(&env), bindings.iter().collect(), args);
+            let local_env = bind_args(
+                Rc::clone(&env),
+                bindings.iter().collect(),
+                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
+            );
             interp_fn(name, stmts.iter().collect(), local_env)
         }
 
