@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::frontend::parser::ast::{Binding, Expr, Stmt, Type};
+use crate::frontend::parser::ast::{Binding, ParsedExpr, ParsedStmt, Type};
 
 #[derive(Debug)]
 pub(super) enum Env {
@@ -42,9 +42,9 @@ pub(super) enum Value {
     Int(i64),
     Float(f64),
     Bool(bool),
-    Closure(Rc<Env>, Binding, Box<Expr>),
+    Closure(Rc<Env>, Binding, Box<ParsedExpr>),
     Constructor(String, Type, Vec<Binding>),
-    Fn(String, Vec<Binding>, Vec<Stmt>),
+    Fn(String, Vec<Binding>, Vec<ParsedStmt>),
     Adt(Type, String, HashMap<String, Rc<Value>>),
 }
 

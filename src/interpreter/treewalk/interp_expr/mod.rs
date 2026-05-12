@@ -1,35 +1,35 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    frontend::parser::ast::{Binding, Expr},
+    frontend::parser::ast::{Binding, Expr, ExprKind, ParsedExpr},
     interpreter::treewalk::{Env, interp_fn::interp_fn, types::Value},
 };
 
-pub(super) fn interp_expr(expr: &Expr, env: Rc<Env>) -> Rc<Value> {
-    match expr {
-        Expr::Int(num) => Value::Int(*num).into(),
-        Expr::Float(num) => Value::Float(*num).into(),
-        Expr::Bool(val) => Value::Bool(*val).into(),
-        Expr::Id(id) => interp_id(id, env),
-        Expr::Fn(binding, expr) => Value::Closure(Rc::clone(&env), binding.clone(), expr.clone()).into(),
-        Expr::Neg(expr) => interp_neg(expr, env),
-        Expr::Bang(expr) => interp_bang(expr, env),
-        Expr::Call(func, args) => interp_call(func, args.iter().collect(), env),
-        Expr::Plus(left, right) => interp_arith_binop(left, right, env, |l, r| l + r, |l, r| l + r),
-        Expr::Minus(left, right) => interp_arith_binop(left, right, env, |l, r| l - r, |l, r| l - r),
-        Expr::Mult(left, right) => interp_arith_binop(left, right, env, |l, r| l * r, |l, r| l * r),
-        Expr::Div(left, right) => interp_arith_binop(left, right, env, |l, r| l / r, |l, r| l / r),
-        Expr::Pipe(left, right) => interp_call(right, vec![left], env),
-        Expr::Less(left, right) => interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r),
-        Expr::LessEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l <= r, |l, r| l <= r),
-        Expr::Greater(left, right) => interp_cmp_binop(left, right, env, |l, r| l > r, |l, r| l > r),
-        Expr::GreaterEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r),
-        Expr::Eq(left, right) => interp_cmp_binop(left, right, env, |l, r| l == r, |l, r| l == r),
-        Expr::NotEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l != r, |l, r| l != r),
-        Expr::Or(left, right) => interp_if(left, &Expr::Bool(true), right, env),
-        Expr::And(left, right) => interp_if(left, right, &Expr::Bool(false), env),
-        Expr::If(cond, then_expr, else_expr) => interp_if(cond, then_expr, else_expr, env),
-        Expr::Match(expr, arms) => interp_match(expr, arms, env),
+pub(super) fn interp_expr(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+    match &expr.kind {
+        ExprKind::Int(num) => Value::Int(*num).into(),
+        ExprKind::Float(num) => Value::Float(*num).into(),
+        ExprKind::Bool(val) => Value::Bool(*val).into(),
+        ExprKind::Id(id) => interp_id(id, env),
+        ExprKind::Fn(binding, expr) => Value::Closure(Rc::clone(&env), binding.clone(), expr.clone()).into(),
+        ExprKind::Neg(expr) => interp_neg(expr, env),
+        ExprKind::Bang(expr) => interp_bang(expr, env),
+        ExprKind::Call(func, args) => interp_call(func, args.iter().collect(), env),
+        ExprKind::Plus(left, right) => interp_arith_binop(left, right, env, |l, r| l + r, |l, r| l + r),
+        ExprKind::Minus(left, right) => interp_arith_binop(left, right, env, |l, r| l - r, |l, r| l - r),
+        ExprKind::Mult(left, right) => interp_arith_binop(left, right, env, |l, r| l * r, |l, r| l * r),
+        ExprKind::Div(left, right) => interp_arith_binop(left, right, env, |l, r| l / r, |l, r| l / r),
+        ExprKind::Pipe(left, right) => interp_call(right, vec![left], env),
+        ExprKind::Less(left, right) => interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r),
+        ExprKind::LessEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l <= r, |l, r| l <= r),
+        ExprKind::Greater(left, right) => interp_cmp_binop(left, right, env, |l, r| l > r, |l, r| l > r),
+        ExprKind::GreaterEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r),
+        ExprKind::Eq(left, right) => interp_cmp_binop(left, right, env, |l, r| l == r, |l, r| l == r),
+        ExprKind::NotEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l != r, |l, r| l != r),
+        ExprKind::Or(left, right) => interp_if(left, &Expr::parsed(ExprKind::Bool(true)), right, env),
+        ExprKind::And(left, right) => interp_if(left, right, &Expr::parsed(ExprKind::Bool(false)), env),
+        ExprKind::If(cond, then_expr, else_expr) => interp_if(cond, then_expr, else_expr, env),
+        ExprKind::Match(expr, arms) => interp_match(expr, arms, env),
     }
 }
 
@@ -40,7 +40,7 @@ fn interp_id(id: &String, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn interp_neg(expr: &Expr, env: Rc<Env>) -> Rc<Value> {
+fn interp_neg(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     match &*interp_expr(expr, env) {
         Value::Int(num) => Value::Int(-num).into(),
         Value::Float(num) => Value::Float(-num).into(),
@@ -48,7 +48,7 @@ fn interp_neg(expr: &Expr, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn interp_bang(expr: &Expr, env: Rc<Env>) -> Rc<Value> {
+fn interp_bang(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     match &*interp_expr(expr, env) {
         Value::Bool(val) => Value::Bool(!val).into(),
         val => panic!("FATAL ERROR: expected boolean value, found {val:?}"),
@@ -68,7 +68,7 @@ fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<Rc<Value>>) -> Rc<En
     local_env
 }
 
-fn interp_call(func: &Expr, args: Vec<&Expr>, env: Rc<Env>) -> Rc<Value> {
+fn interp_call(func: &ParsedExpr, args: Vec<&ParsedExpr>, env: Rc<Env>) -> Rc<Value> {
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
@@ -104,8 +104,8 @@ fn interp_call(func: &Expr, args: Vec<&Expr>, env: Rc<Env>) -> Rc<Value> {
 }
 
 fn interp_arith_binop(
-    left: &Expr,
-    right: &Expr,
+    left: &ParsedExpr,
+    right: &ParsedExpr,
     env: Rc<Env>,
     int_op: fn(i64, i64) -> i64,
     float_op: fn(f64, f64) -> f64,
@@ -120,8 +120,8 @@ fn interp_arith_binop(
 }
 
 fn interp_cmp_binop(
-    left: &Expr,
-    right: &Expr,
+    left: &ParsedExpr,
+    right: &ParsedExpr,
     env: Rc<Env>,
     int_op: fn(i64, i64) -> bool,
     float_op: fn(f64, f64) -> bool,
@@ -135,7 +135,7 @@ fn interp_cmp_binop(
     }
 }
 
-fn interp_if(cond: &Expr, then_expr: &Expr, else_expr: &Expr, env: Rc<Env>) -> Rc<Value> {
+fn interp_if(cond: &ParsedExpr, then_expr: &ParsedExpr, else_expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     let cond_val = interp_expr(cond, Rc::clone(&env));
     match &*cond_val {
         Value::Bool(true) => interp_expr(then_expr, env),
@@ -144,7 +144,7 @@ fn interp_if(cond: &Expr, then_expr: &Expr, else_expr: &Expr, env: Rc<Env>) -> R
     }
 }
 
-fn interp_match(expr: &Expr, arms: &Vec<(String, Vec<Binding>, Expr)>, env: Rc<Env>) -> Rc<Value> {
+fn interp_match(expr: &ParsedExpr, arms: &Vec<(String, Vec<Binding>, ParsedExpr)>, env: Rc<Env>) -> Rc<Value> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
     let Value::Adt(adt_type, constructor, fields) = &*expr_val else {
