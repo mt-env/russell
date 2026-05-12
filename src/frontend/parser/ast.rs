@@ -127,6 +127,12 @@ where
     }
 }
 
+impl Expr<()> {
+    pub fn parsed(kind: ExprKind<()>) -> Self {
+        Expr { ann: (), kind }
+    }
+}
+
 impl<A> ExprKind<A> {
     pub fn binop(op: Token, left: Expr<A>, right: Expr<A>) -> ExprKind<A> {
         let (left, right) = (Box::new(left), Box::new(right));

@@ -1,12 +1,12 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{Expr, Stmt, Type};
+use crate::frontend::parser::ast::{Expr, ExprKind, ParsedExpr, ParsedStmt, Stmt, Type};
 
 fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
 }
 
-fn parse(input: &str) -> Stmt {
+fn parse(input: &str) -> ParsedStmt {
     let mut p = parser_from(input);
     super::parse_stmnt(&mut p).unwrap()
 }
@@ -15,25 +15,25 @@ fn parse(input: &str) -> Stmt {
 
 #[test]
 fn let_int_literal() {
-    assert_eq!(parse("let x = 42;"), Stmt::Let("x".into(), Expr::Int(42)));
+    assert_eq!(parse("let x = 42;"), Stmt::Let("x".into(), Expr::parsed(ExprKind::Int(42))));
 }
 
 #[test]
 fn let_bool_literal() {
-    assert_eq!(parse("let flag = true;"), Stmt::Let("flag".into(), Expr::Bool(true)));
+    assert_eq!(parse("let flag = true;"), Stmt::Let("flag".into(), Expr::parsed(ExprKind::Bool(true))));
 }
 
 #[test]
 fn let_with_binary_expr() {
     assert_eq!(
         parse("let x = 1 + 2;"),
-        Stmt::Let("x".into(), Expr::Plus(Box::new(Expr::Int(1)), Box::new(Expr::Int(2))))
+        Stmt::Let("x".into(), Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2))))))
     );
 }
 
 #[test]
 fn let_with_identifier() {
-    assert_eq!(parse("let y = x;"), Stmt::Let("y".into(), Expr::Id("x".into())));
+    assert_eq!(parse("let y = x;"), Stmt::Let("y".into(), Expr::parsed(ExprKind::Id("x".into()))));
 }
 
 #[test]
@@ -81,17 +81,17 @@ fn read_error_missing_type() {
 
 #[test]
 fn echo_int_literal() {
-    assert_eq!(parse("echo Int 42;"), Stmt::Echo(Type::Int, Expr::Int(42)));
+    assert_eq!(parse("echo Int 42;"), Stmt::Echo(Type::Int, Expr::parsed(ExprKind::Int(42))));
 }
 
 #[test]
 fn echo_float_literal() {
-    assert_eq!(parse("echo Float 3.14;"), Stmt::Echo(Type::Float, Expr::Float(3.14)));
+    assert_eq!(parse("echo Float 3.14;"), Stmt::Echo(Type::Float, Expr::parsed(ExprKind::Float(3.14))));
 }
 
 #[test]
 fn echo_bool_literal() {
-    assert_eq!(parse("echo Bool true;"), Stmt::Echo(Type::Bool, Expr::Bool(true)));
+    assert_eq!(parse("echo Bool true;"), Stmt::Echo(Type::Bool, Expr::parsed(ExprKind::Bool(true))));
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn echo_with_expression() {
         parse("echo Int x + 1;"),
         Stmt::Echo(
             Type::Int,
-            Expr::Plus(Box::new(Expr::Id("x".into())), Box::new(Expr::Int(1)))
+            Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("x".into()))), Box::new(Expr::parsed(ExprKind::Int(1)))))
         )
     );
 }
@@ -115,22 +115,22 @@ fn echo_error_missing_semicolon() {
 
 #[test]
 fn return_int_literal() {
-    assert_eq!(parse("return 42;"), Stmt::Return(Expr::Int(42)));
+    assert_eq!(parse("return 42;"), Stmt::Return(Expr::parsed(ExprKind::Int(42))));
 }
 
 #[test]
 fn return_identifier() {
-    assert_eq!(parse("return x;"), Stmt::Return(Expr::Id("x".into())));
+    assert_eq!(parse("return x;"), Stmt::Return(Expr::parsed(ExprKind::Id("x".into()))));
 }
 
 #[test]
 fn return_with_expression() {
     assert_eq!(
         parse("return a + b;"),
-        Stmt::Return(Expr::Plus(
-            Box::new(Expr::Id("a".into())),
-            Box::new(Expr::Id("b".into()))
-        ))
+        Stmt::Return(Expr::parsed(ExprKind::Plus(
+            Box::new(Expr::parsed(ExprKind::Id("a".into()))),
+            Box::new(Expr::parsed(ExprKind::Id("b".into())))
+        )))
     );
 }
 

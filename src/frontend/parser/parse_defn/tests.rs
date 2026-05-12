@@ -6,7 +6,7 @@ fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
 }
 
-fn parse(input: &str) -> Defn {
+fn parse(input: &str) -> ParsedDefn {
     let mut p = parser_from(input);
     super::parse_defn(&mut p).unwrap()
 }
@@ -21,7 +21,7 @@ fn fn_no_params() {
             "main".into(),
             vec![],
             Type::Int,
-            vec![Stmt::Return(Expr::Int(0))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Int(0)))]
         )
     );
 }
@@ -34,7 +34,7 @@ fn fn_one_param() {
             "id".into(),
             vec![Binding::new("x".into(), Type::Int)],
             Type::Int,
-            vec![Stmt::Return(Expr::Id("x".into()))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Id("x".into())))]
         )
     );
 }
@@ -50,10 +50,10 @@ fn fn_two_params() {
                 Binding::new("b".into(), Type::Int),
             ],
             Type::Int,
-            vec![Stmt::Return(Expr::Plus(
-                Box::new(Expr::Id("a".into())),
-                Box::new(Expr::Id("b".into()))
-            ))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Plus(
+                Box::new(Expr::parsed(ExprKind::Id("a".into()))),
+                Box::new(Expr::parsed(ExprKind::Id("b".into())))
+            )))]
         )
     );
 }
@@ -67,12 +67,12 @@ fn fn_multiple_statements() {
             vec![],
             Type::Int,
             vec![
-                Stmt::Let("x".into(), Expr::Int(1)),
-                Stmt::Let("y".into(), Expr::Int(2)),
-                Stmt::Return(Expr::Plus(
-                    Box::new(Expr::Id("x".into())),
-                    Box::new(Expr::Id("y".into()))
-                )),
+                Stmt::Let("x".into(), Expr::parsed(ExprKind::Int(1))),
+                Stmt::Let("y".into(), Expr::parsed(ExprKind::Int(2))),
+                Stmt::Return(Expr::parsed(ExprKind::Plus(
+                    Box::new(Expr::parsed(ExprKind::Id("x".into()))),
+                    Box::new(Expr::parsed(ExprKind::Id("y".into())))
+                ))),
             ]
         )
     );
@@ -86,7 +86,7 @@ fn fn_with_float_return() {
             "pi".into(),
             vec![],
             Type::Float,
-            vec![Stmt::Return(Expr::Float(3.14))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Float(3.14)))]
         )
     );
 }
@@ -99,7 +99,7 @@ fn fn_with_bool_return() {
             "yes".into(),
             vec![],
             Type::Bool,
-            vec![Stmt::Return(Expr::Bool(true))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Bool(true)))]
         )
     );
 }
@@ -118,10 +118,10 @@ fn fn_with_fn_type_param() {
                 Binding::new("x".into(), Type::Int),
             ],
             Type::Int,
-            vec![Stmt::Return(Expr::Call(
-                Box::new(Expr::Id("f".into())),
-                vec![Expr::Id("x".into())]
-            ))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Call(
+                Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+                vec![Expr::parsed(ExprKind::Id("x".into()))]
+            )))]
         )
     );
 }
@@ -145,8 +145,8 @@ fn fn_with_read_and_echo() {
             Type::Int,
             vec![
                 Stmt::Read(Type::Int, "x".into()),
-                Stmt::Echo(Type::Int, Expr::Id("x".into())),
-                Stmt::Return(Expr::Int(0)),
+                Stmt::Echo(Type::Int, Expr::parsed(ExprKind::Id("x".into()))),
+                Stmt::Return(Expr::parsed(ExprKind::Int(0))),
             ]
         )
     );

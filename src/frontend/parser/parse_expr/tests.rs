@@ -1,85 +1,80 @@
 use crate::frontend::lexer::lex;
-use crate::frontend::parser::ast::{Binding, Expr, Type};
+use crate::frontend::parser::ast::{Binding, Expr, ExprKind, ParsedExpr, Type};
 use crate::frontend::parser::Parser;
 
 fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
 }
 
-fn parse(input: &str) -> Expr {
+fn parse(input: &str) -> ParsedExpr {
     let mut p = parser_from(input);
     super::parse_expr(&mut p).unwrap()
-}
-
-/// Shorthand for Box::new
-fn b(e: Expr) -> Box<Expr> {
-    Box::new(e)
 }
 
 // ─── atoms ──────────────────────────────────────────────────────────
 
 #[test]
 fn int_literal() {
-    assert_eq!(parse("42"), Expr::Int(42));
+    assert_eq!(parse("42"), Expr::parsed(ExprKind::Int(42)));
 }
 
 #[test]
 fn zero() {
-    assert_eq!(parse("0"), Expr::Int(0));
+    assert_eq!(parse("0"), Expr::parsed(ExprKind::Int(0)));
 }
 
 #[test]
 fn float_literal() {
-    assert_eq!(parse("3.14"), Expr::Float(3.14));
+    assert_eq!(parse("3.14"), Expr::parsed(ExprKind::Float(3.14)));
 }
 
 #[test]
 fn true_literal() {
-    assert_eq!(parse("true"), Expr::Bool(true));
+    assert_eq!(parse("true"), Expr::parsed(ExprKind::Bool(true)));
 }
 
 #[test]
 fn false_literal() {
-    assert_eq!(parse("false"), Expr::Bool(false));
+    assert_eq!(parse("false"), Expr::parsed(ExprKind::Bool(false)));
 }
 
 #[test]
 fn identifier() {
-    assert_eq!(parse("foo"), Expr::Id("foo".into()));
+    assert_eq!(parse("foo"), Expr::parsed(ExprKind::Id("foo".into())));
 }
 
 // ─── unary operators ────────────────────────────────────────────────
 
 #[test]
 fn negate_int() {
-    assert_eq!(parse("-1"), Expr::Neg(b(Expr::Int(1))));
+    assert_eq!(parse("-1"), Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Int(1))))));
 }
 
 #[test]
 fn negate_identifier() {
-    assert_eq!(parse("-x"), Expr::Neg(b(Expr::Id("x".into()))));
+    assert_eq!(parse("-x"), Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Id("x".into()))))));
 }
 
 #[test]
 fn bang_bool() {
-    assert_eq!(parse("!true"), Expr::Bang(b(Expr::Bool(true))));
+    assert_eq!(parse("!true"), Expr::parsed(ExprKind::Bang(Box::new(Expr::parsed(ExprKind::Bool(true))))));
 }
 
 #[test]
 fn bang_identifier() {
-    assert_eq!(parse("!x"), Expr::Bang(b(Expr::Id("x".into()))));
+    assert_eq!(parse("!x"), Expr::parsed(ExprKind::Bang(Box::new(Expr::parsed(ExprKind::Id("x".into()))))));
 }
 
 #[test]
 fn double_negate() {
-    assert_eq!(parse("--1"), Expr::Neg(b(Expr::Neg(b(Expr::Int(1))))));
+    assert_eq!(parse("--1"), Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Int(1)))))))));
 }
 
 #[test]
 fn double_bang() {
     assert_eq!(
         parse("!!true"),
-        Expr::Bang(b(Expr::Bang(b(Expr::Bool(true)))))
+        Expr::parsed(ExprKind::Bang(Box::new(Expr::parsed(ExprKind::Bang(Box::new(Expr::parsed(ExprKind::Bool(true))))))))
     );
 }
 
@@ -89,7 +84,7 @@ fn double_bang() {
 fn addition() {
     assert_eq!(
         parse("1 + 2"),
-        Expr::Plus(b(Expr::Int(1)), b(Expr::Int(2)))
+        Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))
     );
 }
 
@@ -97,7 +92,7 @@ fn addition() {
 fn subtraction() {
     assert_eq!(
         parse("3 - 1"),
-        Expr::Minus(b(Expr::Int(3)), b(Expr::Int(1)))
+        Expr::parsed(ExprKind::Minus(Box::new(Expr::parsed(ExprKind::Int(3))), Box::new(Expr::parsed(ExprKind::Int(1)))))
     );
 }
 
@@ -105,7 +100,7 @@ fn subtraction() {
 fn multiplication() {
     assert_eq!(
         parse("2 * 3"),
-        Expr::Mult(b(Expr::Int(2)), b(Expr::Int(3)))
+        Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Int(2))), Box::new(Expr::parsed(ExprKind::Int(3)))))
     );
 }
 
@@ -113,7 +108,7 @@ fn multiplication() {
 fn division() {
     assert_eq!(
         parse("6 / 2"),
-        Expr::Div(b(Expr::Int(6)), b(Expr::Int(2)))
+        Expr::parsed(ExprKind::Div(Box::new(Expr::parsed(ExprKind::Int(6))), Box::new(Expr::parsed(ExprKind::Int(2)))))
     );
 }
 
@@ -121,7 +116,7 @@ fn division() {
 fn less_than() {
     assert_eq!(
         parse("a < b"),
-        Expr::Less(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::Less(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -129,7 +124,7 @@ fn less_than() {
 fn less_than_or_eq() {
     assert_eq!(
         parse("a <= b"),
-        Expr::LessEq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::LessEq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -137,7 +132,7 @@ fn less_than_or_eq() {
 fn greater_than() {
     assert_eq!(
         parse("a > b"),
-        Expr::Greater(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::Greater(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -145,7 +140,7 @@ fn greater_than() {
 fn greater_than_or_eq() {
     assert_eq!(
         parse("a >= b"),
-        Expr::GreaterEq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::GreaterEq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -153,7 +148,7 @@ fn greater_than_or_eq() {
 fn equality() {
     assert_eq!(
         parse("a == b"),
-        Expr::Eq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::Eq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -161,7 +156,7 @@ fn equality() {
 fn not_equal() {
     assert_eq!(
         parse("a != b"),
-        Expr::NotEq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::NotEq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -169,7 +164,7 @@ fn not_equal() {
 fn logical_or() {
     assert_eq!(
         parse("a || b"),
-        Expr::Or(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::Or(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -177,7 +172,7 @@ fn logical_or() {
 fn logical_and() {
     assert_eq!(
         parse("a && b"),
-        Expr::And(b(Expr::Id("a".into())), b(Expr::Id("b".into())))
+        Expr::parsed(ExprKind::And(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))
     );
 }
 
@@ -185,7 +180,7 @@ fn logical_and() {
 fn pipe() {
     assert_eq!(
         parse("a |> f"),
-        Expr::Pipe(b(Expr::Id("a".into())), b(Expr::Id("f".into())))
+        Expr::parsed(ExprKind::Pipe(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("f".into())))))
     );
 }
 
@@ -196,7 +191,7 @@ fn mult_before_add() {
     // 1 + 2 * 3 = 1 + (2 * 3)
     assert_eq!(
         parse("1 + 2 * 3"),
-        Expr::Plus(b(Expr::Int(1)), b(Expr::Mult(b(Expr::Int(2)), b(Expr::Int(3)))))
+        Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Int(2))), Box::new(Expr::parsed(ExprKind::Int(3))))))))
     );
 }
 
@@ -205,7 +200,7 @@ fn mult_before_sub() {
     // 1 - 2 * 3 = 1 - (2 * 3)
     assert_eq!(
         parse("1 - 2 * 3"),
-        Expr::Minus(b(Expr::Int(1)), b(Expr::Mult(b(Expr::Int(2)), b(Expr::Int(3)))))
+        Expr::parsed(ExprKind::Minus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Int(2))), Box::new(Expr::parsed(ExprKind::Int(3))))))))
     );
 }
 
@@ -214,10 +209,10 @@ fn add_before_relational() {
     // a + b < c = (a + b) < c
     assert_eq!(
         parse("a + b < c"),
-        Expr::Less(
-            b(Expr::Plus(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("c".into()))
-        )
+        Expr::parsed(ExprKind::Less(
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("c".into())))
+        ))
     );
 }
 
@@ -226,10 +221,10 @@ fn relational_before_equality() {
     // a < b == c = (a < b) == c
     assert_eq!(
         parse("a < b == c"),
-        Expr::Eq(
-            b(Expr::Less(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("c".into()))
-        )
+        Expr::parsed(ExprKind::Eq(
+            Box::new(Expr::parsed(ExprKind::Less(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("c".into())))
+        ))
     );
 }
 
@@ -238,10 +233,10 @@ fn equality_before_and() {
     // a == b && c = (a == b) && c
     assert_eq!(
         parse("a == b && c"),
-        Expr::And(
-            b(Expr::Eq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("c".into()))
-        )
+        Expr::parsed(ExprKind::And(
+            Box::new(Expr::parsed(ExprKind::Eq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("c".into())))
+        ))
     );
 }
 
@@ -250,10 +245,10 @@ fn and_before_or() {
     // a && b || c = (a && b) || c
     assert_eq!(
         parse("a && b || c"),
-        Expr::Or(
-            b(Expr::And(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("c".into()))
-        )
+        Expr::parsed(ExprKind::Or(
+            Box::new(Expr::parsed(ExprKind::And(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("c".into())))
+        ))
     );
 }
 
@@ -262,10 +257,10 @@ fn or_before_pipe() {
     // a || b |> f = (a || b) |> f
     assert_eq!(
         parse("a || b |> f"),
-        Expr::Pipe(
-            b(Expr::Or(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("f".into()))
-        )
+        Expr::parsed(ExprKind::Pipe(
+            Box::new(Expr::parsed(ExprKind::Or(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("f".into())))
+        ))
     );
 }
 
@@ -274,7 +269,7 @@ fn unary_binds_tighter_than_mult() {
     // -1 * 2 = (-1) * 2
     assert_eq!(
         parse("-1 * 2"),
-        Expr::Mult(b(Expr::Neg(b(Expr::Int(1)))), b(Expr::Int(2)))
+        Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Int(1)))))), Box::new(Expr::parsed(ExprKind::Int(2)))))
     );
 }
 
@@ -283,7 +278,7 @@ fn unary_binds_tighter_than_add() {
     // -1 + 2 = (-1) + 2
     assert_eq!(
         parse("-1 + 2"),
-        Expr::Plus(b(Expr::Neg(b(Expr::Int(1)))), b(Expr::Int(2)))
+        Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Int(1)))))), Box::new(Expr::parsed(ExprKind::Int(2)))))
     );
 }
 
@@ -292,10 +287,10 @@ fn bang_binds_tighter_than_and() {
     // !a && b = (!a) && b
     assert_eq!(
         parse("!a && b"),
-        Expr::And(
-            b(Expr::Bang(b(Expr::Id("a".into())))),
-            b(Expr::Id("b".into()))
-        )
+        Expr::parsed(ExprKind::And(
+            Box::new(Expr::parsed(ExprKind::Bang(Box::new(Expr::parsed(ExprKind::Id("a".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("b".into())))
+        ))
     );
 }
 
@@ -306,10 +301,10 @@ fn addition_left_assoc() {
     // 1 + 2 + 3 = (1 + 2) + 3
     assert_eq!(
         parse("1 + 2 + 3"),
-        Expr::Plus(
-            b(Expr::Plus(b(Expr::Int(1)), b(Expr::Int(2)))),
-            b(Expr::Int(3))
-        )
+        Expr::parsed(ExprKind::Plus(
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))),
+            Box::new(Expr::parsed(ExprKind::Int(3)))
+        ))
     );
 }
 
@@ -318,10 +313,10 @@ fn subtraction_left_assoc() {
     // 5 - 3 - 1 = (5 - 3) - 1
     assert_eq!(
         parse("5 - 3 - 1"),
-        Expr::Minus(
-            b(Expr::Minus(b(Expr::Int(5)), b(Expr::Int(3)))),
-            b(Expr::Int(1))
-        )
+        Expr::parsed(ExprKind::Minus(
+            Box::new(Expr::parsed(ExprKind::Minus(Box::new(Expr::parsed(ExprKind::Int(5))), Box::new(Expr::parsed(ExprKind::Int(3)))))),
+            Box::new(Expr::parsed(ExprKind::Int(1)))
+        ))
     );
 }
 
@@ -330,10 +325,10 @@ fn multiplication_left_assoc() {
     // 2 * 3 * 4 = (2 * 3) * 4
     assert_eq!(
         parse("2 * 3 * 4"),
-        Expr::Mult(
-            b(Expr::Mult(b(Expr::Int(2)), b(Expr::Int(3)))),
-            b(Expr::Int(4))
-        )
+        Expr::parsed(ExprKind::Mult(
+            Box::new(Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Int(2))), Box::new(Expr::parsed(ExprKind::Int(3)))))),
+            Box::new(Expr::parsed(ExprKind::Int(4)))
+        ))
     );
 }
 
@@ -342,10 +337,10 @@ fn pipe_left_assoc() {
     // x |> f |> g = (x |> f) |> g
     assert_eq!(
         parse("x |> f |> g"),
-        Expr::Pipe(
-            b(Expr::Pipe(b(Expr::Id("x".into())), b(Expr::Id("f".into())))),
-            b(Expr::Id("g".into()))
-        )
+        Expr::parsed(ExprKind::Pipe(
+            Box::new(Expr::parsed(ExprKind::Pipe(Box::new(Expr::parsed(ExprKind::Id("x".into()))), Box::new(Expr::parsed(ExprKind::Id("f".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("g".into())))
+        ))
     );
 }
 
@@ -354,10 +349,10 @@ fn mixed_add_sub_left_assoc() {
     // 1 + 2 - 3 = (1 + 2) - 3
     assert_eq!(
         parse("1 + 2 - 3"),
-        Expr::Minus(
-            b(Expr::Plus(b(Expr::Int(1)), b(Expr::Int(2)))),
-            b(Expr::Int(3))
-        )
+        Expr::parsed(ExprKind::Minus(
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))),
+            Box::new(Expr::parsed(ExprKind::Int(3)))
+        ))
     );
 }
 
@@ -365,7 +360,7 @@ fn mixed_add_sub_left_assoc() {
 
 #[test]
 fn parens_identity() {
-    assert_eq!(parse("(42)"), Expr::Int(42));
+    assert_eq!(parse("(42)"), Expr::parsed(ExprKind::Int(42)));
 }
 
 #[test]
@@ -373,16 +368,16 @@ fn parens_override_precedence() {
     // (1 + 2) * 3
     assert_eq!(
         parse("(1 + 2) * 3"),
-        Expr::Mult(
-            b(Expr::Plus(b(Expr::Int(1)), b(Expr::Int(2)))),
-            b(Expr::Int(3))
-        )
+        Expr::parsed(ExprKind::Mult(
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))),
+            Box::new(Expr::parsed(ExprKind::Int(3)))
+        ))
     );
 }
 
 #[test]
 fn nested_parens() {
-    assert_eq!(parse("((1))"), Expr::Int(1));
+    assert_eq!(parse("((1))"), Expr::parsed(ExprKind::Int(1)));
 }
 
 #[test]
@@ -390,10 +385,10 @@ fn parens_in_right_operand() {
     // 2 * (3 + 4)
     assert_eq!(
         parse("2 * (3 + 4)"),
-        Expr::Mult(
-            b(Expr::Int(2)),
-            b(Expr::Plus(b(Expr::Int(3)), b(Expr::Int(4))))
-        )
+        Expr::parsed(ExprKind::Mult(
+            Box::new(Expr::parsed(ExprKind::Int(2))),
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(3))), Box::new(Expr::parsed(ExprKind::Int(4))))))
+        ))
     );
 }
 
@@ -403,7 +398,7 @@ fn parens_in_right_operand() {
 fn call_no_args() {
     assert_eq!(
         parse("f()"),
-        Expr::Call(b(Expr::Id("f".into())), vec![])
+        Expr::parsed(ExprKind::Call(Box::new(Expr::parsed(ExprKind::Id("f".into()))), vec![]))
     );
 }
 
@@ -411,7 +406,7 @@ fn call_no_args() {
 fn call_one_arg() {
     assert_eq!(
         parse("f(1)"),
-        Expr::Call(b(Expr::Id("f".into())), vec![Expr::Int(1)])
+        Expr::parsed(ExprKind::Call(Box::new(Expr::parsed(ExprKind::Id("f".into()))), vec![Expr::parsed(ExprKind::Int(1))]))
     );
 }
 
@@ -419,10 +414,10 @@ fn call_one_arg() {
 fn call_multiple_args() {
     assert_eq!(
         parse("f(1, 2, 3)"),
-        Expr::Call(
-            b(Expr::Id("f".into())),
-            vec![Expr::Int(1), Expr::Int(2), Expr::Int(3)]
-        )
+        Expr::parsed(ExprKind::Call(
+            Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+            vec![Expr::parsed(ExprKind::Int(1)), Expr::parsed(ExprKind::Int(2)), Expr::parsed(ExprKind::Int(3))]
+        ))
     );
 }
 
@@ -430,10 +425,10 @@ fn call_multiple_args() {
 fn call_with_expr_arg() {
     assert_eq!(
         parse("f(1 + 2)"),
-        Expr::Call(
-            b(Expr::Id("f".into())),
-            vec![Expr::Plus(b(Expr::Int(1)), b(Expr::Int(2)))]
-        )
+        Expr::parsed(ExprKind::Call(
+            Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+            vec![Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))]
+        ))
     );
 }
 
@@ -442,13 +437,13 @@ fn chained_calls() {
     // f(x)(y) = Call(Call(f, [x]), [y])
     assert_eq!(
         parse("f(x)(y)"),
-        Expr::Call(
-            b(Expr::Call(
-                b(Expr::Id("f".into())),
-                vec![Expr::Id("x".into())]
-            )),
-            vec![Expr::Id("y".into())]
-        )
+        Expr::parsed(ExprKind::Call(
+            Box::new(Expr::parsed(ExprKind::Call(
+                Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+                vec![Expr::parsed(ExprKind::Id("x".into()))]
+            ))),
+            vec![Expr::parsed(ExprKind::Id("y".into()))]
+        ))
     );
 }
 
@@ -457,13 +452,13 @@ fn call_in_binary_expr() {
     // f(x) + 1
     assert_eq!(
         parse("f(x) + 1"),
-        Expr::Plus(
-            b(Expr::Call(
-                b(Expr::Id("f".into())),
-                vec![Expr::Id("x".into())]
-            )),
-            b(Expr::Int(1))
-        )
+        Expr::parsed(ExprKind::Plus(
+            Box::new(Expr::parsed(ExprKind::Call(
+                Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+                vec![Expr::parsed(ExprKind::Id("x".into()))]
+            ))),
+            Box::new(Expr::parsed(ExprKind::Int(1)))
+        ))
     );
 }
 
@@ -472,13 +467,13 @@ fn binary_expr_then_call() {
     // 1 + f(x)
     assert_eq!(
         parse("1 + f(x)"),
-        Expr::Plus(
-            b(Expr::Int(1)),
-            b(Expr::Call(
-                b(Expr::Id("f".into())),
-                vec![Expr::Id("x".into())]
-            ))
-        )
+        Expr::parsed(ExprKind::Plus(
+            Box::new(Expr::parsed(ExprKind::Int(1))),
+            Box::new(Expr::parsed(ExprKind::Call(
+                Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+                vec![Expr::parsed(ExprKind::Id("x".into()))]
+            )))
+        ))
     );
 }
 
@@ -487,10 +482,10 @@ fn negate_call() {
     // -f(x) = Neg(Call(f, [x]))
     assert_eq!(
         parse("-f(x)"),
-        Expr::Neg(b(Expr::Call(
-            b(Expr::Id("f".into())),
-            vec![Expr::Id("x".into())]
-        )))
+        Expr::parsed(ExprKind::Neg(Box::new(Expr::parsed(ExprKind::Call(
+            Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+            vec![Expr::parsed(ExprKind::Id("x".into()))]
+        )))))
     );
 }
 
@@ -500,7 +495,7 @@ fn negate_call() {
 fn simple_if() {
     assert_eq!(
         parse("if true then 1 else 2"),
-        Expr::If(b(Expr::Bool(true)), b(Expr::Int(1)), b(Expr::Int(2)))
+        Expr::parsed(ExprKind::If(Box::new(Expr::parsed(ExprKind::Bool(true))), Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))
     );
 }
 
@@ -508,11 +503,11 @@ fn simple_if() {
 fn if_with_condition_expr() {
     assert_eq!(
         parse("if a == b then a else b"),
-        Expr::If(
-            b(Expr::Eq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("a".into())),
-            b(Expr::Id("b".into()))
-        )
+        Expr::parsed(ExprKind::If(
+            Box::new(Expr::parsed(ExprKind::Eq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("a".into()))),
+            Box::new(Expr::parsed(ExprKind::Id("b".into())))
+        ))
     );
 }
 
@@ -520,11 +515,11 @@ fn if_with_condition_expr() {
 fn if_with_complex_branches() {
     assert_eq!(
         parse("if x then 1 + 2 else 3 * 4"),
-        Expr::If(
-            b(Expr::Id("x".into())),
-            b(Expr::Plus(b(Expr::Int(1)), b(Expr::Int(2)))),
-            b(Expr::Mult(b(Expr::Int(3)), b(Expr::Int(4))))
-        )
+        Expr::parsed(ExprKind::If(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2)))))),
+            Box::new(Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Int(3))), Box::new(Expr::parsed(ExprKind::Int(4))))))
+        ))
     );
 }
 
@@ -532,15 +527,15 @@ fn if_with_complex_branches() {
 fn nested_if_in_else() {
     assert_eq!(
         parse("if a then 1 else if b then 2 else 3"),
-        Expr::If(
-            b(Expr::Id("a".into())),
-            b(Expr::Int(1)),
-            b(Expr::If(
-                b(Expr::Id("b".into())),
-                b(Expr::Int(2)),
-                b(Expr::Int(3))
-            ))
-        )
+        Expr::parsed(ExprKind::If(
+            Box::new(Expr::parsed(ExprKind::Id("a".into()))),
+            Box::new(Expr::parsed(ExprKind::Int(1))),
+            Box::new(Expr::parsed(ExprKind::If(
+                Box::new(Expr::parsed(ExprKind::Id("b".into()))),
+                Box::new(Expr::parsed(ExprKind::Int(2))),
+                Box::new(Expr::parsed(ExprKind::Int(3)))
+            )))
+        ))
     );
 }
 
@@ -550,10 +545,10 @@ fn nested_if_in_else() {
 fn match_single_arm() {
     assert_eq!(
         parse("match x { a() -> 1 }"),
-        Expr::Match(
-            b(Expr::Id("x".into())),
-            vec![("a".into(), vec![], Expr::Int(1))]
-        )
+        Expr::parsed(ExprKind::Match(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
+            vec![("a".into(), vec![], Expr::parsed(ExprKind::Int(1)))]
+        ))
     );
 }
 
@@ -561,13 +556,13 @@ fn match_single_arm() {
 fn match_multiple_arms() {
     assert_eq!(
         parse("match x { a() -> 1, b() -> 2 }"),
-        Expr::Match(
-            b(Expr::Id("x".into())),
+        Expr::parsed(ExprKind::Match(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
             vec![
-                ("a".into(), vec![], Expr::Int(1)),
-                ("b".into(), vec![], Expr::Int(2)),
+                ("a".into(), vec![], Expr::parsed(ExprKind::Int(1))),
+                ("b".into(), vec![], Expr::parsed(ExprKind::Int(2))),
             ]
-        )
+        ))
     );
 }
 
@@ -575,17 +570,17 @@ fn match_multiple_arms() {
 fn match_with_bindings() {
     assert_eq!(
         parse("match x { some(val: Int) -> val, none() -> 0 }"),
-        Expr::Match(
-            b(Expr::Id("x".into())),
+        Expr::parsed(ExprKind::Match(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
             vec![
                 (
                     "some".into(),
                     vec![Binding::new("val".into(), Type::Int)],
-                    Expr::Id("val".into())
+                    Expr::parsed(ExprKind::Id("val".into()))
                 ),
-                ("none".into(), vec![], Expr::Int(0)),
+                ("none".into(), vec![], Expr::parsed(ExprKind::Int(0))),
             ]
-        )
+        ))
     );
 }
 
@@ -593,14 +588,14 @@ fn match_with_bindings() {
 fn match_arm_with_expr_body() {
     assert_eq!(
         parse("match x { a(n: Int) -> n + 1 }"),
-        Expr::Match(
-            b(Expr::Id("x".into())),
+        Expr::parsed(ExprKind::Match(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
             vec![(
                 "a".into(),
                 vec![Binding::new("n".into(), Type::Int)],
-                Expr::Plus(b(Expr::Id("n".into())), b(Expr::Int(1)))
+                Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("n".into()))), Box::new(Expr::parsed(ExprKind::Int(1)))))
             )]
-        )
+        ))
     );
 }
 
@@ -609,13 +604,13 @@ fn match_trailing_comma() {
     // trailing comma should be accepted
     assert_eq!(
         parse("match x { a() -> 1, b() -> 2, }"),
-        Expr::Match(
-            b(Expr::Id("x".into())),
+        Expr::parsed(ExprKind::Match(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
             vec![
-                ("a".into(), vec![], Expr::Int(1)),
-                ("b".into(), vec![], Expr::Int(2)),
+                ("a".into(), vec![], Expr::parsed(ExprKind::Int(1))),
+                ("b".into(), vec![], Expr::parsed(ExprKind::Int(2))),
             ]
-        )
+        ))
     );
 }
 
@@ -623,17 +618,17 @@ fn match_trailing_comma() {
 fn match_with_multiple_bindings() {
     assert_eq!(
         parse("match p { point(x: Int, y: Int) -> x + y }"),
-        Expr::Match(
-            b(Expr::Id("p".into())),
+        Expr::parsed(ExprKind::Match(
+            Box::new(Expr::parsed(ExprKind::Id("p".into()))),
             vec![(
                 "point".into(),
                 vec![
                     Binding::new("x".into(), Type::Int),
                     Binding::new("y".into(), Type::Int),
                 ],
-                Expr::Plus(b(Expr::Id("x".into())), b(Expr::Id("y".into())))
+                Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("x".into()))), Box::new(Expr::parsed(ExprKind::Id("y".into())))))
             )]
-        )
+        ))
     );
 }
 
@@ -643,7 +638,7 @@ fn match_with_multiple_bindings() {
 fn simple_closure() {
     assert_eq!(
         parse("fn (x: Int) -> x"),
-        Expr::Fn(Binding::new("x".into(), Type::Int), b(Expr::Id("x".into())))
+        Expr::parsed(ExprKind::Fn(Binding::new("x".into(), Type::Int), Box::new(Expr::parsed(ExprKind::Id("x".into())))))
     );
 }
 
@@ -651,10 +646,10 @@ fn simple_closure() {
 fn closure_with_body_expr() {
     assert_eq!(
         parse("fn (x: Int) -> x + 1"),
-        Expr::Fn(
+        Expr::parsed(ExprKind::Fn(
             Binding::new("x".into(), Type::Int),
-            b(Expr::Plus(b(Expr::Id("x".into())), b(Expr::Int(1))))
-        )
+            Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("x".into()))), Box::new(Expr::parsed(ExprKind::Int(1))))))
+        ))
     );
 }
 
@@ -662,13 +657,13 @@ fn closure_with_body_expr() {
 fn nested_closures() {
     assert_eq!(
         parse("fn (x: Int) -> fn (y: Int) -> x + y"),
-        Expr::Fn(
+        Expr::parsed(ExprKind::Fn(
             Binding::new("x".into(), Type::Int),
-            b(Expr::Fn(
+            Box::new(Expr::parsed(ExprKind::Fn(
                 Binding::new("y".into(), Type::Int),
-                b(Expr::Plus(b(Expr::Id("x".into())), b(Expr::Id("y".into()))))
-            ))
-        )
+                Box::new(Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("x".into()))), Box::new(Expr::parsed(ExprKind::Id("y".into()))))))
+            )))
+        ))
     );
 }
 
@@ -676,10 +671,10 @@ fn nested_closures() {
 fn closure_with_bool_param() {
     assert_eq!(
         parse("fn (b: Bool) -> !b"),
-        Expr::Fn(
+        Expr::parsed(ExprKind::Fn(
             Binding::new("b".into(), Type::Bool),
-            b(Expr::Bang(b(Expr::Id("b".into()))))
-        )
+            Box::new(Expr::parsed(ExprKind::Bang(Box::new(Expr::parsed(ExprKind::Id("b".into()))))))
+        ))
     );
 }
 
@@ -690,13 +685,13 @@ fn mixed_arithmetic() {
     // 1 + 2 * 3 - 4 = ((1 + (2 * 3)) - 4)
     assert_eq!(
         parse("1 + 2 * 3 - 4"),
-        Expr::Minus(
-            b(Expr::Plus(
-                b(Expr::Int(1)),
-                b(Expr::Mult(b(Expr::Int(2)), b(Expr::Int(3))))
-            )),
-            b(Expr::Int(4))
-        )
+        Expr::parsed(ExprKind::Minus(
+            Box::new(Expr::parsed(ExprKind::Plus(
+                Box::new(Expr::parsed(ExprKind::Int(1))),
+                Box::new(Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Int(2))), Box::new(Expr::parsed(ExprKind::Int(3))))))
+            ))),
+            Box::new(Expr::parsed(ExprKind::Int(4)))
+        ))
     );
 }
 
@@ -705,10 +700,10 @@ fn comparison_chain() {
     // a == b != c = (a == b) != c
     assert_eq!(
         parse("a == b != c"),
-        Expr::NotEq(
-            b(Expr::Eq(b(Expr::Id("a".into())), b(Expr::Id("b".into())))),
-            b(Expr::Id("c".into()))
-        )
+        Expr::parsed(ExprKind::NotEq(
+            Box::new(Expr::parsed(ExprKind::Eq(Box::new(Expr::parsed(ExprKind::Id("a".into()))), Box::new(Expr::parsed(ExprKind::Id("b".into())))))),
+            Box::new(Expr::parsed(ExprKind::Id("c".into())))
+        ))
     );
 }
 
@@ -718,25 +713,25 @@ fn full_precedence_chain() {
     // = a |> (b || (c && (d == (e < (f + (g * h))))))
     assert_eq!(
         parse("a |> b || c && d == e < f + g * h"),
-        Expr::Pipe(
-            b(Expr::Id("a".into())),
-            b(Expr::Or(
-                b(Expr::Id("b".into())),
-                b(Expr::And(
-                    b(Expr::Id("c".into())),
-                    b(Expr::Eq(
-                        b(Expr::Id("d".into())),
-                        b(Expr::Less(
-                            b(Expr::Id("e".into())),
-                            b(Expr::Plus(
-                                b(Expr::Id("f".into())),
-                                b(Expr::Mult(b(Expr::Id("g".into())), b(Expr::Id("h".into()))))
-                            ))
-                        ))
-                    ))
-                ))
-            ))
-        )
+        Expr::parsed(ExprKind::Pipe(
+            Box::new(Expr::parsed(ExprKind::Id("a".into()))),
+            Box::new(Expr::parsed(ExprKind::Or(
+                Box::new(Expr::parsed(ExprKind::Id("b".into()))),
+                Box::new(Expr::parsed(ExprKind::And(
+                    Box::new(Expr::parsed(ExprKind::Id("c".into()))),
+                    Box::new(Expr::parsed(ExprKind::Eq(
+                        Box::new(Expr::parsed(ExprKind::Id("d".into()))),
+                        Box::new(Expr::parsed(ExprKind::Less(
+                            Box::new(Expr::parsed(ExprKind::Id("e".into()))),
+                            Box::new(Expr::parsed(ExprKind::Plus(
+                                Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+                                Box::new(Expr::parsed(ExprKind::Mult(Box::new(Expr::parsed(ExprKind::Id("g".into()))), Box::new(Expr::parsed(ExprKind::Id("h".into()))))))
+                            )))
+                        )))
+                    )))
+                )))
+            )))
+        ))
     );
 }
 
@@ -748,13 +743,13 @@ fn call_in_pipe() {
     // Result: Pipe(x, Call(f, [y]))
     assert_eq!(
         parse("x |> f(y)"),
-        Expr::Pipe(
-            b(Expr::Id("x".into())),
-            b(Expr::Call(
-                b(Expr::Id("f".into())),
-                vec![Expr::Id("y".into())]
-            ))
-        )
+        Expr::parsed(ExprKind::Pipe(
+            Box::new(Expr::parsed(ExprKind::Id("x".into()))),
+            Box::new(Expr::parsed(ExprKind::Call(
+                Box::new(Expr::parsed(ExprKind::Id("f".into()))),
+                vec![Expr::parsed(ExprKind::Id("y".into()))]
+            )))
+        ))
     );
 }
 

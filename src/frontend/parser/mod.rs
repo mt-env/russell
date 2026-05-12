@@ -13,10 +13,10 @@ use std::vec::IntoIter;
 
 use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::{SpannedToken, Token, TokenKind};
-use crate::frontend::parser::ast::Defn;
+use crate::frontend::parser::ast::ParsedDefn;
 use crate::frontend::parser::parse_defn::parse_defn;
 
-pub fn parse(tokens: Vec<SpannedToken>) -> Vec<Defn> {
+pub fn parse(tokens: Vec<SpannedToken>) -> Vec<ParsedDefn> {
     let mut parser = Parser::new(tokens);
     let mut defns = Vec::new();
 

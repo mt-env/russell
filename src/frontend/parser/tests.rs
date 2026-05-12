@@ -24,7 +24,7 @@ fn parse_single_fn() {
             "main".into(),
             vec![],
             Type::Int,
-            vec![Stmt::Return(Expr::Int(0))]
+            vec![Stmt::Return(Expr::parsed(ExprKind::Int(0)))]
         )
     );
 }
