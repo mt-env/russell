@@ -4,29 +4,35 @@ use crate::frontend::parser::ast::{Binding, ParsedExpr, ParsedStmt, Type};
 
 #[derive(Debug)]
 pub(super) enum Env {
-    Mt, // empy :3
-    Cons {
+    Global(HashMap<String, Rc<Value>>),
+    Local {
         next: Rc<Env>,
+        global: Rc<Env>,
         binding: (String, Rc<Value>),
     },
 }
 
 impl Env {
-    pub(super) fn new() -> Env {
-        Env::Mt
-    }
-
     pub(super) fn extend(curr: Rc<Env>, id: String, val: Rc<Value>) -> Rc<Env> {
-        Env::Cons {
+        let global = curr.global();
+        Env::Local {
+            global,
             next: curr,
             binding: (id, val),
         }.into()
     }
 
+    pub(super) fn global(self: &Rc<Self>) -> Rc<Self> {
+        match self.as_ref() {
+            Env::Global(_) => Rc::clone(self),
+            Env::Local { global, .. } => Rc::clone(global),
+        }
+    }
+
     pub(super) fn lookup(&self, key: &str) -> Option<Rc<Value>> {
         match self {
-            Env::Mt => None,
-            Env::Cons { next, binding } => {
+            Env::Global(map) => map.get(key).map(Rc::clone),
+            Env::Local { next, binding, .. } => {
                 if binding.0 == key {
                     Some(Rc::clone(&binding.1))
                 } else {

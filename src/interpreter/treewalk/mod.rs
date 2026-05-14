@@ -1,6 +1,6 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
-use crate::frontend::parser::ast::{Binding, Defn, Expr, ExprKind, ParsedDefn, ParsedStmt, Type};
+use crate::frontend::parser::ast::{Defn, Expr, ExprKind, ParsedDefn, Type};
 use crate::interpreter::treewalk::types::{Env, Value};
 
 mod interp_expr;
@@ -17,30 +17,18 @@ pub fn interp(defns: Vec<ParsedDefn>) {
 }
 
 fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
-    let mut env = Env::new().into();
+    let mut map = HashMap::new();
     for defn in defns {
-        env = match defn {
-            Defn::Typedef(adt_type, arms) => add_typedef(env, Type::TypeId(adt_type), arms),
-            Defn::Fn(id, bindings, _, stmts) => add_fn_def(env, id, bindings, stmts),
+        match defn {
+            Defn::Typedef(adt_type, arms) => {
+                for (name, bindings) in arms {
+                    map.insert(name.clone(), Rc::new(Value::Constructor(name, Type::TypeId(adt_type.clone()), bindings)));
+                }
+            }
+            Defn::Fn(id, bindings, _, stmts) => {
+                map.insert(id.clone(), Rc::new(Value::Fn(id, bindings, stmts)));
+            }
         }
     }
-
-    env
-}
-
-fn add_typedef(env: Rc<Env>, adt_type: Type, bindings: Vec<(String, Vec<Binding>)>) -> Rc<Env> {
-    let mut new_env = env;
-    for (name, bindings) in bindings {
-        new_env = Env::extend(
-            new_env,
-            name.clone(),
-            Value::Constructor(name, adt_type.clone(), bindings).into()
-        )
-    }
-
-    new_env
-}
-
-fn add_fn_def(env: Rc<Env>, id: String, bindings: Vec<Binding>, stmts: Vec<ParsedStmt>) -> Rc<Env> {
-    Env::extend(env, id.clone(), Value::Fn(id, bindings, stmts).into())
+    Rc::new(Env::Global(map))
 }

@@ -81,7 +81,7 @@ fn interp_call(func: &ParsedExpr, args: Vec<&ParsedExpr>, env: Rc<Env>) -> Rc<Va
 
         Value::Fn(name, bindings, stmts) => {
             let local_env = bind_args(
-                Rc::clone(&env),
+                env.global(),
                 bindings.iter().collect(),
                 args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
             );
