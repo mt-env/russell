@@ -1,4 +1,8 @@
-use crate::frontend::parser::ast::{Expr, Type};
+use crate::frontend::parser::ast::{Defn, Expr, Stmt, Type};
+
+pub(super) type TypedDefn = Defn<TypeValue>;
+pub(super) type TypedStmt = Stmt<TypeValue>;
+pub(super) type TypedExpr = Expr<TypeValue>;
 
 pub(super) enum TypeValue {
     Int,
@@ -21,15 +25,3 @@ impl From<Type> for TypeValue {
         }
     }
 }
-
-pub(super) struct TypedExpr {
-    pub ty: TypeValue,
-    pub expr: Expr,
-}
-
-impl TypedExpr {
-    pub fn new(ty: TypeValue, expr: Expr) -> Self {
-        Self { ty, expr }
-    }
-}
-
