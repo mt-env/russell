@@ -202,6 +202,51 @@ Expressions of the form `match <A> { <id>(<binding>, ...) -> <B>, ... }` will ev
 - If no arm matches the constructor, the expression will cause an error.
 - If `<A>` does not evaluate to an ADT value, the expression will cause a type error.
 
+=== Type System
+Russell is statically typed. Every expression has a type, and programs that cannot be assigned consistent types are rejected before evaluation.
+
+The set of types is:
+- The primitives `Int`, `Float`, and `Bool`.
+- User-defined types, written as a `<typeId>`, introduced by `typedef` definitions.
+- Function types `<type> -> <type>`. The `->` constructor is right-associative, so `A -> B -> C` denotes `A -> (B -> C)`. A closure, which always takes a single argument, has a type of this form. A named global function `fn f(x1: T1, ..., xn: Tn) -> R` is not curried; it has the multi-argument function type with parameter types `T1, ..., Tn` and return type `R`, and must be applied to all of its arguments at once.
+- Generic type variables, written as a `<typeId>`. A `<typeId>` is treated as a generic type variable whenever no `typedef` of that name is in scope in the global environment. Generic variables stand for any type and are unified across their uses within a single definition.
+
+The global environment is populated by the top-level definitions of the program:
+- A `typedef <typeId> { ... }` binds `<typeId>` to a user-defined algebraic data type, and binds each constructor `<id>` to a function type producing a value of `<typeId>`. A nullary constructor is bound to a zero-argument function type, not directly to a value of `<typeId>`; constructing the ADT value requires an explicit call.
+- A `fn <id>(<binding>, ...) -> <type> { ... }` binds `<id>` to the corresponding function type.
+
+When the type system encounters a `<typeId>` in a `<type>` annotation, it looks it up in the global environment. If a `typedef` of that name exists, the annotation refers to that user-defined type. If no such `typedef` exists, the `<typeId>` is automatically assumed to be a generic type variable; no explicit quantifier is required. Within a single definition, every occurrence of the same `<typeId>` refers to the same generic variable, and distinct `<typeId>`s refer to distinct generic variables.
+
+For example, in
+```
+fn id(x: A) -> A { return x; }
+fn const(x: A, y: B) -> A { return x; }
+```
+`A` and `B` are generic because no `typedef A` or `typedef B` exists; `id` is a single-argument function from `A` to `A`, and `const` is a two-argument function from `(A, B)` to `A`. By contrast, if `typedef A { ... }` is present, then `A` in a function signature refers to that concrete type rather than a generic.
+
+The typing rules for expressions are:
+- An `<integer>` has type `Int`. A `<float>` has type `Float`. A `<bool>` has type `Bool`.
+- An `<id>` has the type bound to it in the current environment.
+- A closure `fn (x: T) -> e` has type `T -> U`, where `U` is the type of `e` in the environment extended with `x: T`.
+- An application `<B>(<A1>, ..., <An>)` requires `<B>` to have a function type whose parameter types match `<A1>, ..., <An>` in number and type; the result has the function's return type. A closure has exactly one parameter and must be applied to exactly one argument. A named global function or constructor must be applied to all of its parameters at once.
+- `- <A>` requires `<A>` to have type `Int` or `Float`, and has the same type as `<A>`.
+- `! <B>` requires `<B>` to have type `Bool`, and has type `Bool`.
+- The arithmetic operators `+`, `-`, `*`, `/` require both operands to have the same type, which must be `Int` or `Float`; the result has that type.
+- The relational operators `<`, `<=`, `>`, `>=` require both operands to have the same type, which must be `Int` or `Float`; the result has type `Bool`.
+- The equality operators `==` and `!=` require both operands to have the same type, which must be `Int` or `Float`; the result has type `Bool`.
+- The logical operators `&&` and `||` require both operands to have type `Bool`; the result has type `Bool`.
+- The pipe `<A> |> <B>` is typed as `<B>(<A>)`.
+- `if <A> then <B> else <C>` requires `<A>` to have type `Bool`, and `<B>` and `<C>` to have the same type, which becomes the type of the whole expression.
+- `match <A> { <id>(<binding>, ...) -> <B>, ... }` requires `<A>` to have a user-defined type `<typeId>`, each arm's constructor `<id>` to belong to `<typeId>`, each arm's bindings to match the constructor's field types, and each arm's body `<B>` to have the same type, which becomes the type of the whole expression.
+
+The typing rules for statements are:
+- `let <id> = <expr>;` extends the current environment with `<id>` bound to the type of `<expr>`.
+- `read <type> <id>;` requires `<type>` to be one of `Int`, `Float`, or `Bool`, and extends the current environment with `<id>` bound to `<type>`.
+- `echo <type> <expr>;` requires `<expr>` to have type `<type>`.
+- `return <expr>;` requires `<expr>` to have the enclosing function's declared return type.
+
+A program is well-typed if every definition's body type-checks against its declared signature. The entry point `main` must have type `() -> Int`.
+
 === Binary Operators
 The grammar contains a variety of binary operators. All binary expressions are left-associative (i.e., `+`, `-`, `*`, `/`, `<`, `<=`, `>`, `>=`, `==`, `!=`, `||`, `&&`, `|>`). Function type annotations (`->`) are right-associative.
 
