@@ -115,6 +115,8 @@ Here we define the expected output of a Russell program.
 === Definitions
 A definition of the form `typedef <typeId> { <id>(<binding>, ...), ... }` introduces an algebraic data type named `<typeId>`. Each arm introduces a constructor `<id>` into the global environment. When called with arguments matching its bindings, a constructor produces a value of type `<typeId>`.
 
+Constructors are global functions. A `typedef` arm `<id>(<binding>, ...)` is equivalent to introducing a global function named `<id>` that takes those bindings and returns a value of `<typeId>`. In particular, a constructor with zero bindings is a zero-arity function: writing the bare name `<id>` refers to the function value itself, and `<id>()` is required to construct the ADT value. There is no implicit nullary-constructor application --- constructors are uniformly invoked via function-call syntax, just like any other function.
+
 A definition of the form `fn <id>(<binding>, ...) -> <type> { <stmnt>; ... }` introduces a named function `<id>` into the global environment.
 
 A special function, `fn main() -> Int`, is the entry point of the program. All statements in `main` will be executed sequentially.
@@ -201,6 +203,8 @@ Expressions of the form `match <A> { <id>(<binding>, ...) -> <B>, ... }` will ev
 - `<A>` must evaluate to an ADT value. Each arm is tested in order; the first arm whose constructor name matches the ADT's constructor is selected. The ADT's fields are bound to the arm's bindings, and `<B>` is evaluated in the environment extended with those bindings.
 - If no arm matches the constructor, the expression will cause an error.
 - If `<A>` does not evaluate to an ADT value, the expression will cause a type error.
+
+Pattern syntax mirrors construction syntax: because constructors are uniformly functions, even a nullary constructor must be written `<id>()` in an arm, never as a bare `<id>`. The parentheses are part of the constructor pattern, not optional sugar.
 
 === Type System
 Russell is statically typed. Every expression has a type, and programs that cannot be assigned consistent types are rejected before evaluation.
