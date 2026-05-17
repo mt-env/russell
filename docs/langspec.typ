@@ -122,7 +122,7 @@ Constructors are global functions. A `typedef` arm `<id>(<binding>, ...)` is equ
 
 A definition of the form `fn <id>(<binding>, ...) -> <type> { <stmnt>; ... }` introduces a named function `<id>` into the global environment.
 
-A special function, `fn main() -> Int`, is the entry point of the program. All statements in `main` will be executed sequentially.
+A special function, `fn main() -> Int`, is the entry point of the program. All statements in `main` will be executed sequentially. The `Int` returned by `main` is the process exit code: when execution of `main` reaches a `return <expr>;`, the program terminates and `<expr>`'s value is reported to the operating system as the exit status.
 
 === Statements
 A statement of the form `let <id> = <expr>;` evaluates `<expr>` and binds the result to `<id>` in the current environment. Subsequent statements may reference `<id>`.
