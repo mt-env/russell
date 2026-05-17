@@ -126,7 +126,7 @@ A statement of the form `let <id> = <expr>;` evaluates `<expr>` and binds the re
 
 A statement of the form `read <type> <id>;` reads a line from standard input, parses it as `<type>`, and binds the result to `<id>` in the current environment. `<type>` must be one of `Int`, `Float`, or `Bool`; any other type will cause an error.
 
-A statement of the form `echo <type> <expr>;` evaluates `<expr>` and prints the result to standard output, followed by a newline.
+A statement of the form `echo <type> <expr>;` evaluates `<expr>` and prints the result to standard output, followed by a newline. Floats are always rendered with a decimal point (e.g. `1.0`, not `1`) so that they remain visually distinguishable from integers.
 
 A statement of the form `return <expr>;` evaluates `<expr>` and returns the result as the value of the enclosing function. All remaining statements in the function are not executed.
 
@@ -165,7 +165,12 @@ Expressions of the form `<A> / <B>` are:
 - If `<A>` and `<B>` both evaluate to floats, the integer `<A> / <B>`
 - Otherwise, the expression will cause a type error.
 
-Expressions of the form `<A> |> <B>` will evaluate to an expression equivalent to `<B>(<A>)`. Note that this will cause an error if `<B>` does not have an arity of one.
+Expressions of the form `<A> |> <B>` are evaluated by first evaluating `<B>` to a value, then applying that value to `<A>` as its sole argument. In other words, `<A> |> <B>` is equivalent to `<B>(<A>)` where `<B>` is itself an arbitrary expression that is evaluated before the call, not a syntactic insertion of `<A>` into `<B>`'s argument list. As a consequence:
+- If `<B>` is an identifier bound to a unary function, `<A> |> <B>` simply calls that function with `<A>`.
+- If `<B>` is a call expression such as `f(y)`, then `f(y)` is evaluated first, and the resulting value is then called with `<A>`. To thread `<A>` through `f` alongside `y`, `f(y)` must itself return a unary function (i.e., `f` must be curried).
+- The expression will cause an error if `<B>` does not evaluate to a callable value of arity one.
+
+Note in particular that `|>` is *not* syntactic sugar for inserting `<A>` as an extra argument into a call on the right-hand side; the right-hand side is an ordinary expression that must evaluate to a unary function.
 
 Expressions of the form `<A> < <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the Boolean true if and only if `<A>` is less than `<B>`.
