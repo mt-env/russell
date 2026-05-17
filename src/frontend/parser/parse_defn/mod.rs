@@ -17,7 +17,7 @@ pub(super) fn parse_defn(parser: &mut Parser) -> ParseResult<ParsedDefn> {
 }
 
 /// Parses a type definition:
-/// typedef <typeId> { <id>(<binding, ...), ... };
+/// typedef <typeId> { <id>(<binding, ...), ... }
 fn parse_typedef(parser: &mut Parser) -> ParseResult<ParsedDefn> {
     // parse the declaration
     parser.expect(TokenKind::Typedef)?;

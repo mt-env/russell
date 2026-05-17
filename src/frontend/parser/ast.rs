@@ -8,7 +8,7 @@ pub type ParsedDefn = Defn<()>;
 
 #[derive(Debug, PartialEq)]
 pub enum Defn<A> {
-    // typedef <typeId> { <id> ( <binding> , ... ) , ... };
+    // typedef <typeId> { <id> ( <binding> , ... ) , ... }
     Typedef(String, Vec<(String, Vec<Binding>)>),
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
