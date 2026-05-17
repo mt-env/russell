@@ -219,15 +219,19 @@ Russell is statically typed. Every expression has a type, and programs that cann
 
 The set of types is:
 - The primitives `Int`, `Float`, and `Bool`.
-- User-defined types, written as a `<typeId>`, introduced by `typedef` definitions.
+- User-defined types, written as a `<typeId>`, introduced by `typedef` definitions. User-defined types are concrete in the current version of the language: a `typedef` introduces a single nullary type, not a parameterized type constructor.
 - Function types `<type> -> <type>`. The `->` constructor is right-associative, so `A -> B -> C` denotes `A -> (B -> C)`. A closure, which always takes a single argument, has a type of this form. A named global function `fn f(x1: T1, ..., xn: Tn) -> R` is not curried; it has the multi-argument function type with parameter types `T1, ..., Tn` and return type `R`, and must be applied to all of its arguments at once.
 - Generic type variables, written as a `<typeId>`. A `<typeId>` is treated as a generic type variable whenever no `typedef` of that name is in scope in the global environment. Generic variables stand for any type and are unified across their uses within a single definition.
 
 The global environment is populated by the top-level definitions of the program:
-- A `typedef <typeId> { ... }` binds `<typeId>` to a user-defined algebraic data type, and binds each constructor `<id>` to a function type producing a value of `<typeId>`. A nullary constructor is bound to a zero-argument function type, not directly to a value of `<typeId>`; constructing the ADT value requires an explicit call.
+- A `typedef <typeId> { ... }` binds `<typeId>` to a user-defined algebraic data type. Each constructor `<id>` is bound to a function type whose argument types are the constructor's binding types and whose result is the user-defined type. A nullary constructor is bound to a zero-argument function type, not directly to a value of the user-defined type; constructing the ADT value requires an explicit call.
+
+Generics in `typedef` are not supported in the current version of the language. Every `<typeId>` mentioned inside a `typedef`'s constructor bindings must resolve to a primitive type or to another `typedef` in the global environment; a `<typeId>` that would otherwise be inferred as a generic type variable is rejected at compile time as a type error. This restriction is intended to be lifted in a future version of the language, at which point `typedef`s will become parameterized type constructors and constructors will receive polymorphic types. Until then, polymorphic data structures (e.g. `Option`, `List`, `Pair`) cannot be expressed as `typedef`s; programs that need them must either monomorphize manually (one `typedef` per concrete element type) or wait for the extension.
 - A `fn <id>(<binding>, ...) -> <type> { ... }` binds `<id>` to the corresponding function type.
 
-When the type system encounters a `<typeId>` in a `<type>` annotation, it looks it up in the global environment. If a `typedef` of that name exists, the annotation refers to that user-defined type. If no such `typedef` exists, the `<typeId>` is automatically assumed to be a generic type variable; no explicit quantifier is required. Within a single definition, every occurrence of the same `<typeId>` refers to the same generic variable, and distinct `<typeId>`s refer to distinct generic variables.
+No name collisions are permitted in the global environment. Every `<typeId>` introduced by a `typedef`, every constructor `<id>` introduced by a `typedef` arm, and every `<id>` introduced by an `fn` definition must be distinct. Type names and value names share a single global namespace: a program that introduces the same name twice, whether as two `typedef`s, two functions, two constructors (across any `typedef`s), or any combination of these, is rejected at compile time.
+
+When the type system encounters a `<typeId>` in a `<type>` annotation, it looks it up in the global environment. If a `typedef` of that name exists, the annotation refers to that user-defined type. If no such `typedef` exists, the `<typeId>` is automatically assumed to be a generic type variable; no explicit quantifier is required. Within a single definition, every occurrence of the same `<typeId>` refers to the same generic variable, and distinct `<typeId>`s refer to distinct generic variables. (As noted above, this implicit-generic rule does *not* apply inside `typedef` constructor bindings, where every `<typeId>` must resolve to a concrete type.)
 
 For example, in
 ```
@@ -235,6 +239,16 @@ fn id(x: A) -> A { return x; }
 fn const(x: A, y: B) -> A { return x; }
 ```
 `A` and `B` are generic because no `typedef A` or `typedef B` exists; `id` is a single-argument function from `A` to `A`, and `const` is a two-argument function from `(A, B)` to `A`. By contrast, if `typedef A { ... }` is present, then `A` in a function signature refers to that concrete type rather than a generic.
+
+Note that constructor names are `<id>`s, which are lowercase-leading; `<typeId>` is reserved for the type itself. This is inverted from the ML convention.
+
+Russell uses Hindley-Milner let-polymorphism. The type variables of a definition are universally quantified over its whole signature, and each use site of the definition is given a fresh instantiation of those quantifiers. The same definition may therefore be used at multiple instantiations within a single program: for instance, `id` above may be called as `id(3)` (instantiating `A` to `Int`) and `id(true)` (instantiating `A` to `Bool`) in the same program. Instantiation is inferred from the surrounding context; no explicit type-application syntax is required.
+
+Polymorphism is preserved across `let` bindings. If `let f = id;` appears in a function body, `f` is bound to a polymorphic value of type `A -> A` (with `A` fresh per use), and may itself be applied at multiple types within its scope. By contrast, names introduced by function parameters and closure parameters are monomorphic within their scope: a parameter `x: A` stands for a single fixed (though possibly still unknown) type throughout the body in which it is bound. This is the standard HM stratification: generalization occurs at top-level definitions and at `let`, but not at lambda-bound names.
+
+As a consequence, Russell does not support first-class polymorphism: a function parameter whose declared type is generic receives a single instantiation chosen by the caller, and the function body cannot use that argument at two different types. Polymorphic recursion (a recursive call to a generic function at a different instantiation than the enclosing definition was given) is likewise not supported.
+
+The compiler implements polymorphism by monomorphization: for every distinct instantiation of a generic definition that appears in the program, a separate specialized copy of that definition is generated. There is no single runtime-polymorphic value for a generic function; each instantiation is a distinct compiled function. A program in which the type variables of some use site cannot be resolved to concrete types after inference is a type error.
 
 The typing rules for expressions are:
 - An `<integer>` has type `Int`. A `<float>` has type `Float`. A `<bool>` has type `Bool`.
@@ -256,6 +270,8 @@ The typing rules for statements are:
 - `read <type> <id>;` requires `<type>` to be one of `Int`, `Float`, or `Bool`, and extends the current environment with `<id>` bound to `<type>`.
 - `echo <type> <expr>;` requires `<expr>` to have type `<type>`.
 - `return <expr>;` requires `<expr>` to have the enclosing function's declared return type.
+
+Every execution path through a function body must reach a `return` statement. A function whose body can finish without executing a `return` is rejected as a type error at compile time; control is never permitted to fall off the end of a function. A `return` does not need to be the textually last statement; any statements following it in the same block are unreachable dead code, which is permitted but never executed.
 
 A program is well-typed if every definition's body type-checks against its declared signature. The entry point `main` must have type `() -> Int`.
 
