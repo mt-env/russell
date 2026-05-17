@@ -138,7 +138,9 @@ Integers, floats, and booleans are in their canonical form.
 
 Identifiers will be replaced by the value they represent, stored in the current environment.
 
-A closure represents a function with a single argument. It captures the environment at the time of creation, and thus its sub-expression may reference variables in the enclosing environment.
+A closure is written `fn ( <binding> ) -> <expr>` and represents an anonymous function. As reflected in the grammar, a closure takes exactly one parameter (a single `<binding>`) and has an expression body, not a block: the body is a single `<expr>` whose value is the closure's return value, with no statements, no `return` keyword, and no surrounding braces. This is intentionally distinct from a named function definition, which takes a comma-separated list of bindings and a block body of one or more statements terminated by a `return`. A closure captures the environment at the time of its creation, and its body may reference variables in the enclosing environment.
+
+To express the effect of a multi-argument anonymous function, a closure must be curried by hand: `fn (x: A) -> fn (y: B) -> <expr>` is a closure of type `A -> (B -> C)` and must be applied one argument at a time, since each `(<expr>)` application accepts exactly one argument when the callee is a closure.
 
 Expressions of the form `- <A>` will evaluate to an expression equivalent to `0 - <A>`. Expressions of the form `! <B>` will evaluate to an expression equivalent to `if <B> then false else true`.
 
