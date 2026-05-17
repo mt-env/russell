@@ -133,6 +133,19 @@ A statement of the form `echo <type> <expr>;` evaluates `<expr>` and prints the 
 
 A statement of the form `return <expr>;` evaluates `<expr>` and returns the result as the value of the enclosing function. All remaining statements in the function are not executed.
 
+=== Scoping
+Russell has two scopes: the global environment, populated by top-level definitions, and a local environment per function activation, populated by parameters and `let`/`read` bindings.
+
+Within a function body, bindings introduced by `let <id> = <expr>;` and `read <type> <id>;` are visible only to statements that textually follow them in the same block; statements before the binding cannot reference `<id>`. A binding's right-hand side is evaluated in the environment that existed before the binding statement, so `let x = x;` refers to whatever `x` (if any) was already in scope, not to the `x` being introduced.
+
+A `let` or `read` binding may shadow any earlier binding of the same `<id>`, including a function parameter or a previous `let`/`read` in the same body. After the shadowing binding, the inner name resolves to the new value; the outer binding is not destroyed but is hidden for the remainder of the block, and is not recoverable. (Note that the global environment is not subject to shadowing: see the no-name-collisions rule for global definitions.)
+
+A `match` expression introduces a fresh local sub-scope for each arm. The arm's `<binding>`s are added to the current local environment and are visible only inside that arm's body `<expr>`; they go out of scope as soon as the arm finishes evaluating, and are not visible in sibling arms or in any statement following the `match`. Arm bindings may shadow names from the enclosing local environment, following the same rules as `let`/`read`. Closures created inside a `fn (...) -> <expr>` similarly form their own sub-scope: the closure's parameter is in scope only inside its body.
+
+The global environment is populated all at once before any function executes, so top-level functions may be mutually recursive: a function may freely call any other top-level function (or itself) regardless of source-file order. The same holds for constructors and `typedef` references in signatures.
+
+Russell has no global variables: the global environment contains only function, constructor, and type names introduced by top-level definitions, and there is no top-level `let`. Closures therefore have no globals to "close over"; they capture only the local environment of the enclosing function. References to top-level names from inside a closure are resolved by ordinary lookup in the global environment at the time the closure runs.
+
 === Expressions
 Integers, floats, and booleans are in their canonical form.
 
