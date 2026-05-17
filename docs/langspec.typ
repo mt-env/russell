@@ -55,6 +55,7 @@ Russell has the following reserved symbols:
 ;
 <
 <=
+=
 ==
 >
 >=
@@ -67,6 +68,8 @@ Russell has the following reserved symbols:
 == Syntax
 A Russell program is a list of definitions, and obeys the following grammar.
 ```
+<program> ::= <defn>, ...
+
 <defn> ::= typedef <typeId> { <id> ( <binding> , ... ) , ... }
          | fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
 
@@ -147,22 +150,22 @@ Expressions of the form `<B>(<A>, ...)` will evaluate to:
 
 Expressions of the form `<A> + <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the integer `<A> + <B>`
-- If `<A>` and `<B>` both evaluate to floats, the integer `<A> + <B>`
+- If `<A>` and `<B>` both evaluate to floats, the float `<A> + <B>`
 - Otherwise, the expression will cause a type error.
 
 Expressions of the form `<A> - <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the integer `<A> - <B>`
-- If `<A>` and `<B>` both evaluate to floats, the integer `<A> - <B>`
+- If `<A>` and `<B>` both evaluate to floats, the float `<A> - <B>`
 - Otherwise, the expression will cause a type error.
 
 Expressions of the form `<A> * <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the integer `<A> * <B>`
-- If `<A>` and `<B>` both evaluate to floats, the integer `<A> * <B>`
+- If `<A>` and `<B>` both evaluate to floats, the float `<A> * <B>`
 - Otherwise, the expression will cause a type error.
 
 Expressions of the form `<A> / <B>` are:
 - If `<A>` and `<B>` both evaluate to integers, the integer `<A> / <B>`
-- If `<A>` and `<B>` both evaluate to floats, the integer `<A> / <B>`
+- If `<A>` and `<B>` both evaluate to floats, the float `<A> / <B>`
 - Otherwise, the expression will cause a type error.
 
 Expressions of the form `<A> |> <B>` are evaluated by first evaluating `<B>` to a value, then applying that value to `<A>` as its sole argument. In other words, `<A> |> <B>` is equivalent to `<B>(<A>)` where `<B>` is itself an arbitrary expression that is evaluated before the call, not a syntactic insertion of `<A>` into `<B>`'s argument list. As a consequence:
@@ -256,19 +259,23 @@ The typing rules for statements are:
 
 A program is well-typed if every definition's body type-checks against its declared signature. The entry point `main` must have type `() -> Int`.
 
-=== Binary Operators
-The grammar contains a variety of binary operators. All binary expressions are left-associative (i.e., `+`, `-`, `*`, `/`, `<`, `<=`, `>`, `>=`, `==`, `!=`, `||`, `&&`, `|>`). Function type annotations (`->`) are right-associative.
+=== Operator Precedence and Associativity
+All binary expressions are left-associative (i.e., `+`, `-`, `*`, `/`, `<`, `<=`, `>`, `>=`, `==`, `!=`, `||`, `&&`, `|>`). Function type annotations (`->`) are right-associative. The unary operators `-` and `!` are prefix and bind tighter than any binary operator but looser than function application.
 
-The precedence of binary expressions follows the below chart.
+`if`, `match`, and closure (`fn (...) -> <expr>`) expressions extend as far to the right as possible: their trailing sub-expression greedily consumes any following operators, so they sit below all binary operators in precedence and must be parenthesized to appear as an operand of a binary operator.
+
+The precedence of expressions follows the below chart.
 #table(
   columns: 3,
   [*Level*], [*Operators*], [*Notes*],
-  [8 (highest)], [`f(...)`], [function call (postfix)],
+  [9 (highest)], [`f(...)`], [function call (postfix)],
+  [8], [unary `-`, `!`], [prefix],
   [7], [`*`, `/`], [multiplicative],
   [6], [`+`, `-`], [additive],
   [5], [`<`, `<=`, `>`, `>=`], [relational],
   [4], [`==`, `!=`], [equality],
   [3], [`&&`], [logical and],
   [2], [`||`], [logical or],
-  [1 (lowest)], [`|>`], [pipe],
+  [1], [`|>`], [pipe],
+  [0 (lowest)], [`if`, `match`, `fn`], [trailing-expression forms],
 )
