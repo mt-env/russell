@@ -8,7 +8,7 @@ use crate::frontend::parser::Parser;
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_stmnt(parser: &mut Parser) -> ParseResult<ParsedStmt> {
+pub(super) fn parse_stmnt<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     match parser.peek().kind() {
         TokenKind::Let => parse_let(parser),
         TokenKind::Read => parse_read(parser),
@@ -21,7 +21,7 @@ pub(super) fn parse_stmnt(parser: &mut Parser) -> ParseResult<ParsedStmt> {
     }
 }
 
-fn parse_let(parser: &mut Parser) -> ParseResult<ParsedStmt> {
+fn parse_let<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     parser.expect(TokenKind::Let)?;
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Assign)?;
@@ -30,7 +30,7 @@ fn parse_let(parser: &mut Parser) -> ParseResult<ParsedStmt> {
     Ok(ParsedStmt::Let(id, expr))
 }
 
-fn parse_read(parser: &mut Parser) -> ParseResult<ParsedStmt> {
+fn parse_read<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     parser.expect(TokenKind::Read)?;
     let read_type = parse_type(parser)?;
     let id = parser.expect_id()?;
@@ -38,7 +38,7 @@ fn parse_read(parser: &mut Parser) -> ParseResult<ParsedStmt> {
     Ok(ParsedStmt::Read(read_type, id))
 }
 
-fn parse_echo(parser: &mut Parser) -> ParseResult<ParsedStmt> {
+fn parse_echo<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     parser.expect(TokenKind::Echo)?;
     let echo_type = parse_type(parser)?;
     let expr = parse_expr(parser)?;
@@ -46,7 +46,7 @@ fn parse_echo(parser: &mut Parser) -> ParseResult<ParsedStmt> {
     Ok(ParsedStmt::Echo(echo_type, expr))
 }
 
-fn parse_return(parser: &mut Parser) -> ParseResult<ParsedStmt> {
+fn parse_return<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     parser.expect(TokenKind::Return)?;
     let expr = parse_expr(parser)?;
     parser.expect(TokenKind::Semicolon)?;

@@ -6,7 +6,7 @@ use crate::frontend::parser::Parser;
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_type(parser: &mut Parser) -> ParseResult<Type> {
+pub(super) fn parse_type<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
     // parse an atomic type
     let l_type = match parser.expect_many(&[
         TokenKind::IntType,
@@ -32,14 +32,14 @@ pub(super) fn parse_type(parser: &mut Parser) -> ParseResult<Type> {
     Ok(l_type)
 }
 
-pub(super) fn parse_binding(parser: &mut Parser) -> ParseResult<Binding> {
+pub(super) fn parse_binding<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, Binding<'a>> {
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Colon)?;
     let id_type = parse_type(parser)?;
     Ok(Binding::new(id, id_type))
 }
 
-pub(super) fn parse_binding_list(parser: &mut Parser) -> ParseResult<Vec<Binding>> {
+pub(super) fn parse_binding_list<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, Vec<Binding<'a>>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut bindings = Vec::new();

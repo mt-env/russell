@@ -181,7 +181,7 @@ impl Display for Type<'_> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Binding<'a> {
-    pub id: String,
+    pub id: &'a str,
     pub typ: Type<'a>,
 }
 
@@ -192,7 +192,7 @@ impl Display for Binding<'_> {
 }
 
 impl Binding<'_> {
-    pub fn new(id: String, typ: Type) -> Binding {
+    pub fn new<'a>(id: &'a str, typ: Type<'a>) -> Binding<'a> {
         Binding { id, typ }
     }
 }
