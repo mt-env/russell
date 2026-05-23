@@ -1,0 +1,71 @@
+// stress test for Hindley-Milner let-polymorphism.
+// every call site below requires a fresh instantiation of some
+// generic definition; a monomorphic checker, or one that forgets
+// to generalize at `let`, will reject this program.
+
+fn id(x: A) -> A {
+    return x;
+}
+
+fn const(x: A, y: B) -> A {
+    return x;
+}
+
+fn apply(f: A -> B, x: A) -> B {
+    return f(x);
+}
+
+fn compose(f: B -> C, g: A -> B, x: A) -> C {
+    return f(g(x));
+}
+
+fn inc(x: Int) -> Int {
+    return x + 1;
+}
+
+fn not(b: Bool) -> Bool {
+    return !b;
+}
+
+fn main() -> Int {
+    // (1) `id` used at two distinct instantiations: Int -> Int and Bool -> Bool.
+    echo Int id(1);
+    echo Bool id(true);
+
+    // (2) self-application id(id): the inner `id` is instantiated at some A -> A,
+    //     forcing the outer `id` to be instantiated at (A -> A) -> (A -> A).
+    //     a monomorphic system can't type this.
+    echo Int id(id)(7);
+    echo Bool id(id)(false);
+
+    // (3) let-generalization: `i` is bound to a polymorphic value and reused
+    //     at Int, Bool, AND a function type within the same scope.
+    let i = id;
+    echo Int i(2);
+    echo Bool i(true);
+    echo Int i(i)(3);
+
+    // (4) `const` instantiated with mixed argument types in the same call.
+    //     A := Int, B := Bool here; a second call picks different types.
+    echo Int const(10, true);
+    echo Bool const(false, 99);
+
+    // (5) higher-order generics: `apply` instantiated at (Int -> Int, Int)
+    //     and (Bool -> Bool, Bool) in adjacent statements.
+    echo Int apply(inc, 5);
+    echo Bool apply(not, false);
+
+    // (6) `compose` with three independent type variables, instantiated twice.
+    //     compose(inc, inc, 0) :: A=B=C=Int.
+    //     compose(not, id, true) :: A=Bool, B=Bool, C=Bool, where `id` itself
+    //     must be instantiated at Bool -> Bool to satisfy `g`.
+    echo Int compose(inc, inc, 0);
+    echo Bool compose(not, id, true);
+
+    // (7) let-bound generic used through the pipe operator at two types.
+    let f = id;
+    echo Int 100 |> f;
+    echo Bool true |> f;
+
+    return 0;
+}

@@ -1,0 +1,24 @@
+// factorial computed two ways: direct recursion and an accumulator-passing
+// helper. both are tail-shaped variants of the same computation
+
+fn fact(n: Int) -> Int {
+    return if n <= 1 then 1 else n * fact(n - 1);
+}
+
+fn fact_acc(n: Int, acc: Int) -> Int {
+    return if n <= 1 then acc else fact_acc(n - 1, n * acc);
+}
+
+// guard negative inputs: returns -1 for n < 0, else fact(n)
+fn safe_fact(n: Int) -> Int {
+    return if n < 0 then -1 else fact(n);
+}
+
+fn main() -> Int {
+    read Int n;
+
+    echo Int safe_fact(n);
+    echo Int fact_acc(n, 1);
+
+    return 0;
+}
