@@ -1,9 +1,9 @@
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
-pub enum Token {
+pub enum Token<'a> {
     // primitive values
-    Id(String),
+    Id(&'a str),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -168,18 +168,18 @@ impl Display for TokenKind {
 }
 
 #[derive(Debug, Clone)]
-pub struct SpannedToken {
-    pub token: Token,
+pub struct SpannedToken<'a> {
+    pub token: Token<'a>,
     pub offset: usize,
 }
 
-impl SpannedToken {
+impl SpannedToken<'_> {
     pub fn kind(&self) -> TokenKind {
         self.token.kind()
     }
 }
 
-impl Token {
+impl Token<'_> {
     pub fn kind(&self) -> TokenKind {
         match self {
             Token::Id(_) => TokenKind::Id,
