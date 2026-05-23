@@ -141,7 +141,7 @@ fn keyword_prefix_is_identifier() {
     let toks = tokens("letters");
     assert_eq!(toks[0].kind(), TokenKind::Id);
     match &toks[0] {
-        Token::Id(s) => assert_eq!(s, "letters"),
+        Token::Id(s) => assert_eq!(*s, "letters"),
         other => panic!("expected Id, got {:?}", other),
     }
 }
@@ -161,7 +161,7 @@ fn keyword_with_suffix_is_identifier() {
 fn simple_identifier() {
     let toks = tokens("foo");
     match &toks[0] {
-        Token::Id(s) => assert_eq!(s, "foo"),
+        Token::Id(s) => assert_eq!(*s, "foo"),
         other => panic!("expected Id, got {:?}", other),
     }
 }
@@ -170,7 +170,7 @@ fn simple_identifier() {
 fn identifier_with_underscores() {
     let toks = tokens("my_var_name");
     match &toks[0] {
-        Token::Id(s) => assert_eq!(s, "my_var_name"),
+        Token::Id(s) => assert_eq!(*s, "my_var_name"),
         other => panic!("expected Id, got {:?}", other),
     }
 }
@@ -179,7 +179,7 @@ fn identifier_with_underscores() {
 fn identifier_with_digits() {
     let toks = tokens("x2");
     match &toks[0] {
-        Token::Id(s) => assert_eq!(s, "x2"),
+        Token::Id(s) => assert_eq!(*s, "x2"),
         other => panic!("expected Id, got {:?}", other),
     }
 }
@@ -197,7 +197,7 @@ fn builtin_type_keywords() {
 fn custom_type_identifier() {
     let toks = tokens("MyType");
     match &toks[0] {
-        Token::TypeId(s) => assert_eq!(s, "MyType"),
+        Token::TypeId(s) => assert_eq!(*s, "MyType"),
         other => panic!("expected TypeId, got {:?}", other),
     }
 }
@@ -207,7 +207,7 @@ fn type_id_stops_at_non_alpha() {
     // type identifiers only consume alphabetic chars, not digits or underscores
     let toks = tokens("Vec2");
     match &toks[0] {
-        Token::TypeId(s) => assert_eq!(s, "Vec"),
+        Token::TypeId(s) => assert_eq!(*s, "Vec"),
         other => panic!("expected TypeId, got {:?}", other),
     }
     assert!(matches!(toks[1], Token::Int(2)));

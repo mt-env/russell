@@ -117,53 +117,8 @@ pub enum TokenKind {
 }
 
 impl Display for TokenKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let pretty_print = match &self {
-            TokenKind::Id => todo!(),
-            TokenKind::Int => todo!(),
-            TokenKind::Float => todo!(),
-            TokenKind::Bool => todo!(),
-            TokenKind::Echo => todo!(),
-            TokenKind::Else => todo!(),
-            TokenKind::Fn => todo!(),
-            TokenKind::If => todo!(),
-            TokenKind::Let => todo!(),
-            TokenKind::Match => todo!(),
-            TokenKind::Read => todo!(),
-            TokenKind::Return => todo!(),
-            TokenKind::Then => todo!(),
-            TokenKind::Typedef => todo!(),
-            TokenKind::IntType => todo!(),
-            TokenKind::FloatType => todo!(),
-            TokenKind::BoolType => todo!(),
-            TokenKind::TypeId => todo!(),
-            TokenKind::LParen => todo!(),
-            TokenKind::RParen => todo!(),
-            TokenKind::Comma => todo!(),
-            TokenKind::Arrow => todo!(),
-            TokenKind::Colon => todo!(),
-            TokenKind::Semicolon => todo!(),
-            TokenKind::LBrace => todo!(),
-            TokenKind::RBrace => todo!(),
-            TokenKind::Assign => todo!(),
-            TokenKind::Not => todo!(),
-            TokenKind::NotEq => todo!(),
-            TokenKind::And => todo!(),
-            TokenKind::Times => todo!(),
-            TokenKind::Plus => todo!(),
-            TokenKind::Minus => todo!(),
-            TokenKind::Divide => todo!(),
-            TokenKind::LessThan => todo!(),
-            TokenKind::LessThanOrEq => todo!(),
-            TokenKind::Eq => todo!(),
-            TokenKind::GreaterThan => todo!(),
-            TokenKind::GreaterThanOrEq => todo!(),
-            TokenKind::Pipe => todo!(),
-            TokenKind::Or => todo!(),
-            TokenKind::Invalid => todo!(),
-            TokenKind::EoF => todo!(),
-        };
-        write!(f, "{}", pretty_print)
+    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }
 

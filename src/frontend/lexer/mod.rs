@@ -167,7 +167,7 @@ fn read_ident(program: &str) -> (Token, &str) {
         }
     }
 
-    (Token::Id(ident.to_string()), rest)
+    (Token::Id(ident), rest)
 }
 
 fn read_type_ident(program: &str) -> (Token, &str) {
@@ -189,5 +189,5 @@ fn read_type_ident(program: &str) -> (Token, &str) {
         }
     }
 
-    (Token::TypeId(ident.to_string()), rest)
+    (Token::TypeId(ident), rest)
 }
