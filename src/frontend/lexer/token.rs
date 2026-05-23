@@ -24,7 +24,7 @@ pub enum Token<'a> {
     IntType,
     FloatType,
     BoolType,
-    TypeId(String),
+    TypeId(&'a str),
 
     // punctuation
     LParen,
