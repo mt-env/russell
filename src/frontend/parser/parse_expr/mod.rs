@@ -36,11 +36,11 @@ impl Precedence {
     }
 }
 
-pub(super) fn parse_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+pub(super) fn parse_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parse_expr_prec(parser, Precedence::NotBinOp)
 }
 
-fn parse_expr_prec<'a>(parser: &'a mut Parser<'a>, min_prec: Precedence) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_expr_prec<'a>(parser: &mut Parser<'a>, min_prec: Precedence) -> ParseResult<'a, ParsedExpr<'a>> {
     let mut left = parse_null_denotation(parser)?;
 
     loop {
@@ -65,7 +65,7 @@ fn parse_expr_prec<'a>(parser: &'a mut Parser<'a>, min_prec: Precedence) -> Pars
 }
 
 // Null denotation: atoms and prefix operators.
-fn parse_null_denotation<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_null_denotation<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     match parser.peek().kind() {
         TokenKind::Int | TokenKind::Float | TokenKind::Bool | TokenKind::Id => parse_atom_expr(parser),
         TokenKind::Minus | TokenKind::Not => parse_unary_expr(parser),
@@ -91,7 +91,7 @@ fn parse_null_denotation<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, Pars
     }
 }
 
-fn parse_atom_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_atom_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     match parser.peek().kind() {
         TokenKind::Int => Ok(Expr::parsed(ExprKind::Int(parser.expect_int()?))),
         TokenKind::Float => Ok(Expr::parsed(ExprKind::Float(parser.expect_float()?))),
@@ -101,7 +101,7 @@ fn parse_atom_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr
     }
 }
 
-fn parse_unary_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     match parser.advance().token {
         Token::Minus => Ok(Expr::parsed(ExprKind::Neg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)))),
         Token::Not => Ok(Expr::parsed(ExprKind::Bang(Box::new(parse_expr_prec(parser, Precedence::Mult)?)))),
@@ -109,7 +109,7 @@ fn parse_unary_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExp
     }
 }
 
-fn parse_paren_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_paren_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parser.expect(TokenKind::LParen)?;
     let e = parse_expr(parser)?;
     parser.expect(TokenKind::RParen)?;
@@ -117,7 +117,7 @@ fn parse_paren_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExp
 }
 
 // fn ( <binding> ) -> <expr>
-fn parse_closure_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_closure_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parser.expect(TokenKind::Fn)?;
     parser.expect(TokenKind::LParen)?;
     let binding = parse_binding(parser)?;
@@ -128,7 +128,7 @@ fn parse_closure_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedE
 }
 
 // if <cond> then <then_branch> else <else_branch>
-fn parse_if_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_if_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parser.expect(TokenKind::If)?;
     let cond = parse_expr(parser)?;
     parser.expect(TokenKind::Then)?;
@@ -139,7 +139,7 @@ fn parse_if_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
 }
 
 // match <expr> { <id>(<binding>, ...) -> <expr>, ... }
-fn parse_match_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_match_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parser.expect(TokenKind::Match)?;
     let scrutinee = parse_expr(parser)?;
     parser.expect(TokenKind::LBrace)?;
@@ -149,7 +149,7 @@ fn parse_match_expr<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedExp
 }
 
 // <left>( <expr>, ... )
-fn parse_call_expr<'a>(parser: &'a mut Parser<'a>, left: ParsedExpr<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_call_expr<'a>(parser: &mut Parser<'a>, left: ParsedExpr<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut args = Vec::new();
@@ -168,7 +168,7 @@ fn parse_call_expr<'a>(parser: &'a mut Parser<'a>, left: ParsedExpr<'a>) -> Pars
 
 // parse match arms: <id>(<binding>, ...) -> <expr>, ...
 // arms are comma-separated and end at '}'.
-fn parse_match_arms<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, Vec<(&'a str, Vec<Binding<'a>>, ParsedExpr<'a>)>> {
+fn parse_match_arms<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<(&'a str, Vec<Binding<'a>>, ParsedExpr<'a>)>> {
     let mut arms = Vec::new();
 
     while parser.peek().kind() != TokenKind::RBrace {

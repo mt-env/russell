@@ -8,7 +8,7 @@ use crate::frontend::parser::Parser;
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_defn<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+pub(super) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     match parser.peek().kind() {
         TokenKind::Fn => parse_fndef(parser),
         TokenKind::Typedef => parse_typedef(parser),
@@ -18,7 +18,7 @@ pub(super) fn parse_defn<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, Pars
 
 /// Parses a type definition:
 /// typedef <typeId> { <id>(<binding, ...), ... }
-fn parse_typedef<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     // parse the declaration
     parser.expect(TokenKind::Typedef)?;
     let name = parser.expect_typeid()?;
@@ -41,7 +41,7 @@ fn parse_typedef<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'
 
 /// Parses a function definition:
 /// fn <id>(<binding>, ...) -> <type> { <stmnt>, ... };
-fn parse_fndef<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     // parse the function header (identifier, bindings, return type)
     parser.expect(TokenKind::Fn)?;
     let header = parse_fn_sig(parser)?;
@@ -67,7 +67,7 @@ fn parse_fndef<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>
 /// Parse a function signature: <id>(<binding>, ...)
 /// Returns the ID and a list of bindings if successful.
 /// Returns an error otherwise.
-fn parse_fn_sig<'a>(parser: &'a mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<Binding<'a>>)> {
+fn parse_fn_sig<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<Binding<'a>>)> {
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))
