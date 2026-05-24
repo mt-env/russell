@@ -1,6 +1,8 @@
-use crate::frontend::{parser::ast::ParsedExpr, typechecker::types::TypedExpr};
+use crate::frontend::typechecker::types::TypeValue;
+use crate::frontend::parser::ast::Expr;
+use crate::frontend::parser::ast::ParsedExpr;
 
 
-pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypedExpr {
+pub(super) fn typecheck_expr(expr: ParsedExpr) -> Expr<TypeValue> {
     todo!()
 }
