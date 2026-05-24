@@ -10,7 +10,7 @@ mod types;
 pub fn interp(defns: Vec<ParsedDefn>) {
     let global_env = process_global_env(defns);
     let main_call = Expr::parsed(ExprKind::Call(
-        Box::new(Expr::parsed(ExprKind::Id("main".to_string()))),
+        Box::new(Expr::parsed(ExprKind::Id("main"))),
         Vec::new(),
     ));
     interp_expr::interp_expr(&main_call, global_env);

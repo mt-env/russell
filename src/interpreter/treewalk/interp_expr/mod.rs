@@ -5,7 +5,7 @@ use crate::{
     interpreter::treewalk::{Env, interp_fn::interp_fn, types::Value},
 };
 
-pub(super) fn interp_expr(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+pub(super) fn interp_expr<'a>(expr: &'a ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &expr.kind {
         ExprKind::Int(num) => Value::Int(*num).into(),
         ExprKind::Float(num) => Value::Float(*num).into(),
@@ -33,14 +33,14 @@ pub(super) fn interp_expr(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn interp_id(id: &String, env: Rc<Env>) -> Rc<Value> {
+fn interp_id<'a>(id: &'a str, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match env.lookup(id) {
         Some(val) => Rc::clone(&val),
         None => panic!("FATAL ERROR: unbound identifier {id}"),
     }
 }
 
-fn interp_neg(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+fn interp_neg<'a>(expr: &'a ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(expr, env) {
         Value::Int(num) => Value::Int(-num).into(),
         Value::Float(num) => Value::Float(-num).into(),
@@ -48,14 +48,14 @@ fn interp_neg(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn interp_bang(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+fn interp_bang<'a>(expr: &'a ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(expr, env) {
         Value::Bool(val) => Value::Bool(!val).into(),
         val => panic!("FATAL ERROR: expected boolean value, found {val:?}"),
     }
 }
 
-fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<Rc<Value>>) -> Rc<Env> {
+fn bind_args<'a>(env: Rc<Env<'a>>, params: Vec<&'a Binding<'a>>, args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
     if params.len() != args.len() {
         panic!("FATAL ERROR: expected {} arguments, found {}", params.len(), args.len());
     }
@@ -68,7 +68,7 @@ fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<Rc<Value>>) -> Rc<En
     local_env
 }
 
-fn interp_call(func: &ParsedExpr, args: Vec<&ParsedExpr>, env: Rc<Env>) -> Rc<Value> {
+fn interp_call<'a>(func: &'a ParsedExpr<'a>, args: Vec<&'a ParsedExpr<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
@@ -103,13 +103,13 @@ fn interp_call(func: &ParsedExpr, args: Vec<&ParsedExpr>, env: Rc<Env>) -> Rc<Va
     }
 }
 
-fn interp_arith_binop(
-    left: &ParsedExpr,
-    right: &ParsedExpr,
-    env: Rc<Env>,
+fn interp_arith_binop<'a>(
+    left: &'a ParsedExpr<'a>,
+    right: &'a ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
     int_op: fn(i64, i64) -> i64,
     float_op: fn(f64, f64) -> f64,
-) -> Rc<Value> {
+) -> Rc<Value<'a>> {
     let left_val = interp_expr(left, Rc::clone(&env));
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
@@ -119,13 +119,13 @@ fn interp_arith_binop(
     }
 }
 
-fn interp_cmp_binop(
-    left: &ParsedExpr,
-    right: &ParsedExpr,
-    env: Rc<Env>,
+fn interp_cmp_binop<'a>(
+    left: &'a ParsedExpr<'a>,
+    right: &'a ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
     int_op: fn(i64, i64) -> bool,
     float_op: fn(f64, f64) -> bool,
-) -> Rc<Value> {
+) -> Rc<Value<'a>> {
     let left_val = interp_expr(left, Rc::clone(&env));
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
@@ -135,7 +135,7 @@ fn interp_cmp_binop(
     }
 }
 
-fn interp_if(cond: &ParsedExpr, then_expr: &ParsedExpr, else_expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+fn interp_if<'a>(cond: &'a ParsedExpr<'a>, then_expr: &'a ParsedExpr<'a>, else_expr: &'a ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     let cond_val = interp_expr(cond, Rc::clone(&env));
     match &*cond_val {
         Value::Bool(true) => interp_expr(then_expr, env),
@@ -144,7 +144,7 @@ fn interp_if(cond: &ParsedExpr, then_expr: &ParsedExpr, else_expr: &ParsedExpr, 
     }
 }
 
-fn interp_match(expr: &ParsedExpr, arms: &Vec<(String, Vec<Binding>, ParsedExpr)>, env: Rc<Env>) -> Rc<Value> {
+fn interp_match<'a>(expr: &'a ParsedExpr<'a>, arms: &'a Vec<(&'a str, Vec<Binding<'a>>, ParsedExpr<'a>)>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
     let Value::Adt(adt_type, constructor, fields) = &*expr_val else {
