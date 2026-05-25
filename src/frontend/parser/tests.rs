@@ -44,8 +44,8 @@ fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0], Defn::Typedef(name, ..) if name == "Color"));
-    assert!(matches!(&defns[1], Defn::Fn(name, ..) if name == "main"));
+    assert!(matches!(&defns[0], Defn::Typedef(name, ..) if *name == "Color"));
+    assert!(matches!(&defns[1], Defn::Fn(name, ..) if *name == "main"));
 }
 
 #[test]
@@ -56,9 +56,9 @@ fn parse_multiple_fns() {
         fn baz() -> Int { return 3; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 3);
-    assert!(matches!(&defns[0], Defn::Fn(name, ..) if name == "foo"));
-    assert!(matches!(&defns[1], Defn::Fn(name, ..) if name == "bar"));
-    assert!(matches!(&defns[2], Defn::Fn(name, ..) if name == "baz"));
+    assert!(matches!(&defns[0], Defn::Fn(name, ..) if *name == "foo"));
+    assert!(matches!(&defns[1], Defn::Fn(name, ..) if *name == "bar"));
+    assert!(matches!(&defns[2], Defn::Fn(name, ..) if *name == "baz"));
 }
 
 #[test]
@@ -70,8 +70,8 @@ fn parse_typedef_then_fn_using_it() {
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0], Defn::Typedef(name, ctors) if name == "Option" && ctors.len() == 2));
-    assert!(matches!(&defns[1], Defn::Fn(name, ..) if name == "unwrap"));
+    assert!(matches!(&defns[0], Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2));
+    assert!(matches!(&defns[1], Defn::Fn(name, ..) if *name == "unwrap"));
 }
 
 // ─── peek ───────────────────────────────────────────────────────────

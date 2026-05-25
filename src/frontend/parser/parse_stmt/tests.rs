@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{Expr, ExprKind, ParsedExpr, ParsedStmt, Stmt, Type};
+use crate::frontend::parser::ast::{Expr, ExprKind, ParsedStmt, Stmt, Type};
 
 fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
