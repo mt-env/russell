@@ -12,8 +12,8 @@ pub(super) enum Env<'a> {
     },
 }
 
-impl Env<'_> {
-    pub(super) fn extend<'a>(curr: Rc<Env<'a>>, id: &'a str, val: Rc<Value<'a>>) -> Rc<Env<'a>> {
+impl<'a> Env<'a> {
+    pub(super) fn extend(curr: Rc<Env<'a>>, id: &'a str, val: Rc<Value<'a>>) -> Rc<Env<'a>> {
         let global = curr.global();
         Env::Local {
             global,
@@ -29,7 +29,7 @@ impl Env<'_> {
         }
     }
 
-    pub(super) fn lookup(&self, key: &str) -> Option<Rc<Value>> {
+    pub(super) fn lookup(&self, key: &str) -> Option<Rc<Value<'a>>> {
         match self {
             Env::Global(map) => map.get(key).map(Rc::clone),
             Env::Local { next, binding, .. } => {

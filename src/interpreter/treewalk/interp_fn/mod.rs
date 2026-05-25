@@ -5,7 +5,7 @@ use crate::{
     interpreter::treewalk::{Env, interp_expr, types::Value},
 };
 
-pub(super) fn interp_fn<'a>(name: &'a str, stmts: Vec<&'a ParsedStmt<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+pub(super) fn interp_fn<'a>(name: &str, stmts: Vec<&'a ParsedStmt<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     let mut local_env = Rc::clone(&env);
     for stmt in stmts {
         match stmt {
@@ -38,7 +38,7 @@ fn interp_read<'a>(type_of_expr: &'a Type<'a>, id: &'a str, env: Rc<Env<'a>>) ->
     Env::extend(env, id, val.into())
 }
 
-fn interp_echo(expr: &ParsedExpr, env: Rc<Env>) {
+fn interp_echo<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) {
     let val = interp_expr::interp_expr(expr, env);
     println!("{val}");
 }
