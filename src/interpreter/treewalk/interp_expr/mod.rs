@@ -62,7 +62,7 @@ fn bind_args<'a>(env: Rc<Env<'a>>, params: Vec<&'a Binding<'a>>, args: Vec<Rc<Va
 
     let mut local_env = Rc::clone(&env);
     for (binding, arg) in params.into_iter().zip(args) {
-        local_env = Env::extend(local_env, binding.id.clone(), arg);
+        local_env = Env::extend(local_env, binding.id, arg);
     }
 
     local_env
@@ -166,7 +166,7 @@ fn interp_match<'a>(expr: &ParsedExpr<'a>, arms: &[(&'a str, Vec<Binding<'a>>, E
             let Some(field_val) = fields.get(&arm_binding.id) else {
                 panic!("FATAL ERROR: no field named {} in constructor {}", arm_binding.id, constructor);
             };
-            local_env = Env::extend(local_env, arm_binding.id.clone(), Rc::clone(field_val));
+            local_env = Env::extend(local_env, arm_binding.id, Rc::clone(field_val));
         }
         return interp_expr(arm_expr, local_env);
     }

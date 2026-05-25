@@ -17,7 +17,7 @@ pub(super) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a
         Token::IntType => Type::Int,
         Token::FloatType => Type::Float,
         Token::BoolType => Type::Bool,
-        Token::TypeId(id) => Type::TypeId(id.clone()),
+        Token::TypeId(id) => Type::TypeId(id),
         _ => unreachable!(),
     };
 
