@@ -103,8 +103,14 @@ fn parse_atom_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a
 
 fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     match parser.advance().token {
-        Token::Minus => Ok(Expr::parsed(ExprKind::Neg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)))),
-        Token::Not => Ok(Expr::parsed(ExprKind::Bang(Box::new(parse_expr_prec(parser, Precedence::Mult)?)))),
+        Token::Minus => Ok(Expr::parsed(ExprKind::Neg(Box::new(parse_expr_prec(
+            parser,
+            Precedence::Mult,
+        )?)))),
+        Token::Not => Ok(Expr::parsed(ExprKind::Bang(Box::new(parse_expr_prec(
+            parser,
+            Precedence::Mult,
+        )?)))),
         _ => unreachable!(),
     }
 }
@@ -135,7 +141,11 @@ fn parse_if_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>>
     let then_branch = parse_expr(parser)?;
     parser.expect(TokenKind::Else)?;
     let else_branch = parse_expr(parser)?;
-    Ok(Expr::parsed(ExprKind::If(Box::new(cond), Box::new(then_branch), Box::new(else_branch))))
+    Ok(Expr::parsed(ExprKind::If(
+        Box::new(cond),
+        Box::new(then_branch),
+        Box::new(else_branch),
+    )))
 }
 
 // match <expr> { <id>(<binding>, ...) -> <expr>, ... }

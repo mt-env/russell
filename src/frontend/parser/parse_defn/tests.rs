@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
-use crate::frontend::parser::ast::*;
 use crate::frontend::parser::Parser;
+use crate::frontend::parser::ast::*;
 
 fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
@@ -45,10 +45,7 @@ fn fn_two_params() {
         parse("fn add(a: Int, b: Int) -> Int { return a + b; }"),
         Defn::Fn(
             "add".into(),
-            vec![
-                Binding::new("a".into(), Type::Int),
-                Binding::new("b".into(), Type::Int),
-            ],
+            vec![Binding::new("a".into(), Type::Int), Binding::new("b".into(), Type::Int),],
             Type::Int,
             vec![Stmt::Return(Expr::parsed(ExprKind::Plus(
                 Box::new(Expr::parsed(ExprKind::Id("a".into()))),
@@ -111,10 +108,7 @@ fn fn_with_fn_type_param() {
         Defn::Fn(
             "apply".into(),
             vec![
-                Binding::new(
-                    "f".into(),
-                    Type::Fn(Box::new(Type::Int), Box::new(Type::Int))
-                ),
+                Binding::new("f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Int))),
                 Binding::new("x".into(), Type::Int),
             ],
             Type::Int,
@@ -156,10 +150,7 @@ fn fn_with_read_and_echo() {
 
 #[test]
 fn typedef_empty() {
-    assert_eq!(
-        parse("typedef Empty { }"),
-        Defn::Typedef("Empty".into(), vec![])
-    );
+    assert_eq!(parse("typedef Empty { }"), Defn::Typedef("Empty".into(), vec![]));
 }
 
 #[test]
@@ -203,10 +194,7 @@ fn typedef_constructors_with_fields() {
         Defn::Typedef(
             "Shape".into(),
             vec![
-                (
-                    "circle".into(),
-                    vec![Binding::new("r".into(), Type::Float)]
-                ),
+                ("circle".into(), vec![Binding::new("r".into(), Type::Float)]),
                 (
                     "rect".into(),
                     vec![

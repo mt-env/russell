@@ -36,7 +36,7 @@ impl From<LexError> for CompilerError<'_> {
     }
 }
 
-impl <'a> From<ParseError<'a>> for CompilerError<'a> {
+impl<'a> From<ParseError<'a>> for CompilerError<'a> {
     fn from(e: ParseError<'a>) -> Self {
         CompilerError::Parse(e)
     }

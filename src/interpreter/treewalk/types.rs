@@ -19,7 +19,8 @@ impl<'a> Env<'a> {
             global,
             next: curr,
             binding: (id, val),
-        }.into()
+        }
+        .into()
     }
 
     pub(super) fn global(self: &Rc<Self>) -> Rc<Self> {
@@ -62,16 +63,16 @@ impl Display for Value<'_> {
             Value::Bool(val) => write!(f, "{val}"),
             Value::Closure(_, binding, expr) => write!(f, "<function ({binding}) -> {expr}>"),
             Value::Constructor(name, _, fields) => {
-                let joined = fields.iter().map(
-                    |b| b.to_string()
-                ).collect::<Vec<_>>().join(", ");
+                let joined = fields.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ");
                 write!(f, "<constructor {name} {joined}>")
             }
             Value::Fn(name, _, _) => write!(f, "<function {name}>"),
             Value::Adt(adt_type, name, data) => {
-                let fields = data.iter().map(
-                    |(k, v)| format!("{k}: {v}")
-                ).collect::<Vec<_>>().join(", ");
+                let fields = data
+                    .iter()
+                    .map(|(k, v)| format!("{k}: {v}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 write!(f, "<ADT {adt_type} {name} {{{fields}}}>")
             }
         }

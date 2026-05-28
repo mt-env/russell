@@ -34,7 +34,7 @@ pub struct Parser<'a> {
     tokens: Peekable<IntoIter<SpannedToken<'a>>>,
 }
 
-impl <'a> Parser<'a> {
+impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<SpannedToken<'a>>) -> Self {
         Parser {
             tokens: tokens.into_iter().peekable(),
@@ -110,4 +110,3 @@ impl <'a> Parser<'a> {
         self.tokens.next().unwrap()
     }
 }
-

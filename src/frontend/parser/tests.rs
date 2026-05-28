@@ -33,10 +33,7 @@ fn parse_single_fn() {
 fn parse_single_typedef() {
     let defns = super::parse(lex("typedef Unit { unit() }"));
     assert_eq!(defns.len(), 1);
-    assert_eq!(
-        defns[0],
-        Defn::Typedef("Unit".into(), vec![("unit".into(), vec![])])
-    );
+    assert_eq!(defns[0], Defn::Typedef("Unit".into(), vec![("unit".into(), vec![])]));
 }
 
 #[test]

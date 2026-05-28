@@ -9,7 +9,7 @@ pub struct ParseError<'a> {
     pub offset: usize,
 }
 
-impl <'a> ParseError<'a> {
+impl<'a> ParseError<'a> {
     pub fn new<A>(expected: TokenKind, actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
         Err(ParseError {
             expected: vec![expected],

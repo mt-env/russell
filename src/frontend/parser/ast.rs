@@ -17,10 +17,10 @@ pub enum Defn<'a, A> {
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt<'a, A> {
-    Let(&'a str, Expr<'a, A>),  // let <id> = <expr>;
-    Read(Type<'a>, &'a str),    // read <type> <id>;
-    Echo(Type<'a>, Expr<'a, A>),   // echo <type> <expr>;
-    Return(Expr<'a, A>),       // return <expr>;
+    Let(&'a str, Expr<'a, A>),   // let <id> = <expr>;
+    Read(Type<'a>, &'a str),     // read <type> <id>;
+    Echo(Type<'a>, Expr<'a, A>), // echo <type> <expr>;
+    Return(Expr<'a, A>),         // return <expr>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -92,9 +92,7 @@ where
             ExprKind::Neg(expr) => write!(f, "-{expr}"),
             ExprKind::Bang(expr) => write!(f, "!{expr}"),
             ExprKind::Call(func, args) => {
-                let args_str = args.iter().map(
-                    |arg| format!("{arg}")
-                ).collect::<Vec<_>>().join(", ");
+                let args_str = args.iter().map(|arg| format!("{arg}")).collect::<Vec<_>>().join(", ");
                 write!(f, "{func}({args_str})")
             }
             ExprKind::Plus(left, right) => write!(f, "({left} + {right})"),
@@ -110,24 +108,29 @@ where
             ExprKind::NotEq(left, right) => write!(f, "({left} != {right})"),
             ExprKind::Or(left, right) => write!(f, "({left} || {right})"),
             ExprKind::And(left, right) => write!(f, "({left} && {right})"),
-            ExprKind::If(cond, then_branch, else_branch) => write!(
-                f,
-                "if {cond} then {then_branch} else {else_branch}"
-            ),
+            ExprKind::If(cond, then_branch, else_branch) => {
+                write!(f, "if {cond} then {then_branch} else {else_branch}")
+            }
             ExprKind::Match(expr, cases) => {
-                let cases_str = cases.iter().map(|(id, bindings, case_expr)| {
-                    let bindings_str = bindings.iter().map(
-                        |binding| format!("{binding}")
-                    ).collect::<Vec<_>>().join(", ");
-                    format!("{id}({bindings_str}) -> {case_expr}")
-                }).collect::<Vec<_>>().join(", ");
+                let cases_str = cases
+                    .iter()
+                    .map(|(id, bindings, case_expr)| {
+                        let bindings_str = bindings
+                            .iter()
+                            .map(|binding| format!("{binding}"))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        format!("{id}({bindings_str}) -> {case_expr}")
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 write!(f, "match {expr} {{ {cases_str} }}")
             }
         }
     }
 }
 
-impl <'a> Expr<'a, ()> {
+impl<'a> Expr<'a, ()> {
     pub fn parsed(kind: ExprKind<'a, ()>) -> Self {
         Expr { ann: (), kind }
     }
@@ -171,10 +174,7 @@ impl Display for Type<'_> {
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::TypeId(id) => write!(f, "{id}"),
-            Type::Fn(arg_type, ret_type) => write!(
-                f,
-                "({arg_type} -> {ret_type})"
-            ),
+            Type::Fn(arg_type, ret_type) => write!(f, "({arg_type} -> {ret_type})"),
         }
     }
 }

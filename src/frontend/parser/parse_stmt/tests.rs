@@ -15,25 +15,40 @@ fn parse(input: &str) -> ParsedStmt {
 
 #[test]
 fn let_int_literal() {
-    assert_eq!(parse("let x = 42;"), Stmt::Let("x".into(), Expr::parsed(ExprKind::Int(42))));
+    assert_eq!(
+        parse("let x = 42;"),
+        Stmt::Let("x".into(), Expr::parsed(ExprKind::Int(42)))
+    );
 }
 
 #[test]
 fn let_bool_literal() {
-    assert_eq!(parse("let flag = true;"), Stmt::Let("flag".into(), Expr::parsed(ExprKind::Bool(true))));
+    assert_eq!(
+        parse("let flag = true;"),
+        Stmt::Let("flag".into(), Expr::parsed(ExprKind::Bool(true)))
+    );
 }
 
 #[test]
 fn let_with_binary_expr() {
     assert_eq!(
         parse("let x = 1 + 2;"),
-        Stmt::Let("x".into(), Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Int(1))), Box::new(Expr::parsed(ExprKind::Int(2))))))
+        Stmt::Let(
+            "x".into(),
+            Expr::parsed(ExprKind::Plus(
+                Box::new(Expr::parsed(ExprKind::Int(1))),
+                Box::new(Expr::parsed(ExprKind::Int(2)))
+            ))
+        )
     );
 }
 
 #[test]
 fn let_with_identifier() {
-    assert_eq!(parse("let y = x;"), Stmt::Let("y".into(), Expr::parsed(ExprKind::Id("x".into()))));
+    assert_eq!(
+        parse("let y = x;"),
+        Stmt::Let("y".into(), Expr::parsed(ExprKind::Id("x".into())))
+    );
 }
 
 #[test]
@@ -81,17 +96,26 @@ fn read_error_missing_type() {
 
 #[test]
 fn echo_int_literal() {
-    assert_eq!(parse("echo Int 42;"), Stmt::Echo(Type::Int, Expr::parsed(ExprKind::Int(42))));
+    assert_eq!(
+        parse("echo Int 42;"),
+        Stmt::Echo(Type::Int, Expr::parsed(ExprKind::Int(42)))
+    );
 }
 
 #[test]
 fn echo_float_literal() {
-    assert_eq!(parse("echo Float 3.14;"), Stmt::Echo(Type::Float, Expr::parsed(ExprKind::Float(3.14))));
+    assert_eq!(
+        parse("echo Float 3.14;"),
+        Stmt::Echo(Type::Float, Expr::parsed(ExprKind::Float(3.14)))
+    );
 }
 
 #[test]
 fn echo_bool_literal() {
-    assert_eq!(parse("echo Bool true;"), Stmt::Echo(Type::Bool, Expr::parsed(ExprKind::Bool(true))));
+    assert_eq!(
+        parse("echo Bool true;"),
+        Stmt::Echo(Type::Bool, Expr::parsed(ExprKind::Bool(true)))
+    );
 }
 
 #[test]
@@ -100,7 +124,10 @@ fn echo_with_expression() {
         parse("echo Int x + 1;"),
         Stmt::Echo(
             Type::Int,
-            Expr::parsed(ExprKind::Plus(Box::new(Expr::parsed(ExprKind::Id("x".into()))), Box::new(Expr::parsed(ExprKind::Int(1)))))
+            Expr::parsed(ExprKind::Plus(
+                Box::new(Expr::parsed(ExprKind::Id("x".into()))),
+                Box::new(Expr::parsed(ExprKind::Int(1)))
+            ))
         )
     );
 }

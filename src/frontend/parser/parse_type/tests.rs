@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
-use crate::frontend::parser::ast::{Binding, Type};
 use crate::frontend::parser::Parser;
+use crate::frontend::parser::ast::{Binding, Type};
 
 fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
@@ -123,10 +123,7 @@ fn binding_with_fn_type() {
     let b = super::parse_binding(&mut p).unwrap();
     assert_eq!(
         b,
-        Binding::new(
-            "f".into(),
-            Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))
-        )
+        Binding::new("f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool)))
     );
 }
 
@@ -205,10 +202,7 @@ fn binding_list_with_fn_type() {
     assert_eq!(
         bindings,
         vec![
-            Binding::new(
-                "f".into(),
-                Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))
-            ),
+            Binding::new("f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
             Binding::new("x".into(), Type::Int),
         ]
     );
