@@ -69,14 +69,12 @@ fn bind_args<'a>(env: Rc<Env<'a>>, params: Vec<&'a Binding<'a>>, args: Vec<Rc<Va
 }
 
 fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
-    let func_val = interp_expr(func, Rc::clone(&env));
-    
-    match func_val.as_ref() {
+    match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
                 Rc::clone(closure_env),
                 vec![binding],
-                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
+                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
             interp_expr(body, local_env)
         }
@@ -85,14 +83,18 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
             let local_env = bind_args(
                 env.global(),
                 bindings.iter().collect(),
-                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
+                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
             interp_fn(name, stmts.iter().collect(), local_env)
         }
 
         Value::Constructor(name, adt_type, bindings) => {
             if bindings.len() != args.len() {
-                panic!("FATAL ERROR: expected {} arguments, found {}", bindings.len(), args.len());
+                panic!(
+                    "FATAL ERROR: expected {} arguments, found {}",
+                    bindings.len(),
+                    args.len()
+                );
             }
             let mut field_vals = HashMap::new();
             for (binding, arg) in bindings.iter().zip(args) {
@@ -137,7 +139,12 @@ fn interp_cmp_binop<'a>(
     }
 }
 
-fn interp_if<'a>(cond: &ParsedExpr<'a>, then_expr: &ParsedExpr<'a>, else_expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+fn interp_if<'a>(
+    cond: &ParsedExpr<'a>,
+    then_expr: &ParsedExpr<'a>,
+    else_expr: &ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
+) -> Rc<Value<'a>> {
     let cond_val = interp_expr(cond, Rc::clone(&env));
     match &*cond_val {
         Value::Bool(true) => interp_expr(then_expr, env),
@@ -146,11 +153,18 @@ fn interp_if<'a>(cond: &ParsedExpr<'a>, then_expr: &ParsedExpr<'a>, else_expr: &
     }
 }
 
-fn interp_match<'a>(expr: &ParsedExpr<'a>, arms: &[(&'a str, Vec<Binding<'a>>, Expr<'a, ()>)], env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+fn interp_match<'a>(
+    expr: &ParsedExpr<'a>,
+    arms: &[(&'a str, Vec<Binding<'a>>, Expr<'a, ()>)],
+    env: Rc<Env<'a>>,
+) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
     let Value::Adt(adt_type, constructor, fields) = &*expr_val else {
-        panic!("FATAL ERROR: expected ADT value in match expression, found {:?}", expr_val);
+        panic!(
+            "FATAL ERROR: expected ADT value in match expression, found {:?}",
+            expr_val
+        );
     };
 
     // find the correct constructor and bind it
@@ -159,12 +173,20 @@ fn interp_match<'a>(expr: &ParsedExpr<'a>, arms: &[(&'a str, Vec<Binding<'a>>, E
             continue;
         }
         if fields.len() != arm_bindings.len() {
-            panic!("FATAL ERROR: expected {} fields in constructor {}, found {}", arm_bindings.len(), constructor, fields.len());
+            panic!(
+                "FATAL ERROR: expected {} fields in constructor {}, found {}",
+                arm_bindings.len(),
+                constructor,
+                fields.len()
+            );
         }
         let mut local_env = Rc::clone(&env);
         for arm_binding in arm_bindings {
             let Some(field_val) = fields.get(&arm_binding.id) else {
-                panic!("FATAL ERROR: no field named {} in constructor {}", arm_binding.id, constructor);
+                panic!(
+                    "FATAL ERROR: no field named {} in constructor {}",
+                    arm_binding.id, constructor
+                );
             };
             local_env = Env::extend(local_env, arm_binding.id, Rc::clone(field_val));
         }

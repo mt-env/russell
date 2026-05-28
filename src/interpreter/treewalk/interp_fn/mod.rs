@@ -5,7 +5,7 @@ use crate::{
     interpreter::treewalk::{Env, interp_expr, types::Value},
 };
 
-pub(super) fn interp_fn<'a>(name: &str, stmts: Vec<&'a ParsedStmt<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+pub(super) fn interp_fn<'a>(name: &str, stmts: Vec<&ParsedStmt<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     let mut local_env = Rc::clone(&env);
     for stmt in stmts {
         match stmt {
@@ -19,12 +19,12 @@ pub(super) fn interp_fn<'a>(name: &str, stmts: Vec<&'a ParsedStmt<'a>>, env: Rc<
     panic!("FATAL ERROR: function {} does not return", name)
 }
 
-fn interp_let<'a>(id: &'a str, expr: &'a ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Env<'a>> {
+fn interp_let<'a>(id: &'a str, expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Env<'a>> {
     let val = interp_expr::interp_expr(expr, Rc::clone(&env));
     Env::extend(env, id, val)
 }
 
-fn interp_read<'a>(type_of_expr: &'a Type<'a>, id: &'a str, env: Rc<Env<'a>>) -> Rc<Env<'a>> {
+fn interp_read<'a>(type_of_expr: &Type<'a>, id: &'a str, env: Rc<Env<'a>>) -> Rc<Env<'a>> {
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).expect("Failed to read line");
 
