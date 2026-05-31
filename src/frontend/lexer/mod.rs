@@ -58,7 +58,7 @@ const OPERATORS: [(&str, Token); 23] = [
 ];
 
 /// Given the entire program as a string, lexes it into a vector of spanned tokens.
-pub fn lex(program: &str) -> Vec<SpannedToken> {
+pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
     let base = program.as_ptr() as usize;
     let mut tokens = Vec::new();
     let mut rest = program;
@@ -81,7 +81,7 @@ pub fn lex(program: &str) -> Vec<SpannedToken> {
 /// Lexes the next token in the given program.
 /// Returns the token, and the rest of the program, which has not been lexed.
 /// Assumes leading whitespace has already been consumed.
-fn next_token(program: &str) -> (Token, &str) {
+fn next_token(program: &str) -> (Token<'_>, &str) {
     let first_char = match program.chars().next() {
         Some(c) => c,
         None => return (Token::EoF, program),
@@ -126,7 +126,7 @@ fn eat_whitespace(program: &str) -> &str {
     s
 }
 
-fn read_num(program: &str) -> (Token, &str) {
+fn read_num(program: &str) -> (Token<'_>, &str) {
     // greedily grab all characters that form a number, allowing at most one '.'
     let mut seen_dot = false;
     let mut first_non_digit = program.len();
@@ -148,7 +148,7 @@ fn read_num(program: &str) -> (Token, &str) {
     }
 }
 
-fn read_ident(program: &str) -> (Token, &str) {
+fn read_ident(program: &str) -> (Token<'_>, &str) {
     // greedily grab all characters until we see something that's not a letter
     let mut first_non_letter = program.len();
     for (index, char) in program.char_indices() {
@@ -170,7 +170,7 @@ fn read_ident(program: &str) -> (Token, &str) {
     (Token::Id(ident), rest)
 }
 
-fn read_type_ident(program: &str) -> (Token, &str) {
+fn read_type_ident(program: &str) -> (Token<'_>, &str) {
     // greedily grab all characters until we see something that's not a letter
     let mut first_non_letter = program.len();
     for (index, char) in program.char_indices() {

@@ -71,7 +71,7 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
-                Rc::clone(&closure_env),
+                Rc::clone(closure_env),
                 std::slice::from_ref(binding),
                 args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
@@ -159,7 +159,7 @@ fn interp_match<'a>(
 ) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
-    let Value::Adt(adt_type, constructor, fields) = &*expr_val else {
+    let Value::Adt(_adt_type, constructor, fields) = &*expr_val else {
         panic!(
             "FATAL ERROR: expected ADT value in match expression, found {:?}",
             expr_val
