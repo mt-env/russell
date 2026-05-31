@@ -55,16 +55,15 @@ fn interp_bang<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     }
 }
 
-fn bind_args<'a>(env: Rc<Env<'a>>, params: Vec<&'a Binding<'a>>, args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
+fn bind_args<'a>(env: Rc<Env<'a>>, params: &[Binding<'a>], args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
     if params.len() != args.len() {
         panic!("FATAL ERROR: expected {} arguments, found {}", params.len(), args.len());
     }
 
     let mut local_env = Rc::clone(&env);
-    for (binding, arg) in params.into_iter().zip(args) {
+    for (binding, arg) in params.iter().zip(args) {
         local_env = Env::extend(local_env, binding.id, arg);
     }
-
     local_env
 }
 
@@ -72,8 +71,8 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
-                Rc::clone(closure_env),
-                vec![binding],
+                Rc::clone(&closure_env),
+                std::slice::from_ref(binding),
                 args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
             interp_expr(body, local_env)
@@ -82,10 +81,10 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
         Value::Fn(name, bindings, stmts) => {
             let local_env = bind_args(
                 env.global(),
-                bindings.iter().collect(),
+                bindings,
                 args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
-            interp_fn(name, stmts.iter().collect(), local_env)
+            interp_fn(name, stmts, local_env)
         }
 
         Value::Constructor(name, adt_type, bindings) => {
