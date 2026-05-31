@@ -5,7 +5,7 @@ use crate::{
     interpreter::treewalk::{Env, interp_fn::interp_fn, types::Value},
 };
 
-pub(super) fn interp_expr(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &expr.kind {
         ExprKind::Int(num) => Value::Int(*num).into(),
         ExprKind::Float(num) => Value::Float(*num).into(),
@@ -33,14 +33,14 @@ pub(super) fn interp_expr(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn interp_id(id: &String, env: Rc<Env>) -> Rc<Value> {
+fn interp_id<'a>(id: &'a str, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match env.lookup(id) {
         Some(val) => Rc::clone(&val),
         None => panic!("FATAL ERROR: unbound identifier {id}"),
     }
 }
 
-fn interp_neg(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+fn interp_neg<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(expr, env) {
         Value::Int(num) => Value::Int(-num).into(),
         Value::Float(num) => Value::Float(-num).into(),
@@ -48,33 +48,32 @@ fn interp_neg(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
     }
 }
 
-fn interp_bang(expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+fn interp_bang<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(expr, env) {
         Value::Bool(val) => Value::Bool(!val).into(),
         val => panic!("FATAL ERROR: expected boolean value, found {val:?}"),
     }
 }
 
-fn bind_args(env: Rc<Env>, params: Vec<&Binding>, args: Vec<Rc<Value>>) -> Rc<Env> {
+fn bind_args<'a>(env: Rc<Env<'a>>, params: &[Binding<'a>], args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
     if params.len() != args.len() {
         panic!("FATAL ERROR: expected {} arguments, found {}", params.len(), args.len());
     }
 
     let mut local_env = Rc::clone(&env);
-    for (binding, arg) in params.into_iter().zip(args) {
-        local_env = Env::extend(local_env, binding.id.clone(), arg);
+    for (binding, arg) in params.iter().zip(args) {
+        local_env = Env::extend(local_env, binding.id, arg);
     }
-
     local_env
 }
 
-fn interp_call(func: &ParsedExpr, args: Vec<&ParsedExpr>, env: Rc<Env>) -> Rc<Value> {
+fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
                 Rc::clone(closure_env),
-                vec![binding],
-                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
+                std::slice::from_ref(binding),
+                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
             interp_expr(body, local_env)
         }
@@ -82,34 +81,38 @@ fn interp_call(func: &ParsedExpr, args: Vec<&ParsedExpr>, env: Rc<Env>) -> Rc<Va
         Value::Fn(name, bindings, stmts) => {
             let local_env = bind_args(
                 env.global(),
-                bindings.iter().collect(),
-                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect()
+                bindings,
+                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
             );
-            interp_fn(name, stmts.iter().collect(), local_env)
+            interp_fn(name, stmts, local_env)
         }
 
         Value::Constructor(name, adt_type, bindings) => {
             if bindings.len() != args.len() {
-                panic!("FATAL ERROR: expected {} arguments, found {}", bindings.len(), args.len());
+                panic!(
+                    "FATAL ERROR: expected {} arguments, found {}",
+                    bindings.len(),
+                    args.len()
+                );
             }
             let mut field_vals = HashMap::new();
             for (binding, arg) in bindings.iter().zip(args) {
-                field_vals.insert(binding.id.clone(), interp_expr(arg, Rc::clone(&env)));
+                field_vals.insert(binding.id, interp_expr(arg, Rc::clone(&env)));
             }
-            Value::Adt(adt_type.clone(), name.clone(), field_vals).into()
+            Value::Adt(adt_type.clone(), name, field_vals).into()
         }
 
         val => panic!("FATAL ERROR: expected function value, found {val:?}"),
     }
 }
 
-fn interp_arith_binop(
-    left: &ParsedExpr,
-    right: &ParsedExpr,
-    env: Rc<Env>,
+fn interp_arith_binop<'a>(
+    left: &ParsedExpr<'a>,
+    right: &ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
     int_op: fn(i64, i64) -> i64,
     float_op: fn(f64, f64) -> f64,
-) -> Rc<Value> {
+) -> Rc<Value<'a>> {
     let left_val = interp_expr(left, Rc::clone(&env));
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
@@ -119,13 +122,13 @@ fn interp_arith_binop(
     }
 }
 
-fn interp_cmp_binop(
-    left: &ParsedExpr,
-    right: &ParsedExpr,
-    env: Rc<Env>,
+fn interp_cmp_binop<'a>(
+    left: &ParsedExpr<'a>,
+    right: &ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
     int_op: fn(i64, i64) -> bool,
     float_op: fn(f64, f64) -> bool,
-) -> Rc<Value> {
+) -> Rc<Value<'a>> {
     let left_val = interp_expr(left, Rc::clone(&env));
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
@@ -135,7 +138,12 @@ fn interp_cmp_binop(
     }
 }
 
-fn interp_if(cond: &ParsedExpr, then_expr: &ParsedExpr, else_expr: &ParsedExpr, env: Rc<Env>) -> Rc<Value> {
+fn interp_if<'a>(
+    cond: &ParsedExpr<'a>,
+    then_expr: &ParsedExpr<'a>,
+    else_expr: &ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
+) -> Rc<Value<'a>> {
     let cond_val = interp_expr(cond, Rc::clone(&env));
     match &*cond_val {
         Value::Bool(true) => interp_expr(then_expr, env),
@@ -144,11 +152,18 @@ fn interp_if(cond: &ParsedExpr, then_expr: &ParsedExpr, else_expr: &ParsedExpr, 
     }
 }
 
-fn interp_match(expr: &ParsedExpr, arms: &Vec<(String, Vec<Binding>, ParsedExpr)>, env: Rc<Env>) -> Rc<Value> {
+fn interp_match<'a>(
+    expr: &ParsedExpr<'a>,
+    arms: &[(&'a str, Vec<Binding<'a>>, Expr<'a, ()>)],
+    env: Rc<Env<'a>>,
+) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
-    let Value::Adt(adt_type, constructor, fields) = &*expr_val else {
-        panic!("FATAL ERROR: expected ADT value in match expression, found {:?}", expr_val);
+    let Value::Adt(_adt_type, constructor, fields) = &*expr_val else {
+        panic!(
+            "FATAL ERROR: expected ADT value in match expression, found {:?}",
+            expr_val
+        );
     };
 
     // find the correct constructor and bind it
@@ -157,14 +172,22 @@ fn interp_match(expr: &ParsedExpr, arms: &Vec<(String, Vec<Binding>, ParsedExpr)
             continue;
         }
         if fields.len() != arm_bindings.len() {
-            panic!("FATAL ERROR: expected {} fields in constructor {}, found {}", arm_bindings.len(), constructor, fields.len());
+            panic!(
+                "FATAL ERROR: expected {} fields in constructor {}, found {}",
+                arm_bindings.len(),
+                constructor,
+                fields.len()
+            );
         }
         let mut local_env = Rc::clone(&env);
         for arm_binding in arm_bindings {
             let Some(field_val) = fields.get(&arm_binding.id) else {
-                panic!("FATAL ERROR: no field named {} in constructor {}", arm_binding.id, constructor);
+                panic!(
+                    "FATAL ERROR: no field named {} in constructor {}",
+                    arm_binding.id, constructor
+                );
             };
-            local_env = Env::extend(local_env, arm_binding.id.clone(), Rc::clone(field_val));
+            local_env = Env::extend(local_env, arm_binding.id, Rc::clone(field_val));
         }
         return interp_expr(arm_expr, local_env);
     }

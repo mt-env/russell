@@ -3,31 +3,31 @@ use std::fmt;
 use crate::frontend::lexer::token::{SpannedToken, Token, TokenKind};
 
 #[derive(Debug)]
-pub struct ParseError {
+pub struct ParseError<'a> {
     pub expected: Vec<TokenKind>,
-    pub actual: Token,
+    pub actual: Token<'a>,
     pub offset: usize,
 }
 
-impl ParseError {
-    pub fn new<A>(expected: TokenKind, actual: &SpannedToken) -> ParseResult<A> {
+impl<'a> ParseError<'a> {
+    pub fn new<A>(expected: TokenKind, actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
         Err(ParseError {
             expected: vec![expected],
-            actual: actual.token.clone(),
+            actual: actual.token,
             offset: actual.offset,
         })
     }
 
-    pub fn many<A>(expected: &[TokenKind], actual: &SpannedToken) -> ParseResult<A> {
+    pub fn many<A>(expected: &[TokenKind], actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
         Err(ParseError {
             expected: expected.to_vec(),
-            actual: actual.token.clone(),
+            actual: actual.token,
             offset: actual.offset,
         })
     }
 }
 
-impl fmt::Display for ParseError {
+impl fmt::Display for ParseError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.expected.as_slice() {
             [single] => write!(f, "expected {}, found {}", single, self.actual.kind()),
@@ -45,6 +45,6 @@ impl fmt::Display for ParseError {
     }
 }
 
-impl std::error::Error for ParseError {}
+impl std::error::Error for ParseError<'_> {}
 
-pub type ParseResult<A> = Result<A, ParseError>;
+pub type ParseResult<'a, A> = Result<A, ParseError<'a>>;

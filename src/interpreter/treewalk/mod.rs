@@ -9,10 +9,7 @@ mod types;
 
 pub fn interp(defns: Vec<ParsedDefn>) {
     let global_env = process_global_env(defns);
-    let main_call = Expr::parsed(ExprKind::Call(
-        Box::new(Expr::parsed(ExprKind::Id("main".to_string()))),
-        Vec::new(),
-    ));
+    let main_call = Expr::parsed(ExprKind::Call(Box::new(Expr::parsed(ExprKind::Id("main"))), Vec::new()));
     interp_expr::interp_expr(&main_call, global_env);
 }
 
@@ -22,11 +19,14 @@ fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
         match defn {
             Defn::Typedef(adt_type, arms) => {
                 for (name, bindings) in arms {
-                    map.insert(name.clone(), Rc::new(Value::Constructor(name, Type::TypeId(adt_type.clone()), bindings)));
+                    map.insert(
+                        name,
+                        Rc::new(Value::Constructor(name, Type::TypeId(adt_type), bindings)),
+                    );
                 }
             }
             Defn::Fn(id, bindings, _, stmts) => {
-                map.insert(id.clone(), Rc::new(Value::Fn(id, bindings, stmts)));
+                map.insert(id, Rc::new(Value::Fn(id, bindings, stmts)));
             }
         }
     }

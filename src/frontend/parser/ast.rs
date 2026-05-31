@@ -2,85 +2,85 @@ use std::fmt::Display;
 
 use crate::frontend::lexer::token::Token;
 
-pub type ParsedExpr = Expr<()>;
-pub type ParsedStmt = Stmt<()>;
-pub type ParsedDefn = Defn<()>;
+pub type ParsedExpr<'a> = Expr<'a, ()>;
+pub type ParsedStmt<'a> = Stmt<'a, ()>;
+pub type ParsedDefn<'a> = Defn<'a, ()>;
 
 #[derive(Debug, PartialEq)]
-pub enum Defn<A> {
+pub enum Defn<'a, A> {
     // typedef <typeId> { <id> ( <binding> , ... ) , ... }
-    Typedef(String, Vec<(String, Vec<Binding>)>),
+    Typedef(&'a str, Vec<(&'a str, Vec<Binding<'a>>)>),
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
-    Fn(String, Vec<Binding>, Type, Vec<Stmt<A>>),
+    Fn(&'a str, Vec<Binding<'a>>, Type<'a>, Vec<Stmt<'a, A>>),
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Stmt<A> {
-    Let(String, Expr<A>),  // let <id> = <expr>;
-    Read(Type, String),    // read <type> <id>;
-    Echo(Type, Expr<A>),   // echo <type> <expr>;
-    Return(Expr<A>),       // return <expr>;
+pub enum Stmt<'a, A> {
+    Let(&'a str, Expr<'a, A>),   // let <id> = <expr>;
+    Read(Type<'a>, &'a str),     // read <type> <id>;
+    Echo(Type<'a>, Expr<'a, A>), // echo <type> <expr>;
+    Return(Expr<'a, A>),         // return <expr>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Expr<A> {
+pub struct Expr<'a, A> {
     pub ann: A,
-    pub kind: ExprKind<A>,
+    pub kind: ExprKind<'a, A>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ExprKind<A> {
+pub enum ExprKind<'a, A> {
     // atomic expressions
     Int(i64),
     Float(f64),
     Bool(bool),
 
     // idents
-    Id(String),
+    Id(&'a str),
 
     // closures
-    Fn(Binding, Box<Expr<A>>), // fn ( <binding> ) -> <expr>
+    Fn(Binding<'a>, Box<Expr<'a, A>>), // fn ( <binding> ) -> <expr>
 
     // unary operators
-    Neg(Box<Expr<A>>),  // - <expr>
-    Bang(Box<Expr<A>>), // ! <expr>
+    Neg(Box<Expr<'a, A>>),  // - <expr>
+    Bang(Box<Expr<'a, A>>), // ! <expr>
 
     // function calls
-    Call(Box<Expr<A>>, Vec<Expr<A>>), // <left>(<right>, ...)
+    Call(Box<Expr<'a, A>>, Vec<Expr<'a, A>>), // <left>(<right>, ...)
 
     // binary operators
-    Plus(Box<Expr<A>>, Box<Expr<A>>),      // <left> + <right>
-    Minus(Box<Expr<A>>, Box<Expr<A>>),     // <left> - <right>
-    Mult(Box<Expr<A>>, Box<Expr<A>>),      // <left> * <right>
-    Div(Box<Expr<A>>, Box<Expr<A>>),       // <left> / <right>
-    Pipe(Box<Expr<A>>, Box<Expr<A>>),      // <left> |> <right>
-    Less(Box<Expr<A>>, Box<Expr<A>>),      // <left> < <right>
-    LessEq(Box<Expr<A>>, Box<Expr<A>>),    // <left> <= <right>
-    Greater(Box<Expr<A>>, Box<Expr<A>>),   // <left> > <right>
-    GreaterEq(Box<Expr<A>>, Box<Expr<A>>), // <left> >= <right>
-    Eq(Box<Expr<A>>, Box<Expr<A>>),        // <left> == <right>
-    NotEq(Box<Expr<A>>, Box<Expr<A>>),     // <left> != <right>
-    Or(Box<Expr<A>>, Box<Expr<A>>),        // <left> || <right>
-    And(Box<Expr<A>>, Box<Expr<A>>),       // <left> && <right>
+    Plus(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> + <right>
+    Minus(Box<Expr<'a, A>>, Box<Expr<'a, A>>),     // <left> - <right>
+    Mult(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> * <right>
+    Div(Box<Expr<'a, A>>, Box<Expr<'a, A>>),       // <left> / <right>
+    Pipe(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> |> <right>
+    Less(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> < <right>
+    LessEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),    // <left> <= <right>
+    Greater(Box<Expr<'a, A>>, Box<Expr<'a, A>>),   // <left> > <right>
+    GreaterEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>), // <left> >= <right>
+    Eq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),        // <left> == <right>
+    NotEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),     // <left> != <right>
+    Or(Box<Expr<'a, A>>, Box<Expr<'a, A>>),        // <left> || <right>
+    And(Box<Expr<'a, A>>, Box<Expr<'a, A>>),       // <left> && <right>
 
     // if <1> then <2> else <3>
-    If(Box<Expr<A>>, Box<Expr<A>>, Box<Expr<A>>),
+    If(Box<Expr<'a, A>>, Box<Expr<'a, A>>, Box<Expr<'a, A>>),
 
     // match <expr> { <id>(<bindings>) -> <expr>, ... }
-    Match(Box<Expr<A>>, Vec<(String, Vec<Binding>, Expr<A>)>),
+    Match(Box<Expr<'a, A>>, Vec<(&'a str, Vec<Binding<'a>>, Expr<'a, A>)>),
 }
 
 // Display ignores the annotation entirely.
-impl<A> Display for Expr<A> {
+impl<'a, A> Display for Expr<'a, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.kind.fmt(f)
     }
 }
 
-impl<A> Display for ExprKind<A>
+impl<'a, A> Display for ExprKind<'a, A>
 where
-    Expr<A>: Display,
+    Expr<'a, A>: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -92,9 +92,7 @@ where
             ExprKind::Neg(expr) => write!(f, "-{expr}"),
             ExprKind::Bang(expr) => write!(f, "!{expr}"),
             ExprKind::Call(func, args) => {
-                let args_str = args.iter().map(
-                    |arg| format!("{arg}")
-                ).collect::<Vec<_>>().join(", ");
+                let args_str = args.iter().map(|arg| format!("{arg}")).collect::<Vec<_>>().join(", ");
                 write!(f, "{func}({args_str})")
             }
             ExprKind::Plus(left, right) => write!(f, "({left} + {right})"),
@@ -110,31 +108,36 @@ where
             ExprKind::NotEq(left, right) => write!(f, "({left} != {right})"),
             ExprKind::Or(left, right) => write!(f, "({left} || {right})"),
             ExprKind::And(left, right) => write!(f, "({left} && {right})"),
-            ExprKind::If(cond, then_branch, else_branch) => write!(
-                f,
-                "if {cond} then {then_branch} else {else_branch}"
-            ),
+            ExprKind::If(cond, then_branch, else_branch) => {
+                write!(f, "if {cond} then {then_branch} else {else_branch}")
+            }
             ExprKind::Match(expr, cases) => {
-                let cases_str = cases.iter().map(|(id, bindings, case_expr)| {
-                    let bindings_str = bindings.iter().map(
-                        |binding| format!("{binding}")
-                    ).collect::<Vec<_>>().join(", ");
-                    format!("{id}({bindings_str}) -> {case_expr}")
-                }).collect::<Vec<_>>().join(", ");
+                let cases_str = cases
+                    .iter()
+                    .map(|(id, bindings, case_expr)| {
+                        let bindings_str = bindings
+                            .iter()
+                            .map(|binding| format!("{binding}"))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        format!("{id}({bindings_str}) -> {case_expr}")
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 write!(f, "match {expr} {{ {cases_str} }}")
             }
         }
     }
 }
 
-impl Expr<()> {
-    pub fn parsed(kind: ExprKind<()>) -> Self {
+impl<'a> Expr<'a, ()> {
+    pub fn parsed(kind: ExprKind<'a, ()>) -> Self {
         Expr { ann: (), kind }
     }
 }
 
-impl<A> ExprKind<A> {
-    pub fn binop(op: Token, left: Expr<A>, right: Expr<A>) -> ExprKind<A> {
+impl<'a, A> ExprKind<'a, A> {
+    pub fn binop(op: Token, left: Expr<'a, A>, right: Expr<'a, A>) -> ExprKind<'a, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
             Token::Plus => ExprKind::Plus(left, right),
@@ -156,43 +159,40 @@ impl<A> ExprKind<A> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Type {
+pub enum Type<'a> {
     Int,
     Float,
     Bool,
-    TypeId(String),
-    Fn(Box<Type>, Box<Type>),
+    TypeId(&'a str),
+    Fn(Box<Type<'a>>, Box<Type<'a>>),
 }
 
-impl Display for Type {
+impl Display for Type<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Type::Int => write!(f, "int"),
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::TypeId(id) => write!(f, "{id}"),
-            Type::Fn(arg_type, ret_type) => write!(
-                f,
-                "({arg_type} -> {ret_type})"
-            ),
+            Type::Fn(arg_type, ret_type) => write!(f, "({arg_type} -> {ret_type})"),
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Binding {
-    pub id: String,
-    pub typ: Type,
+pub struct Binding<'a> {
+    pub id: &'a str,
+    pub typ: Type<'a>,
 }
 
-impl Display for Binding {
+impl Display for Binding<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {}", self.id, self.typ)
     }
 }
 
-impl Binding {
-    pub fn new(id: String, typ: Type) -> Binding {
+impl Binding<'_> {
+    pub fn new<'a>(id: &'a str, typ: Type<'a>) -> Binding<'a> {
         Binding { id, typ }
     }
 }
