@@ -1,12 +1,12 @@
-use crate::frontend::lexer::token::{Token, TokenKind};
-use crate::frontend::parser::ast::{Binding, Type};
 use crate::frontend::error::parse_error::ParseResult;
+use crate::frontend::lexer::token::{Token, TokenKind};
 use crate::frontend::parser::Parser;
+use crate::frontend::parser::ast::{Binding, Type};
 
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_type(parser: &mut Parser) -> ParseResult<Type> {
+pub(super) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
     // parse an atomic type
     let l_type = match parser.expect_many(&[
         TokenKind::IntType,
@@ -17,7 +17,7 @@ pub(super) fn parse_type(parser: &mut Parser) -> ParseResult<Type> {
         Token::IntType => Type::Int,
         Token::FloatType => Type::Float,
         Token::BoolType => Type::Bool,
-        Token::TypeId(id) => Type::TypeId(id.clone()),
+        Token::TypeId(id) => Type::TypeId(id),
         _ => unreachable!(),
     };
 
@@ -32,14 +32,14 @@ pub(super) fn parse_type(parser: &mut Parser) -> ParseResult<Type> {
     Ok(l_type)
 }
 
-pub(super) fn parse_binding(parser: &mut Parser) -> ParseResult<Binding> {
+pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Binding<'a>> {
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Colon)?;
     let id_type = parse_type(parser)?;
     Ok(Binding::new(id, id_type))
 }
 
-pub(super) fn parse_binding_list(parser: &mut Parser) -> ParseResult<Vec<Binding>> {
+pub(super) fn parse_binding_list<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<Binding<'a>>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut bindings = Vec::new();

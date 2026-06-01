@@ -3,9 +3,9 @@ use std::{collections::HashMap, rc::Rc};
 use crate::frontend::parser::ast::{Defn, Expr, Stmt, Type};
 
 pub type TypeResult<T> = Result<T, TypeError>;
-pub type TypedDefn = Defn<TypeValue>;
-pub type TypedStmt = Stmt<TypeValue>;
-pub type TypedExpr = Expr<TypeValue>;
+pub(super) type TypedDefn<'a> = Defn<'a, TypeValue>;
+pub(super) type TypedStmt<'a> = Stmt<'a, TypeValue>;
+pub(super) type TypedExpr<'a> = Expr<'a, TypeValue>;
 
 pub struct TypeError {
     expected: TypeValue,
@@ -31,17 +31,14 @@ pub enum TypeValue {
     Var(Box<Option<TypeValue>>), // type variable for inference
 }
 
-impl From<Type> for TypeValue {
+impl From<Type<'_>> for TypeValue {
     fn from(value: Type) -> Self {
         match value {
             Type::Int => TypeValue::Int,
             Type::Float => TypeValue::Float,
             Type::Bool => TypeValue::Bool,
             Type::TypeId(_) => todo!(),
-            Type::Fn(arg, body) => TypeValue::Fn(
-                vec![(*arg).into()],
-                Box::new((*body).into())
-            ),
+            Type::Fn(arg, body) => TypeValue::Fn(vec![(*arg).into()], Box::new((*body).into())),
         }
     }
 }

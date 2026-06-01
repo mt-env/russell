@@ -1,0 +1,26 @@
+// the pipe operator: `a |> b` is equivalent to `b(a)`
+// the right-hand side must evaluate to a unary function
+
+fn double(x: Int) -> Int {
+    return x * 2;
+}
+
+fn inc(x: Int) -> Int {
+    return x + 1;
+}
+
+fn square(x: Int) -> Int {
+    return x * x;
+}
+
+fn main() -> Int {
+    // chain unary functions left-to-right
+    // computes ((3 + 1) * 2) squared = 64
+    echo Int 3 |> inc |> double |> square;
+
+    // the right-hand side is an arbitrary expression returning a unary function
+    let add = fn (x: Int) -> fn (y: Int) -> x + y;
+    echo Int 5 |> add(10);
+
+    return 0;
+}

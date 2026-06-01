@@ -1,0 +1,24 @@
+// closures are anonymous functions with one parameter
+// to take multiple arguments, curry by hand
+
+fn main() -> Int {
+    // a closure capturing nothing
+    let inc = fn (x: Int) -> x + 1;
+    echo Int inc(5);
+
+    // a closure capturing its enclosing environment
+    let base = 100;
+    let add_base = fn (x: Int) -> x + base;
+    echo Int add_base(7);
+
+    // curried two-argument addition
+    let add = fn (x: Int) -> fn (y: Int) -> x + y;
+    echo Int add(3)(4);
+
+    // partial application
+    let add_ten = add(10);
+    echo Int add_ten(1);
+    echo Int add_ten(2);
+
+    return 0;
+}

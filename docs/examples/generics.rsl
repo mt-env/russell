@@ -1,0 +1,43 @@
+// type names that are not bound by a `typedef` are treated as
+// generic type variables, automatically quantified per definition
+
+fn id(x: A) -> A {
+    return x;
+}
+
+fn const(x: A, y: B) -> A {
+    return x;
+}
+
+// generics work with higher-order types too
+fn apply(f: A -> B, x: A) -> B {
+    return f(x);
+}
+
+fn twice(f: A -> A, x: A) -> A {
+    return f(f(x));
+}
+
+fn inc(x: Int) -> Int {
+    return x + 1;
+}
+
+fn main() -> Int {
+    // `id` is used at two distinct instantiations in the same program
+    echo Int id(42);
+    echo Bool id(true);
+
+    // `const` discards its second argument
+    echo Int const(1, true);
+
+    // higher-order generic use
+    echo Int apply(inc, 10);
+    echo Int twice(inc, 10);
+
+    // let-bound polymorphism: `f` remains generic and can be used at two types
+    let f = id;
+    echo Int f(7);
+    echo Bool f(false);
+
+    return 0;
+}

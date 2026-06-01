@@ -1,14 +1,14 @@
+use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::TokenKind;
+use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{Binding, Defn, ParsedDefn};
 use crate::frontend::parser::parse_stmt::parse_stmnt;
 use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
-use crate::frontend::error::parse_error::{ParseError, ParseResult};
-use crate::frontend::parser::Parser;
 
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_defn(parser: &mut Parser) -> ParseResult<ParsedDefn> {
+pub(super) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     match parser.peek().kind() {
         TokenKind::Fn => parse_fndef(parser),
         TokenKind::Typedef => parse_typedef(parser),
@@ -18,7 +18,7 @@ pub(super) fn parse_defn(parser: &mut Parser) -> ParseResult<ParsedDefn> {
 
 /// Parses a type definition:
 /// typedef <typeId> { <id>(<binding, ...), ... }
-fn parse_typedef(parser: &mut Parser) -> ParseResult<ParsedDefn> {
+fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     // parse the declaration
     parser.expect(TokenKind::Typedef)?;
     let name = parser.expect_typeid()?;
@@ -41,7 +41,7 @@ fn parse_typedef(parser: &mut Parser) -> ParseResult<ParsedDefn> {
 
 /// Parses a function definition:
 /// fn <id>(<binding>, ...) -> <type> { <stmnt>, ... };
-fn parse_fndef(parser: &mut Parser) -> ParseResult<ParsedDefn> {
+fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     // parse the function header (identifier, bindings, return type)
     parser.expect(TokenKind::Fn)?;
     let header = parse_fn_sig(parser)?;
@@ -55,7 +55,7 @@ fn parse_fndef(parser: &mut Parser) -> ParseResult<ParsedDefn> {
     while parser.peek().kind() != TokenKind::RBrace {
         match parse_stmnt(parser) {
             Ok(stmnt) => statements.push(stmnt),
-            Err(_) => unimplemented!(), // TODO improve error handling
+            Err(_) => todo!(), // TODO improve error handling
         }
     }
 
@@ -67,7 +67,7 @@ fn parse_fndef(parser: &mut Parser) -> ParseResult<ParsedDefn> {
 /// Parse a function signature: <id>(<binding>, ...)
 /// Returns the ID and a list of bindings if successful.
 /// Returns an error otherwise.
-fn parse_fn_sig(parser: &mut Parser) -> ParseResult<(String, Vec<Binding>)> {
+fn parse_fn_sig<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<Binding<'a>>)> {
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))

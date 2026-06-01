@@ -1,0 +1,40 @@
+// a recursive ADT: a linked list of integers
+// generics in `typedef` are not yet supported, so the element
+// type must be monomorphized; here we pick `Int`
+
+typedef IntList {
+    nil(),
+    cons(head: Int, tail: IntList)
+}
+
+fn length(xs: IntList) -> Int {
+    return match xs {
+        nil() -> 0,
+        cons(head: Int, tail: IntList) -> 1 + length(tail)
+    };
+}
+
+fn sum(xs: IntList) -> Int {
+    return match xs {
+        nil() -> 0,
+        cons(head: Int, tail: IntList) -> head + sum(tail)
+    };
+}
+
+fn map_inc(xs: IntList) -> IntList {
+    return match xs {
+        nil() -> nil(),
+        cons(head: Int, tail: IntList) -> cons(head + 1, map_inc(tail))
+    };
+}
+
+fn main() -> Int {
+    // build the list [1, 2, 3, 4]
+    let xs = cons(1, cons(2, cons(3, cons(4, nil()))));
+
+    echo Int length(xs);
+    echo Int sum(xs);
+    echo Int sum(map_inc(xs));
+
+    return 0;
+}

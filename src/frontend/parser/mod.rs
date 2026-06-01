@@ -16,32 +16,32 @@ use crate::frontend::lexer::token::{SpannedToken, Token, TokenKind};
 use crate::frontend::parser::ast::ParsedDefn;
 use crate::frontend::parser::parse_defn::parse_defn;
 
-pub fn parse(tokens: Vec<SpannedToken>) -> Vec<ParsedDefn> {
+pub fn parse<'a>(tokens: Vec<SpannedToken<'a>>) -> Vec<ParsedDefn<'a>> {
     let mut parser = Parser::new(tokens);
     let mut defns = Vec::new();
 
     while parser.peek().kind() != TokenKind::EoF {
         match parse_defn(&mut parser) {
             Ok(defn) => defns.push(defn),
-            Err(err) => unimplemented!(), // TODO - handle errors
+            Err(_) => todo!(), // TODO - handle errors
         }
     }
 
     defns
 }
 
-pub struct Parser {
-    tokens: Peekable<IntoIter<SpannedToken>>,
+pub struct Parser<'a> {
+    tokens: Peekable<IntoIter<SpannedToken<'a>>>,
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<SpannedToken>) -> Parser {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: Vec<SpannedToken<'a>>) -> Self {
         Parser {
             tokens: tokens.into_iter().peekable(),
         }
     }
 
-    pub fn expect(&mut self, expected: TokenKind) -> ParseResult<()> {
+    pub fn expect(&mut self, expected: TokenKind) -> ParseResult<'a, ()> {
         if self.peek().kind() == expected {
             self.tokens.next();
             Ok(())
@@ -50,46 +50,46 @@ impl Parser {
         }
     }
 
-    pub fn expect_id(&mut self) -> ParseResult<String> {
+    pub fn expect_id(&mut self) -> ParseResult<'a, &'a str> {
         match self.take_if(TokenKind::Id) {
             Some(Token::Id(name)) => Ok(name),
             _ => ParseError::new(TokenKind::Id, self.peek()),
         }
     }
 
-    pub fn expect_int(&mut self) -> ParseResult<i64> {
+    pub fn expect_int(&mut self) -> ParseResult<'a, i64> {
         match self.take_if(TokenKind::Int) {
             Some(Token::Int(val)) => Ok(val),
             _ => ParseError::new(TokenKind::Int, self.peek()),
         }
     }
 
-    pub fn expect_float(&mut self) -> ParseResult<f64> {
+    pub fn expect_float(&mut self) -> ParseResult<'a, f64> {
         match self.take_if(TokenKind::Float) {
             Some(Token::Float(val)) => Ok(val),
             _ => ParseError::new(TokenKind::Float, self.peek()),
         }
     }
 
-    pub fn expect_bool(&mut self) -> ParseResult<bool> {
+    pub fn expect_bool(&mut self) -> ParseResult<'a, bool> {
         match self.take_if(TokenKind::Bool) {
             Some(Token::Bool(val)) => Ok(val),
             _ => ParseError::new(TokenKind::Bool, self.peek()),
         }
     }
 
-    pub fn expect_typeid(&mut self) -> ParseResult<String> {
+    pub fn expect_typeid(&mut self) -> ParseResult<'a, &'a str> {
         match self.take_if(TokenKind::TypeId) {
             Some(Token::TypeId(name)) => Ok(name),
             _ => ParseError::new(TokenKind::TypeId, self.peek()),
         }
     }
 
-    fn take_if(&mut self, kind: TokenKind) -> Option<Token> {
+    fn take_if(&mut self, kind: TokenKind) -> Option<Token<'a>> {
         self.tokens.next_if(|t| t.kind() == kind).map(|t| t.token)
     }
 
-    pub fn expect_many(&mut self, expected: &[TokenKind]) -> ParseResult<Token> {
+    pub fn expect_many(&mut self, expected: &[TokenKind]) -> ParseResult<'a, Token<'a>> {
         for kind in expected {
             if self.peek().kind() == *kind {
                 return Ok(self.tokens.next().unwrap().token);
@@ -99,15 +99,14 @@ impl Parser {
         ParseError::many(expected, self.peek())
     }
 
-    pub fn peek(&mut self) -> &SpannedToken {
+    pub fn peek(&mut self) -> &SpannedToken<'a> {
         // EoF sentinel ensures this is always Some
         self.tokens.peek().unwrap()
     }
 
     // Unconditionally consume and return the next token.
-    pub(super) fn advance(&mut self) -> SpannedToken {
+    pub(super) fn advance(&mut self) -> SpannedToken<'a> {
         // EoF sentinel ensures this is always Some
         self.tokens.next().unwrap()
     }
 }
-

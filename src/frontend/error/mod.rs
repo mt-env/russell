@@ -7,12 +7,12 @@ use lex_error::LexError;
 use parse_error::ParseError;
 
 #[derive(Debug)]
-pub enum CompilerError {
+pub enum CompilerError<'a> {
     Lex(LexError),
-    Parse(ParseError),
+    Parse(ParseError<'a>),
 }
 
-impl CompilerError {
+impl CompilerError<'_> {
     fn offset(&self) -> usize {
         match self {
             CompilerError::Lex(e) => e.offset,
@@ -21,7 +21,7 @@ impl CompilerError {
     }
 }
 
-impl fmt::Display for CompilerError {
+impl fmt::Display for CompilerError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CompilerError::Lex(e) => write!(f, "{}", e),
@@ -30,14 +30,14 @@ impl fmt::Display for CompilerError {
     }
 }
 
-impl From<LexError> for CompilerError {
+impl From<LexError> for CompilerError<'_> {
     fn from(e: LexError) -> Self {
         CompilerError::Lex(e)
     }
 }
 
-impl From<ParseError> for CompilerError {
-    fn from(e: ParseError) -> Self {
+impl<'a> From<ParseError<'a>> for CompilerError<'a> {
+    fn from(e: ParseError<'a>) -> Self {
         CompilerError::Parse(e)
     }
 }
