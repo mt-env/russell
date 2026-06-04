@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-use russell::frontend::{lexer, parser};
+use russell::frontend::{error, lexer, parser};
 use russell::interpreter::treewalk;
 
 fn main() {
@@ -12,6 +12,13 @@ fn main() {
 
     // lex the program
     let tokens = lexer::lex(&program);
+    let errors = error::lex_error::collect_errors(&tokens);
+    if errors.len() > 0 {
+        for error in errors {
+            println!("{}", error::report(&error.into(), &program, filename));
+        }
+        return;
+    }
 
     // parse the program
     let defns = parser::parse(tokens);
