@@ -8,7 +8,7 @@ use parse_error::ParseError;
 
 #[derive(Debug)]
 pub enum CompilerError<'a> {
-    Lex(LexError),
+    Lex(LexError<'a>),
     Parse(ParseError<'a>),
 }
 
@@ -30,8 +30,8 @@ impl fmt::Display for CompilerError<'_> {
     }
 }
 
-impl From<LexError> for CompilerError<'_> {
-    fn from(e: LexError) -> Self {
+impl<'a> From<LexError<'a>> for CompilerError<'a> {
+    fn from(e: LexError<'a>) -> Self {
         CompilerError::Lex(e)
     }
 }

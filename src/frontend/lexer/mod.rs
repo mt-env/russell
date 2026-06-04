@@ -144,7 +144,10 @@ fn read_num(program: &str) -> (Token<'_>, &str) {
     if seen_dot {
         (Token::Float(digits.parse::<f64>().unwrap()), rest)
     } else {
-        (Token::Int(digits.parse::<i64>().unwrap()), rest)
+        match digits.parse::<i64>() {
+            Ok(num) => (Token::Int(num), rest),
+            Err(_) => (Token::Overflow(digits), rest),
+        }
     }
 }
 
