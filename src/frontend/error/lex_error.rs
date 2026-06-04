@@ -4,34 +4,40 @@ use crate::frontend::lexer::token::{SpannedToken, Token};
 
 /// An error encountered during lexing.
 #[derive(Debug)]
-pub struct LexError {
-    pub kind: LexErrorKind,
+pub struct LexError<'a> {
+    pub kind: LexErrorKind<'a>,
     pub offset: usize,
 }
 
 /// The kinds of errors the lexer can produce.
 #[derive(Debug)]
-pub enum LexErrorKind {
+pub enum LexErrorKind<'a> {
     InvalidCharacter(char),
+    IntOverflow(&'a str),
 }
 
-impl fmt::Display for LexError {
+impl fmt::Display for LexError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.kind {
             LexErrorKind::InvalidCharacter(c) => write!(f, "invalid character '{}'", c),
+            LexErrorKind::IntOverflow(str) => write!(f, "integer literal overflow {}", str),
         }
     }
 }
 
-impl std::error::Error for LexError {}
+impl std::error::Error for LexError<'_> {}
 
 /// Scan a token stream and collect any lexer errors.
-pub fn collect_errors(tokens: &[SpannedToken]) -> Vec<LexError> {
+pub fn collect_errors<'a>(tokens: &[SpannedToken<'a>]) -> Vec<LexError<'a>> {
     tokens
         .iter()
         .filter_map(|t| match &t.token {
             Token::Invalid(c) => Some(LexError {
                 kind: LexErrorKind::InvalidCharacter(*c),
+                offset: t.offset,
+            }),
+            Token::Overflow(str) => Some(LexError {
+                kind: LexErrorKind::IntOverflow(str),
                 offset: t.offset,
             }),
             _ => None,
