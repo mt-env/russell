@@ -130,7 +130,7 @@ where
     }
 }
 
-impl<'a> Expr<'a, ()> {
+impl<'a> ParsedExpr<'a> {
     pub fn parsed(kind: ExprKind<'a, ()>) -> Self {
         Expr { ann: (), kind }
     }
