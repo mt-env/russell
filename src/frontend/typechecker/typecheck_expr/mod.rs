@@ -3,11 +3,11 @@ use crate::frontend::{
     typechecker::types::{Env, TypeResult, TypeValue, TypedExpr},
 };
 
-pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypedExpr {
+pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypeResult<TypedExpr> {
     match expr.kind {
-        ExprKind::Int(n) => TypedExpr::new(TypeValue::Int, ExprKind::Int(n)),
-        ExprKind::Float(n) => TypedExpr::new(TypeValue::Float, ExprKind::Float(n)),
-        ExprKind::Bool(val) => TypedExpr::new(TypeValue::Bool, ExprKind::Bool(val)),
+        ExprKind::Int(n) => Ok(TypedExpr::new(TypeValue::Int, ExprKind::Int(n))),
+        ExprKind::Float(n) => Ok(TypedExpr::new(TypeValue::Float, ExprKind::Float(n))),
+        ExprKind::Bool(val) => Ok(TypedExpr::new(TypeValue::Bool, ExprKind::Bool(val))),
         ExprKind::Id(_) => todo!(),
         ExprKind::Fn(binding, expr) => todo!(),
         ExprKind::Neg(expr) => todo!(),
