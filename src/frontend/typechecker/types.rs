@@ -14,9 +14,9 @@ impl<'a> TypedExpr<'a> {
 }
 
 pub struct TypeError {
-    expected: TypeValue,
-    actual: TypeValue,
-    message: String,
+    pub expected: TypeValue,
+    pub actual: TypeValue,
+    pub offset: usize,
 }
 
 pub enum Env {

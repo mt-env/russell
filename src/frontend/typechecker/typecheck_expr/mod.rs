@@ -1,6 +1,6 @@
 use crate::frontend::{
     parser::ast::{Expr, ExprKind, ParsedExpr},
-    typechecker::types::{Env, TypeResult, TypeValue, TypedExpr},
+    typechecker::types::{Env, TypeError, TypeResult, TypeValue, TypedExpr},
 };
 
 pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypeResult<TypedExpr> {
@@ -37,4 +37,27 @@ fn typecheck_id(id: String, env: &Env) -> TypeResult<TypeValue> {
 
 fn typecheck_fn(binding: String, expr: ParsedExpr, env: &Env) -> TypeResult<TypeValue> {
     todo!()
+}
+
+fn typecheck_neg(expr: ParsedExpr) -> TypeResult<TypedExpr> {
+    let expr = typecheck_expr(expr)?;
+    match expr.ann {
+        TypeValue::Int => Ok(TypedExpr::new(TypeValue::Int, ExprKind::Neg(Box::new(expr)))),
+        TypeValue::Float => Ok(TypedExpr::new(TypeValue::Float, ExprKind::Neg(Box::new(expr)))),
+        _ => Err(TypeError {
+            expected: TypeValue::Int,
+            actual: expr.ann,
+        }),
+    }
+}
+
+fn typecheck_bang(expr: ParsedExpr) -> TypeResult<TypedExpr> {
+    let expr = typecheck_expr(expr)?;
+    match expr.ann {
+        TypeValue::Bool => Ok(TypedExpr::new(TypeValue::Bool, ExprKind::Bang(Box::new(expr)))),
+        _ => Err(TypeError {
+            expected: TypeValue::Bool,
+            actual: expr.ann,
+        }),
+    }
 }
