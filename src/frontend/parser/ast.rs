@@ -6,8 +6,13 @@ pub type ParsedExpr<'a> = Expr<'a, ()>;
 pub type ParsedStmt<'a> = Stmt<'a, ()>;
 pub type ParsedDefn<'a> = Defn<'a, ()>;
 
+pub struct Defn<'a, A> {
+    pub offset: usize,
+    pub kind: DefnKind<'a, A>,
+}
+
 #[derive(Debug, PartialEq)]
-pub enum Defn<'a, A> {
+pub enum DefnKind<'a, A> {
     // typedef <typeId> { <id> ( <binding> , ... ) , ... }
     Typedef(&'a str, Vec<(&'a str, Vec<Binding<'a>>)>),
 
@@ -16,7 +21,13 @@ pub enum Defn<'a, A> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Stmt<'a, A> {
+pub struct Stmt<'a, A> {
+    pub offset: usize,
+    pub kind: StmtKind<'a, A>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum StmtKind<'a, A> {
     Let(&'a str, Expr<'a, A>),   // let <id> = <expr>;
     Read(Type<'a>, &'a str),     // read <type> <id>;
     Echo(Type<'a>, Expr<'a, A>), // echo <type> <expr>;
@@ -26,6 +37,7 @@ pub enum Stmt<'a, A> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr<'a, A> {
     pub ann: A,
+    pub offset: usize,
     pub kind: ExprKind<'a, A>,
 }
 
@@ -131,8 +143,8 @@ where
 }
 
 impl<'a> Expr<'a, ()> {
-    pub fn parsed(kind: ExprKind<'a, ()>) -> Self {
-        Expr { ann: (), kind }
+    pub fn parsed(offset: usize, kind: ExprKind<'a, ()>) -> Self {
+        Expr { ann: (), offset, kind }
     }
 }
 
@@ -183,6 +195,7 @@ impl Display for Type<'_> {
 pub struct Binding<'a> {
     pub id: &'a str,
     pub typ: Type<'a>,
+    pub offset: usize,
 }
 
 impl Display for Binding<'_> {
@@ -192,7 +205,7 @@ impl Display for Binding<'_> {
 }
 
 impl Binding<'_> {
-    pub fn new<'a>(id: &'a str, typ: Type<'a>) -> Binding<'a> {
-        Binding { id, typ }
+    pub fn new<'a>(id: &'a str, typ: Type<'a>, offset: usize) -> Binding<'a> {
+        Binding { id, typ, offset }
     }
 }
