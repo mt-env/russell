@@ -20,6 +20,28 @@ pub enum DefnKind<'a, A> {
     Fn(&'a str, Vec<Binding<'a>>, Type<'a>, Vec<Stmt<'a, A>>),
 }
 
+impl<'a> ParsedDefn<'a> {
+    pub fn make_fn(
+        offset: usize,
+        id: &'a str,
+        bindings: Vec<Binding<'a>>,
+        ret: Type<'a>,
+        stmts: Vec<Stmt<'a, ()>>,
+    ) -> Self {
+        Defn {
+            offset,
+            kind: DefnKind::Fn(id, bindings, ret, stmts),
+        }
+    }
+
+    pub fn make_typedef(offset: usize, id: &'a str, arms: Vec<(&'a str, Vec<Binding<'a>>)>) -> Self {
+        Defn {
+            offset,
+            kind: DefnKind::Typedef(id, arms),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Stmt<'a, A> {
     pub offset: usize,
@@ -32,6 +54,36 @@ pub enum StmtKind<'a, A> {
     Read(Type<'a>, &'a str),     // read <type> <id>;
     Echo(Type<'a>, Expr<'a, A>), // echo <type> <expr>;
     Return(Expr<'a, A>),         // return <expr>;
+}
+
+impl<'a> ParsedStmt<'a> {
+    pub fn make_let(offset: usize, id: &'a str, expr: Expr<'a, ()>) -> Self {
+        Stmt {
+            offset,
+            kind: StmtKind::Let(id, expr),
+        }
+    }
+
+    pub fn make_read(offset: usize, typ: Type<'a>, id: &'a str) -> Self {
+        Stmt {
+            offset,
+            kind: StmtKind::Read(typ, id),
+        }
+    }
+
+    pub fn make_echo(offset: usize, typ: Type<'a>, expr: Expr<'a, ()>) -> Self {
+        Stmt {
+            offset,
+            kind: StmtKind::Echo(typ, expr),
+        }
+    }
+
+    pub fn make_return(offset: usize, expr: Expr<'a, ()>) -> Self {
+        Stmt {
+            offset,
+            kind: StmtKind::Return(expr),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -142,7 +194,7 @@ where
     }
 }
 
-impl<'a> Expr<'a, ()> {
+impl<'a> ParsedExpr<'a> {
     pub fn parsed(offset: usize, kind: ExprKind<'a, ()>) -> Self {
         Expr { ann: (), offset, kind }
     }
