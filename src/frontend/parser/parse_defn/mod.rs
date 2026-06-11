@@ -19,6 +19,8 @@ pub(super) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedD
 /// Parses a type definition:
 /// typedef <typeId> { <id>(<binding, ...), ... }
 fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+    let loc = parser.peek().offset;
+
     // parse the declaration
     parser.expect(TokenKind::Typedef)?;
     let name = parser.expect_typeid()?;
@@ -36,12 +38,14 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(Defn::Typedef(name, signatures))
+    Ok(Defn::make_typedef(loc, name, signatures))
 }
 
 /// Parses a function definition:
 /// fn <id>(<binding>, ...) -> <type> { <stmnt>, ... };
 fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+    let loc = parser.peek().offset;
+
     // parse the function header (identifier, bindings, return type)
     parser.expect(TokenKind::Fn)?;
     let header = parse_fn_sig(parser)?;
@@ -61,7 +65,7 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(Defn::Fn(header.0, header.1, return_type, statements))
+    Ok(Defn::make_fn(loc, header.0, header.1, return_type, statements))
 }
 
 /// Parse a function signature: <id>(<binding>, ...)
