@@ -1,87 +1,82 @@
 use std::fmt::Display;
 
-use crate::frontend::lexer::token::Token;
+use crate::frontend::{lexer::token::Token, types::Spanned};
 
-pub type ParsedExpr<'a> = Expr<'a, ()>;
-pub type ParsedStmt<'a> = Stmt<'a, ()>;
-pub type ParsedDefn<'a> = Defn<'a, ()>;
+pub type SpannedExpr<'a, A> = Spanned<Expr<'a, A>>;
+pub type SpannedStmt<'a, A> = Spanned<Stmt<'a, A>>;
+pub type SpannedDefn<'a, A> = Spanned<Defn<'a, A>>;
+pub type SpannedBinding<'a> = Spanned<Binding<'a>>;
 
-pub struct Defn<'a, A> {
-    pub offset: usize,
-    pub kind: DefnKind<'a, A>,
-}
+pub type ParsedExpr<'a> = SpannedExpr<'a, ()>;
+pub type ParsedStmt<'a> = SpannedStmt<'a, ()>;
+pub type ParsedDefn<'a> = SpannedDefn<'a, ()>;
+pub type ParsedBinding<'a> = SpannedBinding<'a>;
 
 #[derive(Debug, PartialEq)]
-pub enum DefnKind<'a, A> {
+pub enum Defn<'a, A> {
     // typedef <typeId> { <id> ( <binding> , ... ) , ... }
-    Typedef(&'a str, Vec<(&'a str, Vec<Binding<'a>>)>),
+    Typedef(&'a str, Vec<(&'a str, Vec<SpannedBinding<'a>>)>),
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
-    Fn(&'a str, Vec<Binding<'a>>, Type<'a>, Vec<Stmt<'a, A>>),
+    Fn(&'a str, Vec<SpannedBinding<'a>>, Type<'a>, Vec<SpannedStmt<'a, A>>),
 }
 
 impl<'a> ParsedDefn<'a> {
     pub fn make_fn(
         offset: usize,
         id: &'a str,
-        bindings: Vec<Binding<'a>>,
+        bindings: Vec<ParsedBinding<'a>>,
         ret: Type<'a>,
-        stmts: Vec<Stmt<'a, ()>>,
+        stmts: Vec<ParsedStmt<'a>>,
     ) -> Self {
-        Defn {
+        Spanned {
             offset,
-            kind: DefnKind::Fn(id, bindings, ret, stmts),
+            node: Defn::Fn(id, bindings, ret, stmts),
         }
     }
 
-    pub fn make_typedef(offset: usize, id: &'a str, arms: Vec<(&'a str, Vec<Binding<'a>>)>) -> Self {
-        Defn {
+    pub fn make_typedef(offset: usize, id: &'a str, arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>) -> Self {
+        Spanned {
             offset,
-            kind: DefnKind::Typedef(id, arms),
+            node: Defn::Typedef(id, arms),
         }
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Stmt<'a, A> {
-    pub offset: usize,
-    pub kind: StmtKind<'a, A>,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum StmtKind<'a, A> {
-    Let(&'a str, Expr<'a, A>),   // let <id> = <expr>;
-    Read(Type<'a>, &'a str),     // read <type> <id>;
-    Echo(Type<'a>, Expr<'a, A>), // echo <type> <expr>;
-    Return(Expr<'a, A>),         // return <expr>;
+pub enum Stmt<'a, A> {
+    Let(&'a str, SpannedExpr<'a, A>),   // let <id> = <expr>;
+    Read(Type<'a>, &'a str),            // read <type> <id>;
+    Echo(Type<'a>, SpannedExpr<'a, A>), // echo <type> <expr>;
+    Return(SpannedExpr<'a, A>),         // return <expr>;
 }
 
 impl<'a> ParsedStmt<'a> {
-    pub fn make_let(offset: usize, id: &'a str, expr: Expr<'a, ()>) -> Self {
-        Stmt {
+    pub fn make_let(offset: usize, id: &'a str, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
             offset,
-            kind: StmtKind::Let(id, expr),
+            node: Stmt::Let(id, expr),
         }
     }
 
     pub fn make_read(offset: usize, typ: Type<'a>, id: &'a str) -> Self {
-        Stmt {
+        Spanned {
             offset,
-            kind: StmtKind::Read(typ, id),
+            node: Stmt::Read(typ, id),
         }
     }
 
-    pub fn make_echo(offset: usize, typ: Type<'a>, expr: Expr<'a, ()>) -> Self {
-        Stmt {
+    pub fn make_echo(offset: usize, typ: Type<'a>, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
             offset,
-            kind: StmtKind::Echo(typ, expr),
+            node: Stmt::Echo(typ, expr),
         }
     }
 
-    pub fn make_return(offset: usize, expr: Expr<'a, ()>) -> Self {
-        Stmt {
+    pub fn make_return(offset: usize, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
             offset,
-            kind: StmtKind::Return(expr),
+            node: Stmt::Return(expr),
         }
     }
 }
@@ -89,7 +84,6 @@ impl<'a> ParsedStmt<'a> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Expr<'a, A> {
     pub ann: A,
-    pub offset: usize,
     pub kind: ExprKind<'a, A>,
 }
 
@@ -104,35 +98,42 @@ pub enum ExprKind<'a, A> {
     Id(&'a str),
 
     // closures
-    Fn(Binding<'a>, Box<Expr<'a, A>>), // fn ( <binding> ) -> <expr>
+    Fn(SpannedBinding<'a>, Box<SpannedExpr<'a, A>>), // fn ( <binding> ) -> <expr>
 
     // unary operators
-    Neg(Box<Expr<'a, A>>),  // - <expr>
-    Bang(Box<Expr<'a, A>>), // ! <expr>
+    Neg(Box<SpannedExpr<'a, A>>),  // - <expr>
+    Bang(Box<SpannedExpr<'a, A>>), // ! <expr>
 
     // function calls
-    Call(Box<Expr<'a, A>>, Vec<Expr<'a, A>>), // <left>(<right>, ...)
+    Call(Box<SpannedExpr<'a, A>>, Vec<SpannedExpr<'a, A>>), // <left>(<right>, ...)
 
     // binary operators
-    Plus(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> + <right>
-    Minus(Box<Expr<'a, A>>, Box<Expr<'a, A>>),     // <left> - <right>
-    Mult(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> * <right>
-    Div(Box<Expr<'a, A>>, Box<Expr<'a, A>>),       // <left> / <right>
-    Pipe(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> |> <right>
-    Less(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> < <right>
-    LessEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),    // <left> <= <right>
-    Greater(Box<Expr<'a, A>>, Box<Expr<'a, A>>),   // <left> > <right>
-    GreaterEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>), // <left> >= <right>
-    Eq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),        // <left> == <right>
-    NotEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),     // <left> != <right>
-    Or(Box<Expr<'a, A>>, Box<Expr<'a, A>>),        // <left> || <right>
-    And(Box<Expr<'a, A>>, Box<Expr<'a, A>>),       // <left> && <right>
+    Plus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> + <right>
+    Minus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> - <right>
+    Mult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> * <right>
+    Div(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> / <right>
+    Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
+    Less(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> < <right>
+    LessEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
+    Greater(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> > <right>
+    GreaterEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
+    Eq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> == <right>
+    NotEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> != <right>
+    Or(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> || <right>
+    And(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> && <right>
 
     // if <1> then <2> else <3>
-    If(Box<Expr<'a, A>>, Box<Expr<'a, A>>, Box<Expr<'a, A>>),
+    If(
+        Box<SpannedExpr<'a, A>>,
+        Box<SpannedExpr<'a, A>>,
+        Box<SpannedExpr<'a, A>>,
+    ),
 
     // match <expr> { <id>(<bindings>) -> <expr>, ... }
-    Match(Box<Expr<'a, A>>, Vec<(&'a str, Vec<Binding<'a>>, Expr<'a, A>)>),
+    Match(
+        Box<SpannedExpr<'a, A>>,
+        Vec<(&'a str, Vec<SpannedBinding<'a>>, SpannedExpr<'a, A>)>,
+    ),
 }
 
 // Display ignores the annotation entirely.
@@ -195,13 +196,16 @@ where
 }
 
 impl<'a> ParsedExpr<'a> {
-    pub fn parsed(offset: usize, kind: ExprKind<'a, ()>) -> Self {
-        Expr { ann: (), offset, kind }
+    pub fn new(offset: usize, kind: ExprKind<'a, ()>) -> Self {
+        Spanned {
+            offset,
+            node: Expr { ann: (), kind },
+        }
     }
 }
 
 impl<'a, A> ExprKind<'a, A> {
-    pub fn binop(op: Token, left: Expr<'a, A>, right: Expr<'a, A>) -> ExprKind<'a, A> {
+    pub fn binop(op: Token, left: SpannedExpr<'a, A>, right: SpannedExpr<'a, A>) -> ExprKind<'a, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
             Token::Plus => ExprKind::Plus(left, right),
@@ -247,7 +251,6 @@ impl Display for Type<'_> {
 pub struct Binding<'a> {
     pub id: &'a str,
     pub typ: Type<'a>,
-    pub offset: usize,
 }
 
 impl Display for Binding<'_> {
@@ -256,8 +259,11 @@ impl Display for Binding<'_> {
     }
 }
 
-impl Binding<'_> {
-    pub fn new<'a>(id: &'a str, typ: Type<'a>, offset: usize) -> Binding<'a> {
-        Binding { id, typ, offset }
+impl<'a> ParsedBinding<'a> {
+    pub fn new(id: &'a str, typ: Type<'a>, offset: usize) -> Self {
+        Spanned {
+            offset,
+            node: Binding { id, typ },
+        }
     }
 }
