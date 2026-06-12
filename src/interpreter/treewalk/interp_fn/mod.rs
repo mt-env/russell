@@ -1,18 +1,18 @@
 use std::rc::Rc;
 
 use crate::{
-    frontend::parser::ast::{ParsedExpr, ParsedStmt, Stmt, Type},
+    frontend::parser::ast::{ParsedExpr, ParsedStmt, StmtKind, Type},
     interpreter::treewalk::{Env, interp_expr, types::Value},
 };
 
 pub(super) fn interp_fn<'a>(name: &str, stmts: &[ParsedStmt<'a>], env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     let mut local_env = Rc::clone(&env);
     for stmt in stmts {
-        match stmt {
-            Stmt::Let(id, expr) => local_env = interp_let(id, expr, local_env),
-            Stmt::Read(type_of_expr, id) => local_env = interp_read(type_of_expr, id, local_env),
-            Stmt::Echo(_, expr) => interp_echo(expr, Rc::clone(&local_env)),
-            Stmt::Return(expr) => return interp_expr::interp_expr(expr, Rc::clone(&local_env)),
+        match &stmt.kind {
+            StmtKind::Let(id, expr) => local_env = interp_let(id, expr, local_env),
+            StmtKind::Read(type_of_expr, id) => local_env = interp_read(type_of_expr, id, local_env),
+            StmtKind::Echo(_, expr) => interp_echo(expr, Rc::clone(&local_env)),
+            StmtKind::Return(expr) => return interp_expr::interp_expr(expr, Rc::clone(&local_env)),
         }
     }
 

@@ -26,8 +26,8 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
         ExprKind::GreaterEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r),
         ExprKind::Eq(left, right) => interp_cmp_binop(left, right, env, |l, r| l == r, |l, r| l == r),
         ExprKind::NotEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l != r, |l, r| l != r),
-        ExprKind::Or(left, right) => interp_if(left, &Expr::parsed(ExprKind::Bool(true)), right, env),
-        ExprKind::And(left, right) => interp_if(left, right, &Expr::parsed(ExprKind::Bool(false)), env),
+        ExprKind::Or(left, right) => interp_if(left, &Expr::parsed(expr.offset, ExprKind::Bool(true)), right, env),
+        ExprKind::And(left, right) => interp_if(left, right, &Expr::parsed(expr.offset, ExprKind::Bool(false)), env),
         ExprKind::If(cond, then_expr, else_expr) => interp_if(cond, then_expr, else_expr, env),
         ExprKind::Match(expr, arms) => interp_match(expr, arms, env),
     }
