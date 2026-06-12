@@ -1,7 +1,7 @@
 use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::TokenKind;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{Binding, Defn, ParsedDefn};
+use crate::frontend::parser::ast::{ParsedDefn, SpannedBinding};
 use crate::frontend::parser::parse_stmt::parse_stmnt;
 use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
 
@@ -38,7 +38,7 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(Defn::make_typedef(loc, name, signatures))
+    Ok(ParsedDefn::make_typedef(loc, name, signatures))
 }
 
 /// Parses a function definition:
@@ -65,13 +65,13 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(Defn::make_fn(loc, header.0, header.1, return_type, statements))
+    Ok(ParsedDefn::make_fn(loc, header.0, header.1, return_type, statements))
 }
 
 /// Parse a function signature: <id>(<binding>, ...)
 /// Returns the ID and a list of bindings if successful.
 /// Returns an error otherwise.
-fn parse_fn_sig<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<Binding<'a>>)> {
+fn parse_fn_sig<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<SpannedBinding<'a>>)> {
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))
