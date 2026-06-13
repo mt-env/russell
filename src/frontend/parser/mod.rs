@@ -86,13 +86,13 @@ impl<'a> Parser<'a> {
     }
 
     fn take_if(&mut self, kind: TokenKind) -> Option<Token<'a>> {
-        self.tokens.next_if(|t| t.kind() == kind).map(|t| t.token)
+        self.tokens.next_if(|t| t.kind() == kind).map(|t| t.node)
     }
 
     pub fn expect_many(&mut self, expected: &[TokenKind]) -> ParseResult<'a, Token<'a>> {
         for kind in expected {
             if self.peek().kind() == *kind {
-                return Ok(self.tokens.next().unwrap().token);
+                return Ok(self.tokens.next().unwrap().node);
             }
         }
 

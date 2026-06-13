@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::frontend::{lexer::token::Token, types::Spanned};
+use crate::frontend::{lexer::token::TokenKind, types::Spanned};
 
 pub type SpannedExpr<'a, A> = Spanned<Expr<'a, A>>;
 pub type SpannedStmt<'a, A> = Spanned<Stmt<'a, A>>;
@@ -205,22 +205,22 @@ impl<'a> ParsedExpr<'a> {
 }
 
 impl<'a, A> ExprKind<'a, A> {
-    pub fn binop(op: Token, left: SpannedExpr<'a, A>, right: SpannedExpr<'a, A>) -> ExprKind<'a, A> {
+    pub fn binop(op: TokenKind, left: SpannedExpr<'a, A>, right: SpannedExpr<'a, A>) -> ExprKind<'a, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
-            Token::Plus => ExprKind::Plus(left, right),
-            Token::Minus => ExprKind::Minus(left, right),
-            Token::Times => ExprKind::Mult(left, right),
-            Token::Divide => ExprKind::Div(left, right),
-            Token::Pipe => ExprKind::Pipe(left, right),
-            Token::LessThan => ExprKind::Less(left, right),
-            Token::LessThanOrEq => ExprKind::LessEq(left, right),
-            Token::GreaterThan => ExprKind::Greater(left, right),
-            Token::GreaterThanOrEq => ExprKind::GreaterEq(left, right),
-            Token::Eq => ExprKind::Eq(left, right),
-            Token::NotEq => ExprKind::NotEq(left, right),
-            Token::Or => ExprKind::Or(left, right),
-            Token::And => ExprKind::And(left, right),
+            TokenKind::Plus => ExprKind::Plus(left, right),
+            TokenKind::Minus => ExprKind::Minus(left, right),
+            TokenKind::Times => ExprKind::Mult(left, right),
+            TokenKind::Divide => ExprKind::Div(left, right),
+            TokenKind::Pipe => ExprKind::Pipe(left, right),
+            TokenKind::LessThan => ExprKind::Less(left, right),
+            TokenKind::LessThanOrEq => ExprKind::LessEq(left, right),
+            TokenKind::GreaterThan => ExprKind::Greater(left, right),
+            TokenKind::GreaterThanOrEq => ExprKind::GreaterEq(left, right),
+            TokenKind::Eq => ExprKind::Eq(left, right),
+            TokenKind::NotEq => ExprKind::NotEq(left, right),
+            TokenKind::Or => ExprKind::Or(left, right),
+            TokenKind::And => ExprKind::And(left, right),
             _ => unreachable!(),
         }
     }

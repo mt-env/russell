@@ -1,5 +1,5 @@
 use crate::frontend::error::parse_error::{ParseError, ParseResult};
-use crate::frontend::lexer::token::{Token, TokenKind};
+use crate::frontend::lexer::token::{SpannedToken, TokenKind};
 use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr};
 use crate::frontend::parser::parse_type::{parse_binding, parse_binding_list};
@@ -21,16 +21,18 @@ enum Precedence {
 }
 
 impl Precedence {
-    fn of(token: &Token) -> Precedence {
-        match token {
-            Token::Times | Token::Divide => Precedence::Mult,
-            Token::Plus | Token::Minus => Precedence::Add,
-            Token::LessThan | Token::LessThanOrEq | Token::GreaterThan | Token::GreaterThanOrEq => Precedence::Rel,
-            Token::Eq | Token::NotEq => Precedence::Eq,
-            Token::And => Precedence::And,
-            Token::Or => Precedence::Or,
-            Token::Pipe => Precedence::Pipe,
-            Token::LParen => Precedence::Call,
+    fn of(token: &SpannedToken) -> Precedence {
+        match token.kind() {
+            TokenKind::Times | TokenKind::Divide => Precedence::Mult,
+            TokenKind::Plus | TokenKind::Minus => Precedence::Add,
+            TokenKind::LessThan | TokenKind::LessThanOrEq | TokenKind::GreaterThan | TokenKind::GreaterThanOrEq => {
+                Precedence::Rel
+            }
+            TokenKind::Eq | TokenKind::NotEq => Precedence::Eq,
+            TokenKind::And => Precedence::And,
+            TokenKind::Or => Precedence::Or,
+            TokenKind::Pipe => Precedence::Pipe,
+            TokenKind::LParen => Precedence::Call,
             _ => Precedence::NotBinOp,
         }
     }
@@ -44,7 +46,7 @@ fn parse_expr_prec<'a>(parser: &mut Parser<'a>, min_prec: Precedence) -> ParseRe
     let mut left = parse_null_denotation(parser)?;
 
     loop {
-        let prec = Precedence::of(&parser.peek().token);
+        let prec = Precedence::of(&parser.peek());
         if prec <= min_prec {
             break;
         }
@@ -56,7 +58,7 @@ fn parse_expr_prec<'a>(parser: &mut Parser<'a>, min_prec: Precedence) -> ParseRe
         }
 
         // Binary operator
-        let op = parser.advance().token;
+        let op = parser.advance().kind();
         let right = parse_expr_prec(parser, prec)?;
         left = ParsedExpr::new(left.offset, ExprKind::binop(op, left, right));
     }
@@ -104,12 +106,12 @@ fn parse_atom_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a
 
 fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     let loc = parser.peek().offset;
-    match parser.advance().token {
-        Token::Minus => Ok(ParsedExpr::new(
+    match parser.advance().kind() {
+        TokenKind::Minus => Ok(ParsedExpr::new(
             loc,
             ExprKind::Neg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)),
         )),
-        Token::Not => Ok(ParsedExpr::new(
+        TokenKind::Not => Ok(ParsedExpr::new(
             loc,
             ExprKind::Bang(Box::new(parse_expr_prec(parser, Precedence::Mult)?)),
         )),
