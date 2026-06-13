@@ -68,7 +68,7 @@ pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
         let offset = rest.as_ptr() as usize - base;
         let (token, remaining) = next_token(rest);
         let done = matches!(token, Token::EoF);
-        tokens.push(SpannedToken { token, offset });
+        tokens.push(SpannedToken::new(token, offset));
         rest = remaining;
         if done {
             break;
