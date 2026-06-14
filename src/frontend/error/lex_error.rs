@@ -28,7 +28,7 @@ impl std::error::Error for LexError<'_> {}
 pub fn collect_errors<'a>(tokens: &[SpannedToken<'a>]) -> Vec<LexError<'a>> {
     tokens
         .iter()
-        .filter_map(|t| match &t.token {
+        .filter_map(|t| match &t.token() {
             Token::Invalid(c) => Some(LexError {
                 kind: LexErrorKind::InvalidCharacter(*c),
                 offset: t.offset,
