@@ -260,7 +260,7 @@ impl Display for Binding<'_> {
 }
 
 impl<'a> ParsedBinding<'a> {
-    pub fn new(id: &'a str, typ: Type<'a>, offset: usize) -> Self {
+    pub fn new(offset: usize, id: &'a str, typ: Type<'a>) -> Self {
         Spanned {
             offset,
             node: Binding { id, typ },

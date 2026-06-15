@@ -37,7 +37,7 @@ pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Pars
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Colon)?;
     let id_type = parse_type(parser)?;
-    Ok(ParsedBinding::new(id, id_type, loc))
+    Ok(ParsedBinding::new(loc, id, id_type))
 }
 
 pub(super) fn parse_binding_list<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
