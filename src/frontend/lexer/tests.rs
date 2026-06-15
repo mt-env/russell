@@ -5,8 +5,8 @@ use super::token::{Token, TokenKind};
 fn tokens(input: &str) -> Vec<Token> {
     lex(input)
         .into_iter()
-        .filter(|st| !matches!(st.token, Token::EoF))
-        .map(|st| st.token)
+        .filter(|st| !matches!(st.node, Token::EoF))
+        .map(|st| st.node)
         .collect()
 }
 
@@ -14,8 +14,8 @@ fn tokens(input: &str) -> Vec<Token> {
 fn tokens_with_offsets(input: &str) -> Vec<(Token, usize)> {
     lex(input)
         .into_iter()
-        .filter(|st| !matches!(st.token, Token::EoF))
-        .map(|st| (st.token, st.offset))
+        .filter(|st| !matches!(st.node, Token::EoF))
+        .map(|st| (st.node, st.offset))
         .collect()
 }
 
