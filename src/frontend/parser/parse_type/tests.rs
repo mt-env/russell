@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{Binding, Type};
+use crate::frontend::parser::ast::{ParsedBinding, Type};
 
 fn parser_from(input: &str) -> Parser {
     Parser::new(lex(input))
@@ -100,21 +100,21 @@ fn error_on_identifier() {
 fn simple_binding() {
     let mut p = parser_from("x : Int");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, Binding::new("x".into(), Type::Int));
+    assert_eq!(b, ParsedBinding::new(0, "x".into(), Type::Int));
 }
 
 #[test]
 fn binding_with_float_type() {
     let mut p = parser_from("val : Float");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, Binding::new("val".into(), Type::Float));
+    assert_eq!(b, ParsedBinding::new(0, "val".into(), Type::Float));
 }
 
 #[test]
 fn binding_with_bool_type() {
     let mut p = parser_from("flag : Bool");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, Binding::new("flag".into(), Type::Bool));
+    assert_eq!(b, ParsedBinding::new(0, "flag".into(), Type::Bool));
 }
 
 #[test]
@@ -123,7 +123,7 @@ fn binding_with_fn_type() {
     let b = super::parse_binding(&mut p).unwrap();
     assert_eq!(
         b,
-        Binding::new("f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool)))
+        ParsedBinding::new(0, "f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool)))
     );
 }
 
@@ -131,7 +131,7 @@ fn binding_with_fn_type() {
 fn binding_with_typeid() {
     let mut p = parser_from("x : MyType");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, Binding::new("x".into(), Type::TypeId("MyType".into())));
+    assert_eq!(b, ParsedBinding::new(0, "x".into(), Type::TypeId("MyType".into())));
 }
 
 #[test]
@@ -165,7 +165,7 @@ fn empty_binding_list() {
 fn single_binding_list() {
     let mut p = parser_from("(x : Int)");
     let bindings = super::parse_binding_list(&mut p).unwrap();
-    assert_eq!(bindings, vec![Binding::new("x".into(), Type::Int)]);
+    assert_eq!(bindings, vec![ParsedBinding::new(1, "x".into(), Type::Int)]);
 }
 
 #[test]
@@ -175,8 +175,8 @@ fn multiple_bindings() {
     assert_eq!(
         bindings,
         vec![
-            Binding::new("x".into(), Type::Int),
-            Binding::new("y".into(), Type::Float),
+            ParsedBinding::new(1, "x".into(), Type::Int),
+            ParsedBinding::new(10, "y".into(), Type::Float),
         ]
     );
 }
@@ -188,9 +188,9 @@ fn three_bindings() {
     assert_eq!(
         bindings,
         vec![
-            Binding::new("a".into(), Type::Int),
-            Binding::new("b".into(), Type::Float),
-            Binding::new("c".into(), Type::Bool),
+            ParsedBinding::new(1, "a".into(), Type::Int),
+            ParsedBinding::new(10, "b".into(), Type::Float),
+            ParsedBinding::new(21, "c".into(), Type::Bool),
         ]
     );
 }
@@ -202,8 +202,8 @@ fn binding_list_with_fn_type() {
     assert_eq!(
         bindings,
         vec![
-            Binding::new("f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
-            Binding::new("x".into(), Type::Int),
+            ParsedBinding::new(1, "f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
+            ParsedBinding::new(18, "x".into(), Type::Int),
         ]
     );
 }
