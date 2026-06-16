@@ -1,8 +1,8 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::lexer::token::{Token, TokenKind};
-use crate::frontend::parser::ast::*;
+use crate::frontend::parser::{Parser, ast::*};
 
-fn parser_from(input: &str) -> super::Parser {
+fn parser_from(input: &str) -> Parser<'_> {
     super::Parser::new(lex(input))
 }
 

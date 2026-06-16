@@ -2,11 +2,11 @@ use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{ExprKind, ParsedExpr, ParsedStmt, Type};
 
-fn parser_from(input: &str) -> Parser {
+fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input))
 }
 
-fn parse(input: &str) -> ParsedStmt {
+fn parse(input: &str) -> ParsedStmt<'_> {
     let mut p = parser_from(input);
     super::parse_stmnt(&mut p).unwrap()
 }
