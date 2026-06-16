@@ -615,7 +615,7 @@ fn parens_override_precedence() {
     assert_eq!(
         parse("(1 + 2) * 3"),
         ParsedExpr::new(
-            1,
+            0,
             ExprKind::Mult(
                 Box::new(ParsedExpr::new(
                     0,
@@ -849,9 +849,9 @@ fn if_with_complex_branches() {
             ExprKind::If(
                 Box::new(ParsedExpr::new(3, ExprKind::Id("x".into()))),
                 Box::new(ParsedExpr::new(
-                    11,
+                    10,
                     ExprKind::Plus(
-                        Box::new(ParsedExpr::new(11, ExprKind::Int(1))),
+                        Box::new(ParsedExpr::new(10, ExprKind::Int(1))),
                         Box::new(ParsedExpr::new(14, ExprKind::Int(2)))
                     )
                 )),
@@ -877,11 +877,11 @@ fn nested_if_in_else() {
                 Box::new(ParsedExpr::new(3, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(10, ExprKind::Int(1))),
                 Box::new(ParsedExpr::new(
-                    18,
+                    17,
                     ExprKind::If(
-                        Box::new(ParsedExpr::new(21, ExprKind::Id("b".into()))),
+                        Box::new(ParsedExpr::new(20, ExprKind::Id("b".into()))),
                         Box::new(ParsedExpr::new(27, ExprKind::Int(2))),
-                        Box::new(ParsedExpr::new(35, ExprKind::Int(3)))
+                        Box::new(ParsedExpr::new(34, ExprKind::Int(3)))
                     )
                 ))
             )
@@ -1022,7 +1022,7 @@ fn simple_closure() {
             0,
             ExprKind::Fn(
                 ParsedBinding::new(4, "x".into(), Type::Int),
-                Box::new(ParsedExpr::new(4, ExprKind::Id("x".into())))
+                Box::new(ParsedExpr::new(15, ExprKind::Id("x".into())))
             )
         )
     );
@@ -1168,14 +1168,14 @@ fn full_precedence_chain() {
                                             ExprKind::Less(
                                                 Box::new(ParsedExpr::new(20, ExprKind::Id("e".into()))),
                                                 Box::new(ParsedExpr::new(
-                                                    25,
+                                                    24,
                                                     ExprKind::Plus(
-                                                        Box::new(ParsedExpr::new(25, ExprKind::Id("f".into()))),
+                                                        Box::new(ParsedExpr::new(24, ExprKind::Id("f".into()))),
                                                         Box::new(ParsedExpr::new(
-                                                            30,
+                                                            28,
                                                             ExprKind::Mult(
-                                                                Box::new(ParsedExpr::new(30, ExprKind::Id("g".into()))),
-                                                                Box::new(ParsedExpr::new(35, ExprKind::Id("h".into())))
+                                                                Box::new(ParsedExpr::new(28, ExprKind::Id("g".into()))),
+                                                                Box::new(ParsedExpr::new(32, ExprKind::Id("h".into())))
                                                             )
                                                         ))
                                                     )
