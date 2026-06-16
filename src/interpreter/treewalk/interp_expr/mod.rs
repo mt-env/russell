@@ -1,12 +1,12 @@
 use std::{collections::HashMap, rc::Rc};
 
 use crate::{
-    frontend::parser::ast::{Binding, Expr, ExprKind, ParsedExpr},
+    frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
     interpreter::treewalk::{Env, interp_fn::interp_fn, types::Value},
 };
 
 pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
-    match &expr.kind {
+    match &expr.node.kind {
         ExprKind::Int(num) => Value::Int(*num).into(),
         ExprKind::Float(num) => Value::Float(*num).into(),
         ExprKind::Bool(val) => Value::Bool(*val).into(),
@@ -26,8 +26,8 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
         ExprKind::GreaterEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r),
         ExprKind::Eq(left, right) => interp_cmp_binop(left, right, env, |l, r| l == r, |l, r| l == r),
         ExprKind::NotEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l != r, |l, r| l != r),
-        ExprKind::Or(left, right) => interp_if(left, &Expr::parsed(ExprKind::Bool(true)), right, env),
-        ExprKind::And(left, right) => interp_if(left, right, &Expr::parsed(ExprKind::Bool(false)), env),
+        ExprKind::Or(left, right) => interp_if(left, &ParsedExpr::new(expr.offset, ExprKind::Bool(true)), right, env),
+        ExprKind::And(left, right) => interp_if(left, right, &ParsedExpr::new(expr.offset, ExprKind::Bool(false)), env),
         ExprKind::If(cond, then_expr, else_expr) => interp_if(cond, then_expr, else_expr, env),
         ExprKind::Match(expr, arms) => interp_match(expr, arms, env),
     }
@@ -55,14 +55,14 @@ fn interp_bang<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     }
 }
 
-fn bind_args<'a>(env: Rc<Env<'a>>, params: &[Binding<'a>], args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
+fn bind_args<'a>(env: Rc<Env<'a>>, params: &[ParsedBinding<'a>], args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
     if params.len() != args.len() {
         panic!("FATAL ERROR: expected {} arguments, found {}", params.len(), args.len());
     }
 
     let mut local_env = Rc::clone(&env);
     for (binding, arg) in params.iter().zip(args) {
-        local_env = Env::extend(local_env, binding.id, arg);
+        local_env = Env::extend(local_env, binding.node.id, arg);
     }
     local_env
 }
@@ -97,7 +97,7 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
             }
             let mut field_vals = HashMap::new();
             for (binding, arg) in bindings.iter().zip(args) {
-                field_vals.insert(binding.id, interp_expr(arg, Rc::clone(&env)));
+                field_vals.insert(binding.node.id, interp_expr(arg, Rc::clone(&env)));
             }
             Value::Adt(adt_type.clone(), name, field_vals).into()
         }
@@ -154,7 +154,7 @@ fn interp_if<'a>(
 
 fn interp_match<'a>(
     expr: &ParsedExpr<'a>,
-    arms: &[(&'a str, Vec<Binding<'a>>, Expr<'a, ()>)],
+    arms: &[(&'a str, Vec<ParsedBinding<'a>>, ParsedExpr<'a>)],
     env: Rc<Env<'a>>,
 ) -> Rc<Value<'a>> {
     // check that the value is an ADT
@@ -181,13 +181,13 @@ fn interp_match<'a>(
         }
         let mut local_env = Rc::clone(&env);
         for arm_binding in arm_bindings {
-            let Some(field_val) = fields.get(&arm_binding.id) else {
+            let Some(field_val) = fields.get(&arm_binding.node.id) else {
                 panic!(
                     "FATAL ERROR: no field named {} in constructor {}",
-                    arm_binding.id, constructor
+                    arm_binding.node.id, constructor
                 );
             };
-            local_env = Env::extend(local_env, arm_binding.id, Rc::clone(field_val));
+            local_env = Env::extend(local_env, arm_binding.node.id, Rc::clone(field_val));
         }
         return interp_expr(arm_expr, local_env);
     }

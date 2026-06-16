@@ -1,10 +1,10 @@
 use crate::frontend::parser::ast::{Defn, Expr, Stmt, Type};
 
-pub(super) type TypedDefn<'a> = Defn<'a, TypeValue>;
-pub(super) type TypedStmt<'a> = Stmt<'a, TypeValue>;
-pub(super) type TypedExpr<'a> = Expr<'a, TypeValue>;
+pub type TypedDefn<'a> = Defn<'a, TypeValue>;
+pub type TypedStmt<'a> = Stmt<'a, TypeValue>;
+pub type TypedExpr<'a> = Expr<'a, TypeValue>;
 
-pub(super) enum TypeValue {
+pub enum TypeValue {
     Int,
     Float,
     Bool,

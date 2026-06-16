@@ -2,20 +2,20 @@ use super::lex;
 use super::token::{Token, TokenKind};
 
 /// helper: lex a string and return just the Token variants (no offsets), excluding EoF
-fn tokens(input: &str) -> Vec<Token> {
+fn tokens(input: &str) -> Vec<Token<'_>> {
     lex(input)
         .into_iter()
-        .filter(|st| !matches!(st.token, Token::EoF))
-        .map(|st| st.token)
+        .filter(|st| !matches!(st.node, Token::EoF))
+        .map(|st| st.node)
         .collect()
 }
 
 /// helper: lex a string and return (Token, offset) pairs, excluding EoF
-fn tokens_with_offsets(input: &str) -> Vec<(Token, usize)> {
+fn tokens_with_offsets(input: &str) -> Vec<(Token<'_>, usize)> {
     lex(input)
         .into_iter()
-        .filter(|st| !matches!(st.token, Token::EoF))
-        .map(|st| (st.token, st.offset))
+        .filter(|st| !matches!(st.node, Token::EoF))
+        .map(|st| (st.node, st.offset))
         .collect()
 }
 

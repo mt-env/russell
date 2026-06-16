@@ -22,33 +22,37 @@ pub(super) fn parse_stmnt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Parsed
 }
 
 fn parse_let<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+    let loc = parser.peek().offset;
     parser.expect(TokenKind::Let)?;
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Assign)?;
     let expr = parse_expr(parser)?;
     parser.expect(TokenKind::Semicolon)?;
-    Ok(ParsedStmt::Let(id, expr))
+    Ok(ParsedStmt::make_let(loc, id, expr))
 }
 
 fn parse_read<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+    let loc = parser.peek().offset;
     parser.expect(TokenKind::Read)?;
     let read_type = parse_type(parser)?;
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Semicolon)?;
-    Ok(ParsedStmt::Read(read_type, id))
+    Ok(ParsedStmt::make_read(loc, read_type, id))
 }
 
 fn parse_echo<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+    let loc = parser.peek().offset;
     parser.expect(TokenKind::Echo)?;
     let echo_type = parse_type(parser)?;
     let expr = parse_expr(parser)?;
     parser.expect(TokenKind::Semicolon)?;
-    Ok(ParsedStmt::Echo(echo_type, expr))
+    Ok(ParsedStmt::make_echo(loc, echo_type, expr))
 }
 
 fn parse_return<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+    let loc = parser.peek().offset;
     parser.expect(TokenKind::Return)?;
     let expr = parse_expr(parser)?;
     parser.expect(TokenKind::Semicolon)?;
-    Ok(ParsedStmt::Return(expr))
+    Ok(ParsedStmt::make_return(loc, expr))
 }

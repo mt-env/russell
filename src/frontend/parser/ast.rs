@@ -1,26 +1,84 @@
 use std::fmt::Display;
 
-use crate::frontend::lexer::token::Token;
+use crate::frontend::{lexer::token::TokenKind, types::Spanned};
 
-pub type ParsedExpr<'a> = Expr<'a, ()>;
-pub type ParsedStmt<'a> = Stmt<'a, ()>;
-pub type ParsedDefn<'a> = Defn<'a, ()>;
+pub type SpannedExpr<'a, A> = Spanned<Expr<'a, A>>;
+pub type SpannedStmt<'a, A> = Spanned<Stmt<'a, A>>;
+pub type SpannedDefn<'a, A> = Spanned<Defn<'a, A>>;
+pub type SpannedBinding<'a> = Spanned<Binding<'a>>;
+
+pub type ParsedExpr<'a> = SpannedExpr<'a, ()>;
+pub type ParsedStmt<'a> = SpannedStmt<'a, ()>;
+pub type ParsedDefn<'a> = SpannedDefn<'a, ()>;
+pub type ParsedBinding<'a> = SpannedBinding<'a>;
 
 #[derive(Debug, PartialEq)]
 pub enum Defn<'a, A> {
     // typedef <typeId> { <id> ( <binding> , ... ) , ... }
-    Typedef(&'a str, Vec<(&'a str, Vec<Binding<'a>>)>),
+    Typedef(&'a str, Vec<(&'a str, Vec<SpannedBinding<'a>>)>),
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
-    Fn(&'a str, Vec<Binding<'a>>, Type<'a>, Vec<Stmt<'a, A>>),
+    Fn(&'a str, Vec<SpannedBinding<'a>>, Type<'a>, Vec<SpannedStmt<'a, A>>),
+}
+
+impl<'a> ParsedDefn<'a> {
+    pub fn make_fn(
+        offset: usize,
+        id: &'a str,
+        bindings: Vec<ParsedBinding<'a>>,
+        ret: Type<'a>,
+        stmts: Vec<ParsedStmt<'a>>,
+    ) -> Self {
+        Spanned {
+            offset,
+            node: Defn::Fn(id, bindings, ret, stmts),
+        }
+    }
+
+    pub fn make_typedef(offset: usize, id: &'a str, arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>) -> Self {
+        Spanned {
+            offset,
+            node: Defn::Typedef(id, arms),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt<'a, A> {
-    Let(&'a str, Expr<'a, A>),   // let <id> = <expr>;
-    Read(Type<'a>, &'a str),     // read <type> <id>;
-    Echo(Type<'a>, Expr<'a, A>), // echo <type> <expr>;
-    Return(Expr<'a, A>),         // return <expr>;
+    Let(&'a str, SpannedExpr<'a, A>),   // let <id> = <expr>;
+    Read(Type<'a>, &'a str),            // read <type> <id>;
+    Echo(Type<'a>, SpannedExpr<'a, A>), // echo <type> <expr>;
+    Return(SpannedExpr<'a, A>),         // return <expr>;
+}
+
+impl<'a> ParsedStmt<'a> {
+    pub fn make_let(offset: usize, id: &'a str, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
+            offset,
+            node: Stmt::Let(id, expr),
+        }
+    }
+
+    pub fn make_read(offset: usize, typ: Type<'a>, id: &'a str) -> Self {
+        Spanned {
+            offset,
+            node: Stmt::Read(typ, id),
+        }
+    }
+
+    pub fn make_echo(offset: usize, typ: Type<'a>, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
+            offset,
+            node: Stmt::Echo(typ, expr),
+        }
+    }
+
+    pub fn make_return(offset: usize, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
+            offset,
+            node: Stmt::Return(expr),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -40,35 +98,42 @@ pub enum ExprKind<'a, A> {
     Id(&'a str),
 
     // closures
-    Fn(Binding<'a>, Box<Expr<'a, A>>), // fn ( <binding> ) -> <expr>
+    Fn(SpannedBinding<'a>, Box<SpannedExpr<'a, A>>), // fn ( <binding> ) -> <expr>
 
     // unary operators
-    Neg(Box<Expr<'a, A>>),  // - <expr>
-    Bang(Box<Expr<'a, A>>), // ! <expr>
+    Neg(Box<SpannedExpr<'a, A>>),  // - <expr>
+    Bang(Box<SpannedExpr<'a, A>>), // ! <expr>
 
     // function calls
-    Call(Box<Expr<'a, A>>, Vec<Expr<'a, A>>), // <left>(<right>, ...)
+    Call(Box<SpannedExpr<'a, A>>, Vec<SpannedExpr<'a, A>>), // <left>(<right>, ...)
 
     // binary operators
-    Plus(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> + <right>
-    Minus(Box<Expr<'a, A>>, Box<Expr<'a, A>>),     // <left> - <right>
-    Mult(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> * <right>
-    Div(Box<Expr<'a, A>>, Box<Expr<'a, A>>),       // <left> / <right>
-    Pipe(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> |> <right>
-    Less(Box<Expr<'a, A>>, Box<Expr<'a, A>>),      // <left> < <right>
-    LessEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),    // <left> <= <right>
-    Greater(Box<Expr<'a, A>>, Box<Expr<'a, A>>),   // <left> > <right>
-    GreaterEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>), // <left> >= <right>
-    Eq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),        // <left> == <right>
-    NotEq(Box<Expr<'a, A>>, Box<Expr<'a, A>>),     // <left> != <right>
-    Or(Box<Expr<'a, A>>, Box<Expr<'a, A>>),        // <left> || <right>
-    And(Box<Expr<'a, A>>, Box<Expr<'a, A>>),       // <left> && <right>
+    Plus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> + <right>
+    Minus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> - <right>
+    Mult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> * <right>
+    Div(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> / <right>
+    Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
+    Less(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> < <right>
+    LessEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
+    Greater(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> > <right>
+    GreaterEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
+    Eq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> == <right>
+    NotEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> != <right>
+    Or(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> || <right>
+    And(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> && <right>
 
     // if <1> then <2> else <3>
-    If(Box<Expr<'a, A>>, Box<Expr<'a, A>>, Box<Expr<'a, A>>),
+    If(
+        Box<SpannedExpr<'a, A>>,
+        Box<SpannedExpr<'a, A>>,
+        Box<SpannedExpr<'a, A>>,
+    ),
 
     // match <expr> { <id>(<bindings>) -> <expr>, ... }
-    Match(Box<Expr<'a, A>>, Vec<(&'a str, Vec<Binding<'a>>, Expr<'a, A>)>),
+    Match(
+        Box<SpannedExpr<'a, A>>,
+        Vec<(&'a str, Vec<SpannedBinding<'a>>, SpannedExpr<'a, A>)>,
+    ),
 }
 
 // Display ignores the annotation entirely.
@@ -130,29 +195,32 @@ where
     }
 }
 
-impl<'a> Expr<'a, ()> {
-    pub fn parsed(kind: ExprKind<'a, ()>) -> Self {
-        Expr { ann: (), kind }
+impl<'a> ParsedExpr<'a> {
+    pub fn new(offset: usize, kind: ExprKind<'a, ()>) -> Self {
+        Spanned {
+            offset,
+            node: Expr { ann: (), kind },
+        }
     }
 }
 
 impl<'a, A> ExprKind<'a, A> {
-    pub fn binop(op: Token, left: Expr<'a, A>, right: Expr<'a, A>) -> ExprKind<'a, A> {
+    pub fn binop(op: TokenKind, left: SpannedExpr<'a, A>, right: SpannedExpr<'a, A>) -> ExprKind<'a, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
-            Token::Plus => ExprKind::Plus(left, right),
-            Token::Minus => ExprKind::Minus(left, right),
-            Token::Times => ExprKind::Mult(left, right),
-            Token::Divide => ExprKind::Div(left, right),
-            Token::Pipe => ExprKind::Pipe(left, right),
-            Token::LessThan => ExprKind::Less(left, right),
-            Token::LessThanOrEq => ExprKind::LessEq(left, right),
-            Token::GreaterThan => ExprKind::Greater(left, right),
-            Token::GreaterThanOrEq => ExprKind::GreaterEq(left, right),
-            Token::Eq => ExprKind::Eq(left, right),
-            Token::NotEq => ExprKind::NotEq(left, right),
-            Token::Or => ExprKind::Or(left, right),
-            Token::And => ExprKind::And(left, right),
+            TokenKind::Plus => ExprKind::Plus(left, right),
+            TokenKind::Minus => ExprKind::Minus(left, right),
+            TokenKind::Times => ExprKind::Mult(left, right),
+            TokenKind::Divide => ExprKind::Div(left, right),
+            TokenKind::Pipe => ExprKind::Pipe(left, right),
+            TokenKind::LessThan => ExprKind::Less(left, right),
+            TokenKind::LessThanOrEq => ExprKind::LessEq(left, right),
+            TokenKind::GreaterThan => ExprKind::Greater(left, right),
+            TokenKind::GreaterThanOrEq => ExprKind::GreaterEq(left, right),
+            TokenKind::Eq => ExprKind::Eq(left, right),
+            TokenKind::NotEq => ExprKind::NotEq(left, right),
+            TokenKind::Or => ExprKind::Or(left, right),
+            TokenKind::And => ExprKind::And(left, right),
             _ => unreachable!(),
         }
     }
@@ -191,8 +259,11 @@ impl Display for Binding<'_> {
     }
 }
 
-impl Binding<'_> {
-    pub fn new<'a>(id: &'a str, typ: Type<'a>) -> Binding<'a> {
-        Binding { id, typ }
+impl<'a> ParsedBinding<'a> {
+    pub fn new(offset: usize, id: &'a str, typ: Type<'a>) -> Self {
+        Spanned {
+            offset,
+            node: Binding { id, typ },
+        }
     }
 }

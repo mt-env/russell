@@ -13,7 +13,7 @@ impl<'a> ParseError<'a> {
     pub fn new<A>(expected: TokenKind, actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
         Err(ParseError {
             expected: vec![expected],
-            actual: actual.token,
+            actual: *actual.token(),
             offset: actual.offset,
         })
     }
@@ -21,7 +21,7 @@ impl<'a> ParseError<'a> {
     pub fn many<A>(expected: &[TokenKind], actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
         Err(ParseError {
             expected: expected.to_vec(),
-            actual: actual.token,
+            actual: *actual.token(),
             offset: actual.offset,
         })
     }

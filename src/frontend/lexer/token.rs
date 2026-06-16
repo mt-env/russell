@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::frontend::types::Spanned;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Token<'a> {
     // primitive values
@@ -124,15 +126,19 @@ impl Display for TokenKind {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SpannedToken<'a> {
-    pub token: Token<'a>,
-    pub offset: usize,
-}
+pub type SpannedToken<'a> = Spanned<Token<'a>>;
 
-impl SpannedToken<'_> {
+impl<'a> SpannedToken<'a> {
+    pub fn new(token: Token<'a>, offset: usize) -> Self {
+        Spanned { node: token, offset }
+    }
+
+    pub fn token(&self) -> &Token<'a> {
+        &self.node
+    }
+
     pub fn kind(&self) -> TokenKind {
-        self.token.kind()
+        self.node.kind()
     }
 }
 

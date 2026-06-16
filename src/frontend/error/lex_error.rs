@@ -2,14 +2,12 @@ use std::fmt;
 
 use crate::frontend::lexer::token::{SpannedToken, Token};
 
-/// An error encountered during lexing.
 #[derive(Debug)]
 pub struct LexError<'a> {
     pub kind: LexErrorKind<'a>,
     pub offset: usize,
 }
 
-/// The kinds of errors the lexer can produce.
 #[derive(Debug)]
 pub enum LexErrorKind<'a> {
     InvalidCharacter(char),
@@ -27,11 +25,10 @@ impl fmt::Display for LexError<'_> {
 
 impl std::error::Error for LexError<'_> {}
 
-/// Scan a token stream and collect any lexer errors.
 pub fn collect_errors<'a>(tokens: &[SpannedToken<'a>]) -> Vec<LexError<'a>> {
     tokens
         .iter()
-        .filter_map(|t| match &t.token {
+        .filter_map(|t| match &t.token() {
             Token::Invalid(c) => Some(LexError {
                 kind: LexErrorKind::InvalidCharacter(*c),
                 offset: t.offset,

@@ -1,7 +1,7 @@
 use crate::frontend::error::parse_error::ParseResult;
 use crate::frontend::lexer::token::{Token, TokenKind};
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{Binding, Type};
+use crate::frontend::parser::ast::{ParsedBinding, Type};
 
 #[cfg(test)]
 mod tests;
@@ -32,14 +32,15 @@ pub(super) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a
     Ok(l_type)
 }
 
-pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Binding<'a>> {
+pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedBinding<'a>> {
+    let loc = parser.peek().offset;
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Colon)?;
     let id_type = parse_type(parser)?;
-    Ok(Binding::new(id, id_type))
+    Ok(ParsedBinding::new(loc, id, id_type))
 }
 
-pub(super) fn parse_binding_list<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<Binding<'a>>> {
+pub(super) fn parse_binding_list<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut bindings = Vec::new();

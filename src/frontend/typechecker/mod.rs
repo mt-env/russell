@@ -4,6 +4,6 @@ pub mod typecheck_expr;
 pub mod typecheck_fn;
 pub mod types;
 
-fn typecheck(_defns: Vec<ParsedDefn>) -> Vec<TypedDefn> {
+pub fn typecheck(_defns: Vec<ParsedDefn>) -> Vec<TypedDefn> {
     todo!()
 }
