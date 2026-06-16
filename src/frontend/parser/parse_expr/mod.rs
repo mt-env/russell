@@ -120,10 +120,11 @@ fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
 }
 
 fn parse_paren_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+    let loc = parser.peek().offset;
     parser.expect(TokenKind::LParen)?;
     let e = parse_expr(parser)?;
     parser.expect(TokenKind::RParen)?;
-    Ok(e)
+    Ok(ParsedExpr { offset: loc, ..e })
 }
 
 // fn ( <binding> ) -> <expr>
