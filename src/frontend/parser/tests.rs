@@ -20,11 +20,12 @@ fn parse_single_fn() {
     assert_eq!(defns.len(), 1);
     assert_eq!(
         defns[0],
-        Defn::Fn(
+        ParsedDefn::make_fn(
+            0,
             "main".into(),
             vec![],
             Type::Int,
-            vec![Stmt::Return(Expr::parsed(ExprKind::Int(0)))]
+            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Int(0)))]
         )
     );
 }
@@ -33,7 +34,10 @@ fn parse_single_fn() {
 fn parse_single_typedef() {
     let defns = super::parse(lex("typedef Unit { unit() }"));
     assert_eq!(defns.len(), 1);
-    assert_eq!(defns[0], Defn::Typedef("Unit".into(), vec![("unit".into(), vec![])]));
+    assert_eq!(
+        defns[0],
+        ParsedDefn::make_typedef(0, "Unit".into(), vec![("unit".into(), vec![])])
+    );
 }
 
 #[test]
@@ -41,8 +45,8 @@ fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0], Defn::Typedef(name, ..) if *name == "Color"));
-    assert!(matches!(&defns[1], Defn::Fn(name, ..) if *name == "main"));
+    assert!(matches!(&defns[0].node, Defn::Typedef(name, ..) if *name == "Color"));
+    assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "main"));
 }
 
 #[test]
@@ -53,9 +57,9 @@ fn parse_multiple_fns() {
         fn baz() -> Int { return 3; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 3);
-    assert!(matches!(&defns[0], Defn::Fn(name, ..) if *name == "foo"));
-    assert!(matches!(&defns[1], Defn::Fn(name, ..) if *name == "bar"));
-    assert!(matches!(&defns[2], Defn::Fn(name, ..) if *name == "baz"));
+    assert!(matches!(&defns[0].node, Defn::Fn(name, ..) if *name == "foo"));
+    assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "bar"));
+    assert!(matches!(&defns[2].node, Defn::Fn(name, ..) if *name == "baz"));
 }
 
 #[test]
@@ -67,8 +71,8 @@ fn parse_typedef_then_fn_using_it() {
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0], Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2));
-    assert!(matches!(&defns[1], Defn::Fn(name, ..) if *name == "unwrap"));
+    assert!(matches!(&defns[0].node, Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2));
+    assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "unwrap"));
 }
 
 // ─── peek ───────────────────────────────────────────────────────────
