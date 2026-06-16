@@ -46,7 +46,7 @@ fn parse_expr_prec<'a>(parser: &mut Parser<'a>, min_prec: Precedence) -> ParseRe
     let mut left = parse_null_denotation(parser)?;
 
     loop {
-        let prec = Precedence::of(&parser.peek());
+        let prec = Precedence::of(parser.peek());
         if prec <= min_prec {
             break;
         }

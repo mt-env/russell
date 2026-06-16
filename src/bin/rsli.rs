@@ -13,7 +13,7 @@ fn main() {
     // lex the program
     let tokens = lexer::lex(&program);
     let errors = error::lex_error::collect_errors(&tokens);
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         for error in errors {
             println!("{}", error::report(&error.into(), &program, filename));
         }
