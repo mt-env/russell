@@ -18,7 +18,12 @@ pub enum Defn<'a, A> {
     Typedef(&'a str, Vec<(&'a str, Vec<SpannedBinding<'a>>)>),
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
-    Fn(&'a str, Vec<SpannedBinding<'a>>, Type<'a>, Vec<SpannedStmt<'a, A>>),
+    Fn(
+        &'a str,
+        Vec<SpannedBinding<'a>>,
+        Type<'a>,
+        Vec<SpannedStmt<'a, A>>,
+    ),
 }
 
 impl<'a> ParsedDefn<'a> {
@@ -35,7 +40,11 @@ impl<'a> ParsedDefn<'a> {
         }
     }
 
-    pub fn make_typedef(offset: usize, id: &'a str, arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>) -> Self {
+    pub fn make_typedef(
+        offset: usize,
+        id: &'a str,
+        arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>,
+    ) -> Self {
         Spanned {
             offset,
             node: Defn::Typedef(id, arms),
@@ -157,7 +166,11 @@ where
             ExprKind::Neg(expr) => write!(f, "-{expr}"),
             ExprKind::Bang(expr) => write!(f, "!{expr}"),
             ExprKind::Call(func, args) => {
-                let args_str = args.iter().map(|arg| format!("{arg}")).collect::<Vec<_>>().join(", ");
+                let args_str = args
+                    .iter()
+                    .map(|arg| format!("{arg}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 write!(f, "{func}({args_str})")
             }
             ExprKind::Plus(left, right) => write!(f, "({left} + {right})"),
@@ -205,7 +218,11 @@ impl<'a> ParsedExpr<'a> {
 }
 
 impl<'a, A> ExprKind<'a, A> {
-    pub fn binop(op: TokenKind, left: SpannedExpr<'a, A>, right: SpannedExpr<'a, A>) -> ExprKind<'a, A> {
+    pub fn binop(
+        op: TokenKind,
+        left: SpannedExpr<'a, A>,
+        right: SpannedExpr<'a, A>,
+    ) -> ExprKind<'a, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
             TokenKind::Plus => ExprKind::Plus(left, right),

@@ -22,7 +22,10 @@ fn fn_no_params() {
             "main".into(),
             vec![],
             Type::Int,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Int(0)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Int(0))
+            )]
         )
     );
 }
@@ -106,7 +109,10 @@ fn fn_with_float_return() {
             "pi".into(),
             vec![],
             Type::Float,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Float(3.14)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Float(3.14))
+            )]
         )
     );
 }
@@ -120,7 +126,10 @@ fn fn_with_bool_return() {
             "yes".into(),
             vec![],
             Type::Bool,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Bool(true)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Bool(true))
+            )]
         )
     );
 }
@@ -133,7 +142,11 @@ fn fn_with_fn_type_param() {
             0,
             "apply".into(),
             vec![
-                ParsedBinding::new(9, "f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Int))),
+                ParsedBinding::new(
+                    9,
+                    "f".into(),
+                    Type::Fn(Box::new(Type::Int), Box::new(Type::Int))
+                ),
                 ParsedBinding::new(24, "x".into(), Type::Int),
             ],
             Type::Int,
@@ -203,7 +216,10 @@ fn typedef_single_constructor_with_field() {
         ParsedDefn::make_typedef(
             0,
             "Wrapper".into(),
-            vec![("wrap".into(), vec![ParsedBinding::new(23, "x".into(), Type::Int)])]
+            vec![(
+                "wrap".into(),
+                vec![ParsedBinding::new(23, "x".into(), Type::Int)]
+            )]
         )
     );
 }
@@ -232,7 +248,10 @@ fn typedef_constructors_with_fields() {
             0,
             "Shape".into(),
             vec![
-                ("circle".into(), vec![ParsedBinding::new(23, "r".into(), Type::Float)]),
+                (
+                    "circle".into(),
+                    vec![ParsedBinding::new(23, "r".into(), Type::Float)]
+                ),
                 (
                     "rect".into(),
                     vec![
@@ -253,7 +272,10 @@ fn typedef_option_pattern() {
             0,
             "Option".into(),
             vec![
-                ("some".into(), vec![ParsedBinding::new(22, "x".into(), Type::Int)]),
+                (
+                    "some".into(),
+                    vec![ParsedBinding::new(22, "x".into(), Type::Int)]
+                ),
                 ("none".into(), vec![]),
             ]
         )

@@ -22,7 +22,13 @@ fn tokens_with_offsets(input: &str) -> Vec<(Token<'_>, usize)> {
 /// helper: assert that a single-token input produces the expected token kind
 fn assert_single(input: &str, expected: TokenKind) {
     let toks = tokens(input);
-    assert_eq!(toks.len(), 1, "expected 1 token for {:?}, got {:?}", input, toks);
+    assert_eq!(
+        toks.len(),
+        1,
+        "expected 1 token for {:?}, got {:?}",
+        input,
+        toks
+    );
     assert_eq!(toks[0].kind(), expected);
 }
 

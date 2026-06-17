@@ -12,7 +12,10 @@ pub fn interp(defns: Vec<ParsedDefn>) {
     let main_call = ParsedExpr::new(
         // todo - is this the right offset to use for the main call?
         0,
-        ExprKind::Call(Box::new(ParsedExpr::new(0, ExprKind::Id("main"))), Vec::new()),
+        ExprKind::Call(
+            Box::new(ParsedExpr::new(0, ExprKind::Id("main"))),
+            Vec::new(),
+        ),
     );
     interp_expr::interp_expr(&main_call, global_env);
 }

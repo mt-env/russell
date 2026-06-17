@@ -65,13 +65,21 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(ParsedDefn::make_fn(loc, header.0, header.1, return_type, statements))
+    Ok(ParsedDefn::make_fn(
+        loc,
+        header.0,
+        header.1,
+        return_type,
+        statements,
+    ))
 }
 
 /// Parse a function signature: <id>(<binding>, ...)
 /// Returns the ID and a list of bindings if successful.
 /// Returns an error otherwise.
-fn parse_fn_sig<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<SpannedBinding<'a>>)> {
+fn parse_fn_sig<'a>(
+    parser: &mut Parser<'a>,
+) -> ParseResult<'a, (&'a str, Vec<SpannedBinding<'a>>)> {
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))

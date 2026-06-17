@@ -25,7 +25,10 @@ fn parse_single_fn() {
             "main".into(),
             vec![],
             Type::Int,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Int(0)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Int(0))
+            )]
         )
     );
 }
@@ -71,7 +74,9 @@ fn parse_typedef_then_fn_using_it() {
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0].node, Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2));
+    assert!(
+        matches!(&defns[0].node, Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2)
+    );
     assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "unwrap"));
 }
 

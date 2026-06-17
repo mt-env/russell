@@ -15,7 +15,12 @@ pub(super) fn parse_stmnt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Parsed
         TokenKind::Echo => parse_echo(parser),
         TokenKind::Return => parse_return(parser),
         _ => ParseError::many(
-            &[TokenKind::Let, TokenKind::Read, TokenKind::Echo, TokenKind::Return],
+            &[
+                TokenKind::Let,
+                TokenKind::Read,
+                TokenKind::Echo,
+                TokenKind::Return,
+            ],
             parser.peek(),
         ),
     }

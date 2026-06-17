@@ -63,7 +63,11 @@ impl Display for Value<'_> {
             Value::Bool(val) => write!(f, "{val}"),
             Value::Closure(_, binding, expr) => write!(f, "<function ({binding}) -> {expr}>"),
             Value::Constructor(name, _, fields) => {
-                let joined = fields.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ");
+                let joined = fields
+                    .iter()
+                    .map(|b| b.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 write!(f, "<constructor {name} {joined}>")
             }
             Value::Fn(name, _, _) => write!(f, "<function {name}>"),

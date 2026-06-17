@@ -130,7 +130,10 @@ pub type SpannedToken<'a> = Spanned<Token<'a>>;
 
 impl<'a> SpannedToken<'a> {
     pub fn new(token: Token<'a>, offset: usize) -> Self {
-        Spanned { node: token, offset }
+        Spanned {
+            node: token,
+            offset,
+        }
     }
 
     pub fn token(&self) -> &Token<'a> {

@@ -71,7 +71,10 @@ fn let_error_missing_assign() {
 
 #[test]
 fn read_int() {
-    assert_eq!(parse("read Int x;"), ParsedStmt::make_read(0, Type::Int, "x".into()));
+    assert_eq!(
+        parse("read Int x;"),
+        ParsedStmt::make_read(0, Type::Int, "x".into())
+    );
 }
 
 #[test]
@@ -84,7 +87,10 @@ fn read_float() {
 
 #[test]
 fn read_bool() {
-    assert_eq!(parse("read Bool z;"), ParsedStmt::make_read(0, Type::Bool, "z".into()));
+    assert_eq!(
+        parse("read Bool z;"),
+        ParsedStmt::make_read(0, Type::Bool, "z".into())
+    );
 }
 
 #[test]

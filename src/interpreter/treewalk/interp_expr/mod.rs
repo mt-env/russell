@@ -11,23 +11,55 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
         ExprKind::Float(num) => Value::Float(*num).into(),
         ExprKind::Bool(val) => Value::Bool(*val).into(),
         ExprKind::Id(id) => interp_id(id, env),
-        ExprKind::Fn(binding, expr) => Value::Closure(Rc::clone(&env), binding.clone(), expr.clone()).into(),
+        ExprKind::Fn(binding, expr) => {
+            Value::Closure(Rc::clone(&env), binding.clone(), expr.clone()).into()
+        }
         ExprKind::Neg(expr) => interp_neg(expr, env),
         ExprKind::Bang(expr) => interp_bang(expr, env),
         ExprKind::Call(func, args) => interp_call(func, args.iter().collect(), env),
-        ExprKind::Plus(left, right) => interp_arith_binop(left, right, env, |l, r| l + r, |l, r| l + r),
-        ExprKind::Minus(left, right) => interp_arith_binop(left, right, env, |l, r| l - r, |l, r| l - r),
-        ExprKind::Mult(left, right) => interp_arith_binop(left, right, env, |l, r| l * r, |l, r| l * r),
-        ExprKind::Div(left, right) => interp_arith_binop(left, right, env, |l, r| l / r, |l, r| l / r),
+        ExprKind::Plus(left, right) => {
+            interp_arith_binop(left, right, env, |l, r| l + r, |l, r| l + r)
+        }
+        ExprKind::Minus(left, right) => {
+            interp_arith_binop(left, right, env, |l, r| l - r, |l, r| l - r)
+        }
+        ExprKind::Mult(left, right) => {
+            interp_arith_binop(left, right, env, |l, r| l * r, |l, r| l * r)
+        }
+        ExprKind::Div(left, right) => {
+            interp_arith_binop(left, right, env, |l, r| l / r, |l, r| l / r)
+        }
         ExprKind::Pipe(left, right) => interp_call(right, vec![left], env),
-        ExprKind::Less(left, right) => interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r),
-        ExprKind::LessEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l <= r, |l, r| l <= r),
-        ExprKind::Greater(left, right) => interp_cmp_binop(left, right, env, |l, r| l > r, |l, r| l > r),
-        ExprKind::GreaterEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r),
-        ExprKind::Eq(left, right) => interp_cmp_binop(left, right, env, |l, r| l == r, |l, r| l == r),
-        ExprKind::NotEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l != r, |l, r| l != r),
-        ExprKind::Or(left, right) => interp_if(left, &ParsedExpr::new(expr.offset, ExprKind::Bool(true)), right, env),
-        ExprKind::And(left, right) => interp_if(left, right, &ParsedExpr::new(expr.offset, ExprKind::Bool(false)), env),
+        ExprKind::Less(left, right) => {
+            interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r)
+        }
+        ExprKind::LessEq(left, right) => {
+            interp_cmp_binop(left, right, env, |l, r| l <= r, |l, r| l <= r)
+        }
+        ExprKind::Greater(left, right) => {
+            interp_cmp_binop(left, right, env, |l, r| l > r, |l, r| l > r)
+        }
+        ExprKind::GreaterEq(left, right) => {
+            interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r)
+        }
+        ExprKind::Eq(left, right) => {
+            interp_cmp_binop(left, right, env, |l, r| l == r, |l, r| l == r)
+        }
+        ExprKind::NotEq(left, right) => {
+            interp_cmp_binop(left, right, env, |l, r| l != r, |l, r| l != r)
+        }
+        ExprKind::Or(left, right) => interp_if(
+            left,
+            &ParsedExpr::new(expr.offset, ExprKind::Bool(true)),
+            right,
+            env,
+        ),
+        ExprKind::And(left, right) => interp_if(
+            left,
+            right,
+            &ParsedExpr::new(expr.offset, ExprKind::Bool(false)),
+            env,
+        ),
         ExprKind::If(cond, then_expr, else_expr) => interp_if(cond, then_expr, else_expr, env),
         ExprKind::Match(expr, arms) => interp_match(expr, arms, env),
     }
@@ -55,9 +87,17 @@ fn interp_bang<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     }
 }
 
-fn bind_args<'a>(env: Rc<Env<'a>>, params: &[ParsedBinding<'a>], args: Vec<Rc<Value<'a>>>) -> Rc<Env<'a>> {
+fn bind_args<'a>(
+    env: Rc<Env<'a>>,
+    params: &[ParsedBinding<'a>],
+    args: Vec<Rc<Value<'a>>>,
+) -> Rc<Env<'a>> {
     if params.len() != args.len() {
-        panic!("FATAL ERROR: expected {} arguments, found {}", params.len(), args.len());
+        panic!(
+            "FATAL ERROR: expected {} arguments, found {}",
+            params.len(),
+            args.len()
+        );
     }
 
     let mut local_env = Rc::clone(&env);
@@ -67,13 +107,19 @@ fn bind_args<'a>(env: Rc<Env<'a>>, params: &[ParsedBinding<'a>], args: Vec<Rc<Va
     local_env
 }
 
-fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+fn interp_call<'a>(
+    func: &ParsedExpr<'a>,
+    args: Vec<&ParsedExpr<'a>>,
+    env: Rc<Env<'a>>,
+) -> Rc<Value<'a>> {
     match &*interp_expr(func, Rc::clone(&env)) {
         Value::Closure(closure_env, binding, body) => {
             let local_env = bind_args(
                 Rc::clone(closure_env),
                 std::slice::from_ref(binding),
-                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
+                args.iter()
+                    .map(|arg| interp_expr(arg, Rc::clone(&env)))
+                    .collect(),
             );
             interp_expr(body, local_env)
         }
@@ -82,7 +128,9 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
             let local_env = bind_args(
                 env.global(),
                 bindings,
-                args.iter().map(|arg| interp_expr(arg, Rc::clone(&env))).collect(),
+                args.iter()
+                    .map(|arg| interp_expr(arg, Rc::clone(&env)))
+                    .collect(),
             );
             interp_fn(name, stmts, local_env)
         }

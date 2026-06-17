@@ -123,7 +123,11 @@ fn binding_with_fn_type() {
     let b = super::parse_binding(&mut p).unwrap();
     assert_eq!(
         b,
-        ParsedBinding::new(0, "f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool)))
+        ParsedBinding::new(
+            0,
+            "f".into(),
+            Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))
+        )
     );
 }
 
@@ -131,7 +135,10 @@ fn binding_with_fn_type() {
 fn binding_with_typeid() {
     let mut p = parser_from("x : MyType");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, ParsedBinding::new(0, "x".into(), Type::TypeId("MyType".into())));
+    assert_eq!(
+        b,
+        ParsedBinding::new(0, "x".into(), Type::TypeId("MyType".into()))
+    );
 }
 
 #[test]
@@ -202,7 +209,11 @@ fn binding_list_with_fn_type() {
     assert_eq!(
         bindings,
         vec![
-            ParsedBinding::new(1, "f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
+            ParsedBinding::new(
+                1,
+                "f".into(),
+                Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))
+            ),
             ParsedBinding::new(18, "x".into(), Type::Int),
         ]
     );

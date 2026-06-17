@@ -49,7 +49,10 @@ fn identifier() {
 fn negate_int() {
     assert_eq!(
         parse("-1"),
-        ParsedExpr::new(0, ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Int(1)))))
+        ParsedExpr::new(
+            0,
+            ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Int(1))))
+        )
     );
 }
 
@@ -57,7 +60,10 @@ fn negate_int() {
 fn negate_identifier() {
     assert_eq!(
         parse("-x"),
-        ParsedExpr::new(0, ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Id("x".into())))))
+        ParsedExpr::new(
+            0,
+            ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Id("x".into()))))
+        )
     );
 }
 
@@ -65,7 +71,10 @@ fn negate_identifier() {
 fn bang_bool() {
     assert_eq!(
         parse("!true"),
-        ParsedExpr::new(0, ExprKind::Bang(Box::new(ParsedExpr::new(1, ExprKind::Bool(true)))))
+        ParsedExpr::new(
+            0,
+            ExprKind::Bang(Box::new(ParsedExpr::new(1, ExprKind::Bool(true))))
+        )
     );
 }
 
@@ -664,7 +673,10 @@ fn call_no_args() {
         parse("f()"),
         ParsedExpr::new(
             0,
-            ExprKind::Call(Box::new(ParsedExpr::new(0, ExprKind::Id("f".into()))), vec![])
+            ExprKind::Call(
+                Box::new(ParsedExpr::new(0, ExprKind::Id("f".into()))),
+                vec![]
+            )
         )
     );
 }
@@ -1166,16 +1178,28 @@ fn full_precedence_chain() {
                                         Box::new(ParsedExpr::new(
                                             20,
                                             ExprKind::Less(
-                                                Box::new(ParsedExpr::new(20, ExprKind::Id("e".into()))),
+                                                Box::new(ParsedExpr::new(
+                                                    20,
+                                                    ExprKind::Id("e".into())
+                                                )),
                                                 Box::new(ParsedExpr::new(
                                                     24,
                                                     ExprKind::Plus(
-                                                        Box::new(ParsedExpr::new(24, ExprKind::Id("f".into()))),
+                                                        Box::new(ParsedExpr::new(
+                                                            24,
+                                                            ExprKind::Id("f".into())
+                                                        )),
                                                         Box::new(ParsedExpr::new(
                                                             28,
                                                             ExprKind::Mult(
-                                                                Box::new(ParsedExpr::new(28, ExprKind::Id("g".into()))),
-                                                                Box::new(ParsedExpr::new(32, ExprKind::Id("h".into())))
+                                                                Box::new(ParsedExpr::new(
+                                                                    28,
+                                                                    ExprKind::Id("g".into())
+                                                                )),
+                                                                Box::new(ParsedExpr::new(
+                                                                    32,
+                                                                    ExprKind::Id("h".into())
+                                                                ))
                                                             )
                                                         ))
                                                     )

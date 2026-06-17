@@ -40,7 +40,9 @@ pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Pars
     Ok(ParsedBinding::new(loc, id, id_type))
 }
 
-pub(super) fn parse_binding_list<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
+pub(super) fn parse_binding_list<'a>(
+    parser: &mut Parser<'a>,
+) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut bindings = Vec::new();
