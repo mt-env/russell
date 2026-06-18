@@ -52,14 +52,17 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     parser.expect(TokenKind::Arrow)?;
     let return_type = parse_type(parser)?;
 
-    // parse the function body (LBrace, statements, RBrace, Semicolon)
+    // parse the function body (LBrace, statements, RBrace)
     parser.expect(TokenKind::LBrace)?;
 
     let mut statements = Vec::new();
     while parser.peek().kind() != TokenKind::RBrace {
         match parse_stmnt(parser) {
             Ok(stmnt) => statements.push(stmnt),
-            Err(_) => todo!(), // TODO improve error handling
+            Err(e) => {
+                parser.push_error(e);
+                parser.synchronize();
+            }
         }
     }
 
