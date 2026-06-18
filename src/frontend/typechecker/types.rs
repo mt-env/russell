@@ -34,6 +34,12 @@ pub enum Env {
     },
 }
 
+impl Env {
+    pub fn lookup(&self, id: &str) -> Option<TypeValue> {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum TypeValue {
     Int,

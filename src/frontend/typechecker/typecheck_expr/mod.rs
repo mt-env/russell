@@ -3,7 +3,7 @@ use crate::frontend::{
     typechecker::types::{Env, TypeError, TypeResult, TypeValue, TypedExpr},
 };
 
-pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypeResult<TypedExpr> {
+pub(super) fn typecheck_expr<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
     match expr.node.kind {
         ExprKind::Int(n) => Ok(TypedExpr::new(
             expr.offset,
@@ -20,10 +20,10 @@ pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypeResult<TypedExpr> {
             TypeValue::Bool,
             ExprKind::Bool(val),
         )),
-        ExprKind::Id(_) => todo!(),
+        ExprKind::Id(s) => typecheck_id(expr.offset, s, env),
         ExprKind::Fn(binding, expr) => todo!(),
-        ExprKind::Neg(expr) => todo!(),
-        ExprKind::Bang(expr) => todo!(),
+        ExprKind::Neg(expr) => typecheck_neg(*expr, env),
+        ExprKind::Bang(expr) => typecheck_bang(*expr, env),
         ExprKind::Call(expr, exprs) => todo!(),
         ExprKind::Plus(expr, expr1) => todo!(),
         ExprKind::Minus(expr, expr1) => todo!(),
@@ -43,16 +43,23 @@ pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypeResult<TypedExpr> {
     }
 }
 
-fn typecheck_id(id: String, env: &Env) -> TypeResult<TypeValue> {
-    todo!()
+fn typecheck_id<'a>(offset: usize, id: &'a str, env: &Env) -> TypeResult<TypedExpr<'a>> {
+    match env.lookup(&id) {
+        Some(ty) => Ok(TypedExpr::new(offset, ty, ExprKind::Id(id))),
+        None => Err(TypeError {
+            expected: TypeValue::Var(Box::new(None)),
+            actual: TypeValue::Var(Box::new(None)),
+            offset,
+        }),
+    }
 }
 
 fn typecheck_fn(binding: String, expr: ParsedExpr, env: &Env) -> TypeResult<TypeValue> {
     todo!()
 }
 
-fn typecheck_neg(expr: ParsedExpr) -> TypeResult<TypedExpr> {
-    let checked_expr = typecheck_expr(expr)?;
+fn typecheck_neg<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
+    let checked_expr = typecheck_expr(expr, env)?;
     match checked_expr.ann() {
         TypeValue::Int => Ok(TypedExpr::new(
             checked_expr.offset,
@@ -72,8 +79,8 @@ fn typecheck_neg(expr: ParsedExpr) -> TypeResult<TypedExpr> {
     }
 }
 
-fn typecheck_bang(expr: ParsedExpr) -> TypeResult<TypedExpr> {
-    let checked_expr = typecheck_expr(expr)?;
+fn typecheck_bang<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
+    let checked_expr = typecheck_expr(expr, env)?;
     match checked_expr.ann() {
         TypeValue::Bool => Ok(TypedExpr::new(
             checked_expr.offset,
