@@ -68,7 +68,7 @@ pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
         let offset = rest.as_ptr() as usize - base;
         let (token, remaining) = next_token(rest);
         let done = matches!(token, Token::EoF);
-        tokens.push(SpannedToken { token, offset });
+        tokens.push(SpannedToken::new(token, offset));
         rest = remaining;
         if done {
             break;
@@ -110,7 +110,10 @@ fn next_token(program: &str) -> (Token<'_>, &str) {
     }
 
     // otherwise, the token is invalid
-    (Token::Invalid(first_char), &program[first_char.len_utf8()..])
+    (
+        Token::Invalid(first_char),
+        &program[first_char.len_utf8()..],
+    )
 }
 
 /// Discards any whitespace or comments at the start of `program`.
@@ -144,7 +147,10 @@ fn read_num(program: &str) -> (Token<'_>, &str) {
     if seen_dot {
         (Token::Float(digits.parse::<f64>().unwrap()), rest)
     } else {
-        (Token::Int(digits.parse::<i64>().unwrap()), rest)
+        match digits.parse::<i64>() {
+            Ok(num) => (Token::Int(num), rest),
+            Err(_) => (Token::Overflow(digits), rest),
+        }
     }
 }
 

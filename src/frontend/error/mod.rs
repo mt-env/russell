@@ -8,7 +8,7 @@ use parse_error::ParseError;
 
 #[derive(Debug)]
 pub enum CompilerError<'a> {
-    Lex(LexError),
+    Lex(LexError<'a>),
     Parse(ParseError<'a>),
 }
 
@@ -30,8 +30,8 @@ impl fmt::Display for CompilerError<'_> {
     }
 }
 
-impl From<LexError> for CompilerError<'_> {
-    fn from(e: LexError) -> Self {
+impl<'a> From<LexError<'a>> for CompilerError<'a> {
+    fn from(e: LexError<'a>) -> Self {
         CompilerError::Lex(e)
     }
 }
@@ -93,6 +93,9 @@ pub fn offset_to_location(source: &str, offset: usize) -> (usize, usize) {
 /// Return the source line containing the given byte offset.
 pub fn source_line_at(source: &str, offset: usize) -> &str {
     let start = source[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
-    let end = source[offset..].find('\n').map(|i| offset + i).unwrap_or(source.len());
+    let end = source[offset..]
+        .find('\n')
+        .map(|i| offset + i)
+        .unwrap_or(source.len());
     &source[start..end]
 }

@@ -2,27 +2,33 @@ use super::lex;
 use super::token::{Token, TokenKind};
 
 /// helper: lex a string and return just the Token variants (no offsets), excluding EoF
-fn tokens(input: &str) -> Vec<Token> {
+fn tokens(input: &str) -> Vec<Token<'_>> {
     lex(input)
         .into_iter()
-        .filter(|st| !matches!(st.token, Token::EoF))
-        .map(|st| st.token)
+        .filter(|st| !matches!(st.node, Token::EoF))
+        .map(|st| st.node)
         .collect()
 }
 
 /// helper: lex a string and return (Token, offset) pairs, excluding EoF
-fn tokens_with_offsets(input: &str) -> Vec<(Token, usize)> {
+fn tokens_with_offsets(input: &str) -> Vec<(Token<'_>, usize)> {
     lex(input)
         .into_iter()
-        .filter(|st| !matches!(st.token, Token::EoF))
-        .map(|st| (st.token, st.offset))
+        .filter(|st| !matches!(st.node, Token::EoF))
+        .map(|st| (st.node, st.offset))
         .collect()
 }
 
 /// helper: assert that a single-token input produces the expected token kind
 fn assert_single(input: &str, expected: TokenKind) {
     let toks = tokens(input);
-    assert_eq!(toks.len(), 1, "expected 1 token for {:?}, got {:?}", input, toks);
+    assert_eq!(
+        toks.len(),
+        1,
+        "expected 1 token for {:?}, got {:?}",
+        input,
+        toks
+    );
     assert_eq!(toks[0].kind(), expected);
 }
 
