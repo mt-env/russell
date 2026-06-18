@@ -9,15 +9,15 @@ pub mod typecheck_expr;
 pub mod typecheck_fn;
 pub mod types;
 
-pub fn typecheck(defns: Vec<ParsedDefn>) -> Vec<TypedDefn> {
+pub fn typecheck(_defns: Vec<ParsedDefn>) -> Vec<TypedDefn> {
     todo!()
 }
 
 fn process_global_env(defns: Vec<ParsedDefn>) -> Env {
     for defn in defns {
-        match defn {
-            Defn::Typedef(name, vars) => todo!(),
-            Defn::Fn(name, bindings, ty, stmts) => todo!(),
+        match defn.node {
+            Defn::Typedef(_, _) => todo!(),
+            Defn::Fn(_, _, _, _) => todo!(),
         }
     }
     todo!()

@@ -1,15 +1,22 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::frontend::parser::ast::{Defn, Expr, ExprKind, Stmt, Type};
+use crate::frontend::parser::ast::{Expr, ExprKind, SpannedDefn, SpannedExpr, SpannedStmt, Type};
 
 pub type TypeResult<T> = Result<T, TypeError>;
-pub(super) type TypedDefn<'a> = Defn<'a, TypeValue>;
-pub(super) type TypedStmt<'a> = Stmt<'a, TypeValue>;
-pub(super) type TypedExpr<'a> = Expr<'a, TypeValue>;
+pub(super) type TypedDefn<'a> = SpannedDefn<'a, TypeValue>;
+pub(super) type TypedStmt<'a> = SpannedStmt<'a, TypeValue>;
+pub(super) type TypedExpr<'a> = SpannedExpr<'a, TypeValue>;
 
 impl<'a> TypedExpr<'a> {
-    pub fn new(ann: TypeValue, kind: ExprKind<'a, TypeValue>) -> Self {
-        Self { ann, kind }
+    pub fn new(offset: usize, ann: TypeValue, kind: ExprKind<'a, TypeValue>) -> Self {
+        Self {
+            offset,
+            node: Expr { ann, kind },
+        }
+    }
+
+    pub fn ann(&self) -> TypeValue {
+        self.node.ann.clone()
     }
 }
 
@@ -27,14 +34,15 @@ pub enum Env {
     },
 }
 
+#[derive(Debug, Clone)]
 pub enum TypeValue {
     Int,
     Float,
     Bool,
-    Fn(Vec<TypeValue>, Box<TypeValue>),      // (arg types, return type)
+    Fn(Vec<TypeValue>, Box<TypeValue>), // (arg types, return type)
     Closure(Box<TypeValue>, Box<TypeValue>), // (arg type, return type)
-    Adt(String),                             // nominal type
-    Var(Box<Option<TypeValue>>),             // type variable for inference
+    Adt(String),                        // nominal type
+    Var(Box<Option<TypeValue>>),        // type variable for inference
 }
 
 impl From<Type<'_>> for TypeValue {

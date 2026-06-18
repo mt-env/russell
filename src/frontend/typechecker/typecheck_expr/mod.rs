@@ -1,13 +1,25 @@
 use crate::frontend::{
-    parser::ast::{Expr, ExprKind, ParsedExpr},
+    parser::ast::{ExprKind, ParsedExpr},
     typechecker::types::{Env, TypeError, TypeResult, TypeValue, TypedExpr},
 };
 
 pub(super) fn typecheck_expr(expr: ParsedExpr) -> TypeResult<TypedExpr> {
-    match expr.kind {
-        ExprKind::Int(n) => Ok(TypedExpr::new(TypeValue::Int, ExprKind::Int(n))),
-        ExprKind::Float(n) => Ok(TypedExpr::new(TypeValue::Float, ExprKind::Float(n))),
-        ExprKind::Bool(val) => Ok(TypedExpr::new(TypeValue::Bool, ExprKind::Bool(val))),
+    match expr.node.kind {
+        ExprKind::Int(n) => Ok(TypedExpr::new(
+            expr.offset,
+            TypeValue::Int,
+            ExprKind::Int(n),
+        )),
+        ExprKind::Float(n) => Ok(TypedExpr::new(
+            expr.offset,
+            TypeValue::Float,
+            ExprKind::Float(n),
+        )),
+        ExprKind::Bool(val) => Ok(TypedExpr::new(
+            expr.offset,
+            TypeValue::Bool,
+            ExprKind::Bool(val),
+        )),
         ExprKind::Id(_) => todo!(),
         ExprKind::Fn(binding, expr) => todo!(),
         ExprKind::Neg(expr) => todo!(),
@@ -40,24 +52,38 @@ fn typecheck_fn(binding: String, expr: ParsedExpr, env: &Env) -> TypeResult<Type
 }
 
 fn typecheck_neg(expr: ParsedExpr) -> TypeResult<TypedExpr> {
-    let expr = typecheck_expr(expr)?;
-    match expr.ann {
-        TypeValue::Int => Ok(TypedExpr::new(TypeValue::Int, ExprKind::Neg(Box::new(expr)))),
-        TypeValue::Float => Ok(TypedExpr::new(TypeValue::Float, ExprKind::Neg(Box::new(expr)))),
+    let checked_expr = typecheck_expr(expr)?;
+    match checked_expr.ann() {
+        TypeValue::Int => Ok(TypedExpr::new(
+            checked_expr.offset,
+            TypeValue::Int,
+            ExprKind::Neg(Box::new(checked_expr)),
+        )),
+        TypeValue::Float => Ok(TypedExpr::new(
+            checked_expr.offset,
+            TypeValue::Float,
+            ExprKind::Neg(Box::new(checked_expr)),
+        )),
         _ => Err(TypeError {
             expected: TypeValue::Int,
-            actual: expr.ann,
+            actual: checked_expr.ann(),
+            offset: checked_expr.offset,
         }),
     }
 }
 
 fn typecheck_bang(expr: ParsedExpr) -> TypeResult<TypedExpr> {
-    let expr = typecheck_expr(expr)?;
-    match expr.ann {
-        TypeValue::Bool => Ok(TypedExpr::new(TypeValue::Bool, ExprKind::Bang(Box::new(expr)))),
+    let checked_expr = typecheck_expr(expr)?;
+    match checked_expr.ann() {
+        TypeValue::Bool => Ok(TypedExpr::new(
+            checked_expr.offset,
+            TypeValue::Bool,
+            ExprKind::Bang(Box::new(checked_expr)),
+        )),
         _ => Err(TypeError {
             expected: TypeValue::Bool,
-            actual: expr.ann,
+            actual: checked_expr.ann(),
+            offset: checked_expr.offset,
         }),
     }
 }
