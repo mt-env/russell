@@ -8,7 +8,7 @@ use crate::frontend::parser::parse_type::parse_type;
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_stmnt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+pub fn parse_stmnt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     match parser.peek().kind() {
         TokenKind::Let => parse_let(parser),
         TokenKind::Read => parse_read(parser),

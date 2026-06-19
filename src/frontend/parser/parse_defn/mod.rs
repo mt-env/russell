@@ -8,7 +8,7 @@ use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+pub fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     match parser.peek().kind() {
         TokenKind::Fn => parse_fndef(parser),
         TokenKind::Typedef => parse_typedef(parser),

@@ -6,7 +6,7 @@ use crate::frontend::parser::ast::{ParsedBinding, Type};
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
+pub fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
     // parse an atomic type
     let l_type = match parser.expect_many(&[
         TokenKind::IntType,

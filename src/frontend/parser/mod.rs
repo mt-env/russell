@@ -1,9 +1,9 @@
 pub mod ast;
 
-mod parse_defn;
-mod parse_expr;
-mod parse_stmt;
-mod parse_type;
+pub mod parse_defn;
+pub mod parse_expr;
+pub mod parse_stmt;
+pub mod parse_type;
 
 #[cfg(test)]
 mod tests;

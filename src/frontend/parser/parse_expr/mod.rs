@@ -39,7 +39,7 @@ impl Precedence {
     }
 }
 
-pub(super) fn parse_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+pub fn parse_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parse_expr_prec(parser, Precedence::NotBinOp)
 }
 
