@@ -3,6 +3,9 @@ use crate::frontend::{
     typechecker::types::{Env, TypeError, TypeResult, TypeValue, TypedExpr},
 };
 
+#[cfg(test)]
+mod tests;
+
 pub(super) fn typecheck_expr<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
     match expr.node.kind {
         ExprKind::Int(n) => Ok(TypedExpr::new(
@@ -24,22 +27,22 @@ pub(super) fn typecheck_expr<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<
         ExprKind::Fn(binding, expr) => todo!(),
         ExprKind::Neg(expr) => typecheck_neg(*expr, env),
         ExprKind::Bang(expr) => typecheck_bang(*expr, env),
-        ExprKind::Call(expr, exprs) => todo!(),
-        ExprKind::Plus(expr, expr1) => todo!(),
-        ExprKind::Minus(expr, expr1) => todo!(),
-        ExprKind::Mult(expr, expr1) => todo!(),
-        ExprKind::Div(expr, expr1) => todo!(),
-        ExprKind::Pipe(expr, expr1) => todo!(),
-        ExprKind::Less(expr, expr1) => todo!(),
-        ExprKind::LessEq(expr, expr1) => todo!(),
-        ExprKind::Greater(expr, expr1) => todo!(),
-        ExprKind::GreaterEq(expr, expr1) => todo!(),
-        ExprKind::Eq(expr, expr1) => todo!(),
-        ExprKind::NotEq(expr, expr1) => todo!(),
-        ExprKind::Or(expr, expr1) => todo!(),
-        ExprKind::And(expr, expr1) => todo!(),
-        ExprKind::If(expr, expr1, expr2) => todo!(),
-        ExprKind::Match(expr, items) => todo!(),
+        ExprKind::Call(left, right) => todo!(),
+        ExprKind::Plus(left, right) => todo!(),
+        ExprKind::Minus(left, right) => todo!(),
+        ExprKind::Mult(left, right) => todo!(),
+        ExprKind::Div(left, right) => todo!(),
+        ExprKind::Pipe(left, right) => todo!(),
+        ExprKind::Less(left, right) => todo!(),
+        ExprKind::LessEq(left, right) => todo!(),
+        ExprKind::Greater(left, right) => todo!(),
+        ExprKind::GreaterEq(left, right) => todo!(),
+        ExprKind::Eq(left, right) => todo!(),
+        ExprKind::NotEq(left, right) => todo!(),
+        ExprKind::Or(left, right) => todo!(),
+        ExprKind::And(left, right) => todo!(),
+        ExprKind::If(cond, thenb, elseb) => todo!(),
+        ExprKind::Match(expr, arms) => todo!(),
     }
 }
 

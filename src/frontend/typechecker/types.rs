@@ -20,6 +20,7 @@ impl<'a> TypedExpr<'a> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TypeError {
     pub expected: TypeValue,
     pub actual: TypeValue,
@@ -40,7 +41,7 @@ impl Env {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeValue {
     Int,
     Float,
