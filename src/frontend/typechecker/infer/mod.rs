@@ -1,6 +1,9 @@
 use crate::frontend::{
     parser::ast::{ExprKind, ParsedExpr},
-    typechecker::types::{Env, TypeError, TypeResult, TypeValue, TypedExpr},
+    typechecker::{
+        check::{check, unify},
+        types::{Env, TypeError, TypeResult, TypeValue, TypedExpr},
+    },
 };
 
 #[cfg(test)]
@@ -23,10 +26,10 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr
             TypeValue::Bool,
             ExprKind::Bool(val),
         )),
-        ExprKind::Id(s) => typecheck_id(expr.offset, s, env),
+        ExprKind::Id(s) => infer_id(expr.offset, s, env),
         ExprKind::Fn(binding, expr) => todo!(),
-        ExprKind::Neg(expr) => typecheck_neg(*expr, env),
-        ExprKind::Bang(expr) => typecheck_bang(*expr, env),
+        ExprKind::Neg(expr) => infer_neg(*expr, env),
+        ExprKind::Bang(expr) => infer_bang(*expr, env),
         ExprKind::Call(left, right) => todo!(),
         ExprKind::Plus(left, right) => todo!(),
         ExprKind::Minus(left, right) => todo!(),
@@ -41,12 +44,12 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr
         ExprKind::NotEq(left, right) => todo!(),
         ExprKind::Or(left, right) => todo!(),
         ExprKind::And(left, right) => todo!(),
-        ExprKind::If(cond, thenb, elseb) => todo!(),
+        ExprKind::If(cond, thenb, elseb) => infer_if(expr.offset, *cond, *thenb, *elseb, env),
         ExprKind::Match(expr, arms) => todo!(),
     }
 }
 
-fn typecheck_id<'a>(offset: usize, id: &'a str, env: &Env) -> TypeResult<TypedExpr<'a>> {
+fn infer_id<'a>(offset: usize, id: &'a str, env: &Env) -> TypeResult<TypedExpr<'a>> {
     match env.lookup(&id) {
         Some(ty) => Ok(TypedExpr::new(offset, ty, ExprKind::Id(id))),
         None => Err(TypeError {
@@ -57,11 +60,11 @@ fn typecheck_id<'a>(offset: usize, id: &'a str, env: &Env) -> TypeResult<TypedEx
     }
 }
 
-fn typecheck_fn(binding: String, expr: ParsedExpr, env: &Env) -> TypeResult<TypeValue> {
+fn infer_fn(binding: String, expr: ParsedExpr, env: &Env) -> TypeResult<TypeValue> {
     todo!()
 }
 
-fn typecheck_neg<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
+fn infer_neg<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
     let checked_expr = infer(expr, env)?;
     match checked_expr.ann() {
         TypeValue::Int => Ok(TypedExpr::new(
@@ -82,7 +85,7 @@ fn typecheck_neg<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a
     }
 }
 
-fn typecheck_bang<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
+fn infer_bang<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
     let checked_expr = infer(expr, env)?;
     match checked_expr.ann() {
         TypeValue::Bool => Ok(TypedExpr::new(
@@ -96,4 +99,57 @@ fn typecheck_bang<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'
             offset: checked_expr.offset,
         }),
     }
+}
+
+fn infer_call() {
+    todo!()
+}
+
+fn infer_arith_binop() {
+    todo!()
+}
+
+fn infer_pipe() {
+    todo!()
+}
+
+fn infer_cmp_binop() {
+    todo!()
+}
+
+fn infer_bool_binop() {
+    todo!()
+}
+
+fn infer_if<'a>(
+    offset: usize,
+    cond: ParsedExpr<'a>,
+    thenb: ParsedExpr<'a>,
+    elseb: ParsedExpr<'a>,
+    env: &Env,
+) -> TypeResult<TypedExpr<'a>> {
+    let checked_cond = infer(cond, env)?;
+    unify(checked_cond.ann(), TypeValue::Bool)?;
+    let checked_thenb = infer(thenb, env)?;
+    let checked_elseb = infer(elseb, env)?;
+    if checked_thenb.ann() != checked_elseb.ann() {
+        return Err(TypeError {
+            expected: checked_thenb.ann(),
+            actual: checked_elseb.ann(),
+            offset: checked_elseb.offset,
+        });
+    }
+    Ok(TypedExpr::new(
+        offset,
+        checked_thenb.ann(),
+        ExprKind::If(
+            Box::new(checked_cond),
+            Box::new(checked_thenb),
+            Box::new(checked_elseb),
+        ),
+    ))
+}
+
+fn infer_match() {
+    todo!()
 }
