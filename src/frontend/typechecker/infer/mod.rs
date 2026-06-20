@@ -25,12 +25,16 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr
         ExprKind::Mult(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Mult, env),
         ExprKind::Div(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Div, env),
         ExprKind::Pipe(left, right) => todo!(),
-        ExprKind::Less(left, right) => todo!(),
-        ExprKind::LessEq(left, right) => todo!(),
-        ExprKind::Greater(left, right) => todo!(),
-        ExprKind::GreaterEq(left, right) => todo!(),
-        ExprKind::Eq(left, right) => todo!(),
-        ExprKind::NotEq(left, right) => todo!(),
+        ExprKind::Less(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Less, env),
+        ExprKind::LessEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::LessEq, env),
+        ExprKind::Greater(left, right) => {
+            infer_cmp_binop(loc, *left, *right, ExprKind::Greater, env)
+        }
+        ExprKind::GreaterEq(left, right) => {
+            infer_cmp_binop(loc, *left, *right, ExprKind::GreaterEq, env)
+        }
+        ExprKind::Eq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Eq, env),
+        ExprKind::NotEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::NotEq, env),
         ExprKind::Or(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::Or, env),
         ExprKind::And(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::And, env),
         ExprKind::If(cond, thenb, elseb) => infer_if(loc, *cond, *thenb, *elseb, env),
@@ -114,8 +118,24 @@ fn infer_pipe() {
     todo!()
 }
 
-fn infer_cmp_binop() {
-    todo!()
+fn infer_cmp_binop<'a>(
+    offset: usize,
+    left: ParsedExpr<'a>,
+    right: ParsedExpr<'a>,
+    make: impl FnOnce(Box<TypedExpr<'a>>, Box<TypedExpr<'a>>) -> ExprKind<'a, TypeValue>,
+    env: &Env,
+) -> TypeResult<TypedExpr<'a>> {
+    let (checked_left, checked_right) = (infer(left, env)?, infer(right, env)?);
+    match (checked_left.ann(), checked_right.ann()) {
+        (TypeValue::Int, TypeValue::Int) | (TypeValue::Float, TypeValue::Float) => {
+            Ok(TypedExpr::new(
+                offset,
+                TypeValue::Bool,
+                make(Box::new(checked_left), Box::new(checked_right)),
+            ))
+        }
+        (_, _) => todo!(), // TODO - refactor error handling to expect multiple types
+    }
 }
 
 fn infer_bool_binop<'a>(
