@@ -6,7 +6,7 @@ use crate::frontend::{
 #[cfg(test)]
 mod tests;
 
-pub(super) fn typecheck_expr<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
+pub(super) fn infer<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
     match expr.node.kind {
         ExprKind::Int(n) => Ok(TypedExpr::new(
             expr.offset,
@@ -62,7 +62,7 @@ fn typecheck_fn(binding: String, expr: ParsedExpr, env: &Env) -> TypeResult<Type
 }
 
 fn typecheck_neg<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
-    let checked_expr = typecheck_expr(expr, env)?;
+    let checked_expr = infer(expr, env)?;
     match checked_expr.ann() {
         TypeValue::Int => Ok(TypedExpr::new(
             checked_expr.offset,
@@ -83,7 +83,7 @@ fn typecheck_neg<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a
 }
 
 fn typecheck_bang<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
-    let checked_expr = typecheck_expr(expr, env)?;
+    let checked_expr = infer(expr, env)?;
     match checked_expr.ann() {
         TypeValue::Bool => Ok(TypedExpr::new(
             checked_expr.offset,

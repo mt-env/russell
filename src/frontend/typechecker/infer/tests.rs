@@ -4,7 +4,7 @@ use crate::frontend::{
     lexer,
     parser::{self, Parser, ast::ExprKind},
     typechecker::{
-        typecheck_expr::typecheck_expr,
+        infer::infer,
         types::{Env, TypeValue, TypedExpr},
     },
 };
@@ -13,7 +13,7 @@ fn typeck(input: &str) -> TypedExpr<'_> {
     let mut parser = Parser::new(lexer::lex(input));
     let parsed_expr = parser::parse_expr::parse_expr(&mut parser).unwrap();
     let env = Env::Global(HashMap::new());
-    typecheck_expr(parsed_expr, &env).unwrap()
+    infer(parsed_expr, &env).unwrap()
 }
 
 #[test]
