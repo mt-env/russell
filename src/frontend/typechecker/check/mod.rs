@@ -6,7 +6,11 @@ use crate::frontend::{
 #[cfg(test)]
 mod tests;
 
-pub(super) fn check(expr: TypedExpr, expected: TypeValue, env: &Env) -> TypeResult<TypeValue> {
+pub(super) fn check<'a>(
+    expr: ParsedExpr<'a>,
+    expected: TypeValue,
+    env: &Env,
+) -> TypeResult<TypedExpr<'a>> {
     todo!()
 }
 

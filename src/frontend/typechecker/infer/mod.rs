@@ -10,31 +10,20 @@ use crate::frontend::{
 mod tests;
 
 pub(super) fn infer<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr<'a>> {
+    let loc = expr.offset;
     match expr.node.kind {
-        ExprKind::Int(n) => Ok(TypedExpr::new(
-            expr.offset,
-            TypeValue::Int,
-            ExprKind::Int(n),
-        )),
-        ExprKind::Float(n) => Ok(TypedExpr::new(
-            expr.offset,
-            TypeValue::Float,
-            ExprKind::Float(n),
-        )),
-        ExprKind::Bool(val) => Ok(TypedExpr::new(
-            expr.offset,
-            TypeValue::Bool,
-            ExprKind::Bool(val),
-        )),
-        ExprKind::Id(s) => infer_id(expr.offset, s, env),
+        ExprKind::Int(n) => Ok(TypedExpr::new(loc, TypeValue::Int, ExprKind::Int(n))),
+        ExprKind::Float(n) => Ok(TypedExpr::new(loc, TypeValue::Float, ExprKind::Float(n))),
+        ExprKind::Bool(val) => Ok(TypedExpr::new(loc, TypeValue::Bool, ExprKind::Bool(val))),
+        ExprKind::Id(s) => infer_id(loc, s, env),
         ExprKind::Fn(binding, expr) => todo!(),
-        ExprKind::Neg(expr) => infer_neg(expr.offset, *expr, env),
-        ExprKind::Bang(expr) => infer_bang(expr.offset, *expr, env),
+        ExprKind::Neg(expr) => infer_neg(loc, *expr, env),
+        ExprKind::Bang(expr) => infer_bang(loc, *expr, env),
         ExprKind::Call(left, right) => todo!(),
-        ExprKind::Plus(left, right) => todo!(),
-        ExprKind::Minus(left, right) => todo!(),
-        ExprKind::Mult(left, right) => todo!(),
-        ExprKind::Div(left, right) => todo!(),
+        ExprKind::Plus(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Plus, env),
+        ExprKind::Minus(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Minus, env),
+        ExprKind::Mult(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Mult, env),
+        ExprKind::Div(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Div, env),
         ExprKind::Pipe(left, right) => todo!(),
         ExprKind::Less(left, right) => todo!(),
         ExprKind::LessEq(left, right) => todo!(),
@@ -42,13 +31,9 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, env: &Env) -> TypeResult<TypedExpr
         ExprKind::GreaterEq(left, right) => todo!(),
         ExprKind::Eq(left, right) => todo!(),
         ExprKind::NotEq(left, right) => todo!(),
-        ExprKind::Or(left, right) => {
-            infer_bool_binop(expr.offset, *left, *right, ExprKind::Or, env)
-        }
-        ExprKind::And(left, right) => {
-            infer_bool_binop(expr.offset, *left, *right, ExprKind::And, env)
-        }
-        ExprKind::If(cond, thenb, elseb) => infer_if(expr.offset, *cond, *thenb, *elseb, env),
+        ExprKind::Or(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::Or, env),
+        ExprKind::And(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::And, env),
+        ExprKind::If(cond, thenb, elseb) => infer_if(loc, *cond, *thenb, *elseb, env),
         ExprKind::Match(expr, arms) => todo!(),
     }
 }
@@ -102,8 +87,27 @@ fn infer_call() {
     todo!()
 }
 
-fn infer_arith_binop() {
-    todo!()
+fn infer_arith_binop<'a>(
+    offset: usize,
+    left: ParsedExpr<'a>,
+    right: ParsedExpr<'a>,
+    make: impl FnOnce(Box<TypedExpr<'a>>, Box<TypedExpr<'a>>) -> ExprKind<'a, TypeValue>,
+    env: &Env,
+) -> TypeResult<TypedExpr<'a>> {
+    let (checked_left, checked_right) = (infer(left, env)?, infer(right, env)?);
+    match (checked_left.ann(), checked_right.ann()) {
+        (TypeValue::Int, TypeValue::Int) => Ok(TypedExpr::new(
+            offset,
+            TypeValue::Int,
+            make(Box::new(checked_left), Box::new(checked_right)),
+        )),
+        (TypeValue::Float, TypeValue::Float) => Ok(TypedExpr::new(
+            offset,
+            TypeValue::Float,
+            make(Box::new(checked_left), Box::new(checked_right)),
+        )),
+        (_, _) => todo!(), // TODO - refactor error handling to expect multiple types
+    }
 }
 
 fn infer_pipe() {
