@@ -7,7 +7,12 @@ use crate::frontend::{
     },
 };
 
-pub fn typecheck_fn<'a>(name: &str, stmts: Vec<ParsedStmt<'a>>, env: &mut Env) -> TypedStmt<'a> {
+pub fn typecheck_fn<'a>(
+    name: &str,
+    stmts: Vec<ParsedStmt<'a>>,
+    ret_ty: Type<'a>,
+    env: &mut Env,
+) -> TypedStmt<'a> {
     // check that each fn returns
     if !stmts.iter().any(|a| matches!(a.node, Stmt::Return(_))) {
         todo!() // error for failing to return
@@ -20,14 +25,14 @@ pub fn typecheck_fn<'a>(name: &str, stmts: Vec<ParsedStmt<'a>>, env: &mut Env) -
             Stmt::Let(id, expr) => typecheck_let(loc, id, expr, env),
             Stmt::Read(typ, id) => typecheck_read(loc, typ, id, env),
             Stmt::Echo(typ, expr) => typecheck_echo(loc, typ, expr, env),
-            Stmt::Return(expr) => todo!(),
+            Stmt::Return(expr) => typecheck_return(loc, ret_ty.clone(), expr, env),
         })
     }
 
     todo!()
 }
 
-fn typecheck_let<'a, 'b>(
+fn typecheck_let<'a>(
     offset: usize,
     id: &'a str,
     expr: ParsedExpr<'a>,
@@ -41,12 +46,7 @@ fn typecheck_let<'a, 'b>(
     TypedStmt::make_let(offset, id, typed_expr)
 }
 
-fn typecheck_read<'a, 'b>(
-    offset: usize,
-    ty: Type<'a>,
-    id: &'a str,
-    env: &'b mut Env,
-) -> TypedStmt<'a> {
+fn typecheck_read<'a>(offset: usize, ty: Type<'a>, id: &'a str, env: &mut Env) -> TypedStmt<'a> {
     match ty {
         Type::Int | Type::Float | Type::Bool => env.extend(id, ty.clone().into()),
         _ => todo!(), // error handling - invalid read
@@ -55,11 +55,11 @@ fn typecheck_read<'a, 'b>(
     TypedStmt::make_read(offset, ty, id)
 }
 
-fn typecheck_echo<'a, 'b>(
+fn typecheck_echo<'a>(
     offset: usize,
     typ: Type<'a>,
     expr: ParsedExpr<'a>,
-    env: &'b mut Env,
+    env: &mut Env,
 ) -> TypedStmt<'a> {
     match typ {
         Type::Int | Type::Bool | Type::Float => {
@@ -75,6 +75,16 @@ fn typecheck_echo<'a, 'b>(
     }
 }
 
-fn typecheck_return<'a>(offset: usize, id: &str, expr: ParsedExpr<'a>) -> TypedStmt<'a> {
-    todo!()
+fn typecheck_return<'a>(
+    offset: usize,
+    expected_type: Type<'a>,
+    expr: ParsedExpr<'a>,
+    env: &mut Env,
+) -> TypedStmt<'a> {
+    let typed_expr = match infer::infer(expr, env) {
+        Ok(expr) => expr,
+        Err(_) => todo!(), // better error handling
+    };
+    unify(expected_type.into(), typed_expr.ty()).unwrap(); // todo better error handling
+    TypedStmt::make_return(offset, typed_expr)
 }
