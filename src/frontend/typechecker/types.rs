@@ -33,7 +33,7 @@ impl<'a> TypedExpr<'a> {
         }
     }
 
-    pub fn ann(&self) -> TypeValue {
+    pub fn ty(&self) -> TypeValue {
         self.node.ann.clone()
     }
 }
@@ -55,6 +55,10 @@ pub enum Env {
 
 impl Env {
     pub fn lookup(&self, id: &str) -> Option<TypeValue> {
+        todo!()
+    }
+
+    pub fn extend(&mut self, id: &str, ty: TypeValue) {
         todo!()
     }
 }
