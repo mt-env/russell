@@ -7,14 +7,15 @@ use crate::frontend::{
 };
 
 pub fn typecheck_fn<'a>(name: &str, stmts: Vec<ParsedStmt<'a>>, env: &mut Env) -> TypedStmt<'a> {
-    let mut local_env = env;
+    let mut typed_stmts = Vec::new();
     for stmt in stmts {
-        match &stmt.node {
-            Stmt::Let(id, expr) => {}
-            Stmt::Read(type_of_expr, id) => todo!(),
+        let loc = stmt.offset;
+        typed_stmts.push(match stmt.node {
+            Stmt::Let(id, expr) => typecheck_let(loc, id, expr, env),
+            Stmt::Read(type_of_expr, id) => typecheck_read(loc, type_of_expr, id, env),
             Stmt::Echo(_, expr) => todo!(),
             Stmt::Return(expr) => todo!(),
-        }
+        })
     }
 
     todo!()
@@ -36,17 +37,16 @@ fn typecheck_let<'a, 'b>(
 
 fn typecheck_read<'a, 'b>(
     offset: usize,
-    ty: &Type,
-    expr: ParsedExpr<'a>,
-    env: &'b Env,
-) -> (TypedStmt<'a>, &'b Env) {
+    ty: Type<'a>,
+    id: &'a str,
+    env: &'b mut Env,
+) -> TypedStmt<'a> {
     match ty {
-        Type::Int => todo!(),
-        Type::Float => todo!(),
-        Type::Bool => todo!(),
-        Type::TypeId(_) => todo!(),
-        Type::Fn(_, _) => todo!(),
+        Type::Int | Type::Float | Type::Bool => env.extend(id, ty.clone().into()),
+        _ => todo!(), // error handling - invalid read
     }
+
+    TypedStmt::make_read(offset, ty, id)
 }
 
 fn typecheck_echo<'a>(offset: usize, id: &str, expr: ParsedExpr<'a>) -> TypedStmt<'a> {
