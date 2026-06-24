@@ -1,19 +1,15 @@
 use crate::frontend::{
     parser::ast::{ParsedExpr, ParsedStmt, Stmt, Type},
     typechecker::{
+        check::unify,
         infer,
-        types::{Env, TypeResult, TypedStmt},
+        types::{Env, TypedStmt},
     },
 };
 
 pub fn typecheck_fn<'a>(name: &str, stmts: Vec<ParsedStmt<'a>>, env: &mut Env) -> TypedStmt<'a> {
     // check that each fn returns
-    if stmts
-        .iter()
-        .map(|a| matches!(a.node, Stmt::Return(_)))
-        .count()
-        <= 0
-    {
+    if !stmts.iter().any(|a| matches!(a.node, Stmt::Return(_))) {
         todo!() // error for failing to return
     }
 
@@ -65,7 +61,18 @@ fn typecheck_echo<'a, 'b>(
     expr: ParsedExpr<'a>,
     env: &'b mut Env,
 ) -> TypedStmt<'a> {
-    match ty {}
+    match typ {
+        Type::Int | Type::Bool | Type::Float => {
+            let typed_expr = match infer::infer(expr, env) {
+                Ok(expr) => expr,
+                Err(_) => todo!(), // better error handling
+            };
+            // todo potentially unnecessary - see #28 on gh
+            unify(typ.clone().into(), typed_expr.ty()).unwrap();
+            TypedStmt::make_echo(offset, typ, typed_expr)
+        }
+        _ => todo!(), // error handling - potentially invalid echo? see #27 on gh
+    }
 }
 
 fn typecheck_return<'a>(offset: usize, id: &str, expr: ParsedExpr<'a>) -> TypedStmt<'a> {
