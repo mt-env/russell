@@ -7,6 +7,24 @@ pub(super) type TypedDefn<'a> = SpannedDefn<'a, TypeValue>;
 pub(super) type TypedStmt<'a> = SpannedStmt<'a, TypeValue>;
 pub(super) type TypedExpr<'a> = SpannedExpr<'a, TypeValue>;
 
+impl<'a> TypedStmt<'a> {
+    pub fn make_let(offset: usize, id: &'a str, expr: TypedExpr<'a>) -> Self {
+        todo!()
+    }
+
+    pub fn make_read(offset: usize, ty: Type<'a>, id: &'a str) -> Self {
+        todo!()
+    }
+
+    pub fn make_echo(offset: usize, ty: Type<'a>, expr: TypedExpr<'a>) -> Self {
+        todo!()
+    }
+
+    pub fn make_return(offset: usize, expr: TypedExpr<'a>) -> Self {
+        todo!()
+    }
+}
+
 impl<'a> TypedExpr<'a> {
     pub fn new(offset: usize, ann: TypeValue, kind: ExprKind<'a, TypeValue>) -> Self {
         Self {
