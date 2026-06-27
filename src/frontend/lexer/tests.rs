@@ -85,9 +85,17 @@ fn float_leading_zero() {
 
 #[test]
 fn float_trailing_dot() {
-    // "1." should lex as a float (dot is consumed greedily)
     let toks = tokens("1.");
-    assert_eq!(toks[0].kind(), TokenKind::Float);
+    assert_eq!(toks[0].kind(), TokenKind::Int);
+    assert_eq!(toks[1].kind(), TokenKind::Invalid);
+}
+
+#[test]
+fn float_dot_requires_following_digit() {
+    let toks = tokens("1.foo");
+    assert_eq!(toks[0].kind(), TokenKind::Int);
+    assert_eq!(toks[1].kind(), TokenKind::Invalid);
+    assert_eq!(toks[2].kind(), TokenKind::Id);
 }
 
 #[test]
