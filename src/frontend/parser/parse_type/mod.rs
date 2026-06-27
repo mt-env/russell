@@ -1,7 +1,7 @@
 use crate::frontend::error::parse_error::ParseResult;
 use crate::frontend::lexer::token::{Token, TokenKind};
-use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{ParsedBinding, Type};
+use crate::frontend::parser::Parser;
 
 #[cfg(test)]
 mod tests;
@@ -13,11 +13,17 @@ pub(super) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a
         TokenKind::FloatType,
         TokenKind::BoolType,
         TokenKind::TypeId,
+        TokenKind::LParen,
     ])? {
         Token::IntType => Type::Int,
         Token::FloatType => Type::Float,
         Token::BoolType => Type::Bool,
         Token::TypeId(id) => Type::TypeId(id),
+        Token::LParen => {
+            let typ = parse_type(parser)?;
+            parser.expect(TokenKind::RParen)?;
+            typ
+        }
         _ => unreachable!(),
     };
 
