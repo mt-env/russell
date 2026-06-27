@@ -132,7 +132,16 @@ fn read_num(program: &str) -> (Token<'_>, &str) {
     let mut first_non_digit = program.len();
     for (index, char) in program.char_indices() {
         if char == '.' && !seen_dot {
-            seen_dot = true;
+            if program[index + 1..]
+                .chars()
+                .next()
+                .is_some_and(|next| next.is_ascii_digit())
+            {
+                seen_dot = true;
+            } else {
+                first_non_digit = index;
+                break;
+            }
         } else if !char.is_ascii_digit() {
             first_non_digit = index;
             break;
