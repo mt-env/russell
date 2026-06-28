@@ -68,8 +68,8 @@ fn typecheck_echo<'a>(
                 Err(_) => todo!(), // better error handling
             };
             // todo potentially unnecessary - see #28 on gh
-            unify(typ.clone().into(), typed_expr.ty()).unwrap();
-            TypedStmt::make_echo(offset, typ, typed_expr)
+            unify(typ.into(), typed_expr.ty()).unwrap();
+            TypedStmt::make_echo(offset, typed_expr)
         }
         _ => todo!(), // error handling - potentially invalid echo? see #27 on gh
     }

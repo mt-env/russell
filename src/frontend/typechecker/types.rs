@@ -16,7 +16,7 @@ impl<'a> TypedStmt<'a> {
         todo!()
     }
 
-    pub fn make_echo(offset: usize, ty: Type<'a>, expr: TypedExpr<'a>) -> Self {
+    pub fn make_echo(offset: usize, expr: TypedExpr<'a>) -> Self {
         todo!()
     }
 

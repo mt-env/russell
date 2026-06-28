@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use crate::frontend::{
     lexer,
-    parser::{self, Parser, ast::ExprKind},
+    parser::{
+        self, Parser,
+        ast::{ExprKind, SpannedBinding, Type},
+    },
     typechecker::{
         infer::infer,
         types::{Env, TypeValue, TypedExpr},
@@ -146,6 +149,33 @@ fn test_if() {
                 Box::new(TypedExpr::new(3, TypeValue::Bool, ExprKind::Bool(true))),
                 Box::new(TypedExpr::new(13, TypeValue::Int, ExprKind::Int(1))),
                 Box::new(TypedExpr::new(20, TypeValue::Int, ExprKind::Int(2)))
+            )
+        )
+    );
+}
+
+#[test]
+fn test_fn() {
+    let expr = typeck("fn (x: Int) -> x + 1");
+    assert_eq!(
+        expr,
+        TypedExpr::new(
+            0,
+            TypeValue::Var(Box::new(None)),
+            ExprKind::Fn(
+                SpannedBinding::new(4, "x", Type::Int),
+                Box::new(TypedExpr::new(
+                    15,
+                    TypeValue::Var(Box::new(None)),
+                    ExprKind::Plus(
+                        Box::new(TypedExpr::new(
+                            15,
+                            TypeValue::Var(Box::new(None)),
+                            ExprKind::Id("x")
+                        )),
+                        Box::new(TypedExpr::new(19, TypeValue::Int, ExprKind::Int(1)))
+                    )
+                ))
             )
         )
     );
