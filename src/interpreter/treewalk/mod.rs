@@ -21,12 +21,9 @@ fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
     let mut map = HashMap::new();
     for defn in defns {
         match defn.node {
-            Defn::Typedef(adt_type, arms) => {
+            Defn::Typedef { id, ty_vars: _, arms } => {
                 for (name, bindings) in arms {
-                    map.insert(
-                        name,
-                        Rc::new(Value::Constructor(name, Type::TypeId(adt_type), bindings)),
-                    );
+                    map.insert(name, Rc::new(Value::Constructor(name, Type::TypeId(id), bindings)));
                 }
             }
             Defn::Fn(id, bindings, _, stmts) => {

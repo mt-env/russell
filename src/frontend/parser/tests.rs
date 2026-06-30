@@ -36,7 +36,7 @@ fn parse_single_typedef() {
     assert_eq!(defns.len(), 1);
     assert_eq!(
         defns[0],
-        ParsedDefn::make_typedef(0, "Unit".into(), vec![("unit".into(), vec![])])
+        ParsedDefn::make_typedef(0, "Unit".into(), vec![], vec![("unit".into(), vec![])])
     );
 }
 
@@ -45,7 +45,7 @@ fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0].node, Defn::Typedef(name, ..) if *name == "Color"));
+    assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars: _, arms: _ } if *id == "Color"));
     assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "main"));
 }
 
@@ -71,7 +71,7 @@ fn parse_typedef_then_fn_using_it() {
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0].node, Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2));
+    assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2));
     assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "unwrap"));
 }
 
