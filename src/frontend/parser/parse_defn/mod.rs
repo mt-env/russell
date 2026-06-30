@@ -24,6 +24,17 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
     // parse the declaration
     parser.expect(TokenKind::Typedef)?;
     let name = parser.expect_typeid()?;
+
+    // parse type variables
+    let mut ty_vars = Vec::new();
+    if parser.peek().kind() == TokenKind::LParen {
+        ty_vars.push(parser.expect_typeid()?);
+        while parser.peek().kind() == TokenKind::Comma {
+            parser.advance();
+            ty_vars.push(parser.expect_typeid()?);
+        }
+    }
+
     parser.expect(TokenKind::LBrace)?;
 
     // parse all product types in the ADT
@@ -38,7 +49,7 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(ParsedDefn::make_typedef(loc, name, signatures))
+    Ok(ParsedDefn::make_typedef(loc, name, ty_vars, signatures))
 }
 
 /// Parses a function definition:
