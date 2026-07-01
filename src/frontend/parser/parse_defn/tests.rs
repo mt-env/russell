@@ -264,6 +264,47 @@ fn typedef_option_pattern() {
     );
 }
 
+#[test]
+fn typedef_option_tycon() {
+    assert_eq!(
+        parse("typedef Option(A) { some(x: A), none() }"),
+        ParsedDefn::make_typedef(
+            0,
+            "Option".into(),
+            vec!["A"],
+            vec![
+                (
+                    "some".into(),
+                    vec![ParsedBinding::new(25, "x".into(), Type::TypeId("A"))]
+                ),
+                ("none".into(), vec![]),
+            ]
+        )
+    );
+}
+
+#[test]
+fn typedef_result_tycon() {
+    assert_eq!(
+        parse("typedef Result(Ok, Err) { ok(good: Ok), err(bad: Err) }"),
+        ParsedDefn::make_typedef(
+            0,
+            "Result".into(),
+            vec!["Ok", "Err"],
+            vec![
+                (
+                    "ok".into(),
+                    vec![ParsedBinding::new(29, "good".into(), Type::TypeId("Ok"))]
+                ),
+                (
+                    "err".into(),
+                    vec![ParsedBinding::new(44, "bad".into(), Type::TypeId("Err"))]
+                )
+            ]
+        )
+    )
+}
+
 // ─── dispatch errors ────────────────────────────────────────────────
 
 #[test]
