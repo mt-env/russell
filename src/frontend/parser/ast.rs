@@ -14,8 +14,12 @@ pub type ParsedBinding<'a> = SpannedBinding<'a>;
 
 #[derive(Debug, PartialEq)]
 pub enum Defn<'a, A> {
-    // typedef <typeId> { <id> ( <binding> , ... ) , ... }
-    Typedef(&'a str, Vec<(&'a str, Vec<SpannedBinding<'a>>)>),
+    // typedef <typeId> (ty_vars, ... )? { <id> ( <binding> , ... ) , ... }
+    Typedef {
+        id: &'a str,
+        ty_vars: Vec<&'a str>,
+        arms: Vec<(&'a str, Vec<SpannedBinding<'a>>)>,
+    },
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
     Fn(&'a str, Vec<SpannedBinding<'a>>, Type<'a>, Vec<SpannedStmt<'a, A>>),
@@ -35,10 +39,15 @@ impl<'a> ParsedDefn<'a> {
         }
     }
 
-    pub fn make_typedef(offset: usize, id: &'a str, arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>) -> Self {
+    pub fn make_typedef(
+        offset: usize,
+        id: &'a str,
+        ty_vars: Vec<&'a str>,
+        arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>,
+    ) -> Self {
         Spanned {
             offset,
-            node: Defn::Typedef(id, arms),
+            node: Defn::Typedef { id, ty_vars, arms },
         }
     }
 }
