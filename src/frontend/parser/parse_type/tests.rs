@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
-use crate::frontend::parser::ast::{ParsedBinding, Type};
 use crate::frontend::parser::Parser;
+use crate::frontend::parser::ast::{ParsedBinding, Type};
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input))
@@ -90,6 +90,26 @@ fn parenthesized_fn_type_grouping() {
             Box::new(Type::Int)
         )
     );
+}
+
+#[test]
+fn nested_parentheses() {
+    assert_eq!(
+        parse("Int -> (Bool -> (Int -> Bool) -> Int) -> Bool"),
+        Type::Fn(
+            Box::new(Type::Int),
+            Box::new(Type::Fn(
+                Box::new(Type::Fn(
+                    Box::new(Type::Bool),
+                    Box::new(Type::Fn(
+                        Box::new(Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
+                        Box::new(Type::Int),
+                    ))
+                )),
+                Box::new(Type::Bool),
+            ))
+        )
+    )
 }
 
 #[test]
