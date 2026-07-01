@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
-use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{ParsedBinding, Type};
+use crate::frontend::parser::Parser;
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input))
@@ -74,6 +74,28 @@ fn fn_type_with_typeid() {
         parse("MyType -> Int"),
         Type::Fn(Box::new(Type::TypeId("MyType".into())), Box::new(Type::Int))
     );
+}
+
+#[test]
+fn parenthesized_type() {
+    assert_eq!(parse("(Int)"), Type::Int);
+}
+
+#[test]
+fn parenthesized_fn_type_grouping() {
+    assert_eq!(
+        parse("(Int -> Bool) -> Int"),
+        Type::Fn(
+            Box::new(Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
+            Box::new(Type::Int)
+        )
+    );
+}
+
+#[test]
+fn parenthesized_type_error_missing_rparen() {
+    let mut p = parser_from("(Int -> Bool");
+    assert!(super::parse_type(&mut p).is_err());
 }
 
 #[test]
