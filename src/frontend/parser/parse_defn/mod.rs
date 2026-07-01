@@ -28,11 +28,13 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
     // parse type variables
     let mut ty_vars = Vec::new();
     if parser.peek().kind() == TokenKind::LParen {
+        parser.advance();
         ty_vars.push(parser.expect_typeid()?);
         while parser.peek().kind() == TokenKind::Comma {
             parser.advance();
             ty_vars.push(parser.expect_typeid()?);
         }
+        parser.expect(TokenKind::RParen)?;
     }
 
     parser.expect(TokenKind::LBrace)?;
