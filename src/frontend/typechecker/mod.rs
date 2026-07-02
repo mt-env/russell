@@ -6,6 +6,7 @@ use crate::frontend::{
 use super::parser::ast::Defn;
 
 pub mod check;
+pub mod context;
 pub mod infer;
 pub mod typecheck_fn;
 pub mod types;
