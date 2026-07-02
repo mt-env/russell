@@ -46,11 +46,15 @@ Russell has the following reserved symbols:
 (
 )
 *
+*.
 +
++.
 ,
 -
+-.
 ->
 /
+/.
 :
 ;
 <
@@ -70,7 +74,7 @@ A Russell program is a list of definitions, and obeys the following grammar.
 ```
 <program> ::= <defn>, ...
 
-<defn> ::= typedef <typeId> { <id> ( <binding> , ... ) , ... }
+<defn> ::= typedef <typeId> (<typeId>, ... )? { <id> ( <binding> , ... ) , ... }
          | fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
 
 <stmnt> ::= let <id> = <expr>;
@@ -90,6 +94,10 @@ A Russell program is a list of definitions, and obeys the following grammar.
          | <expr> - <expr>
          | <expr> * <expr>
          | <expr> / <expr>
+         | <expr> +. <expr>
+         | <expr> -. <expr>
+         | <expr> *. <expr>
+         | <expr> /. <expr>
          | <expr> |> <expr>
          | <expr> < <expr>
          | <expr> <= <expr>
@@ -108,11 +116,15 @@ A Russell program is a list of definitions, and obeys the following grammar.
          | Bool
          | <typeId>
          | <type> -> <type>
+         | ( <type> )
 
 <binding> ::= <id> : <type>
 ```
 
 == Semantics
+
+*FROM HERE ONWARD IS POTENTIALLY DEPRECATED AND IN NEED OF AN UPDATE*.
+
 Here we define the expected output of a Russell program.
 
 === Definitions

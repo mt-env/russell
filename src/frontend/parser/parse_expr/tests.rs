@@ -1217,6 +1217,178 @@ fn call_in_pipe() {
     );
 }
 
+// ─── floating-point operators ────────────────────────────────────
+
+#[test]
+fn float_addition() {
+    assert_eq!(
+        parse("1.0 +. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(7, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_subtraction() {
+    assert_eq!(
+        parse("3.14 -. 1.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMinus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(3.14))),
+                Box::new(ParsedExpr::new(8, ExprKind::Float(1.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_multiplication() {
+    assert_eq!(
+        parse("2.0 *. 3.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMult(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(2.0))),
+                Box::new(ParsedExpr::new(7, ExprKind::Float(3.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_division() {
+    assert_eq!(
+        parse("10.0 /. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FDiv(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(10.0))),
+                Box::new(ParsedExpr::new(8, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn mixed_float_ops() {
+    // 1.0 +. 2.0 *. 3.0 = 1.0 +. (2.0 *. 3.0)
+    assert_eq!(
+        parse("1.0 +. 2.0 *. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(
+                    7,
+                    ExprKind::FMult(
+                        Box::new(ParsedExpr::new(7, ExprKind::Float(2.0))),
+                        Box::new(ParsedExpr::new(14, ExprKind::Float(3.0)))
+                    )
+                ))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_ops_left_assoc() {
+    // 1.0 +. 2.0 +. 3.0 = (1.0 +. 2.0) +. 3.0
+    assert_eq!(
+        parse("1.0 +. 2.0 +. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::FPlus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                        Box::new(ParsedExpr::new(7, ExprKind::Float(2.0)))
+                    )
+                )),
+                Box::new(ParsedExpr::new(14, ExprKind::Float(3.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_and_int_ops_mixed() {
+    // x + 1 +. y tests that both regular and float ops can be parsed
+    assert_eq!(
+        parse("1 + 2 +. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::Plus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Int(1))),
+                        Box::new(ParsedExpr::new(4, ExprKind::Int(2)))
+                    )
+                )),
+                Box::new(ParsedExpr::new(9, ExprKind::Float(3.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn int_operands_with_float_op() {
+    // 1 +. 2 should parse (type error only at interpreter)
+    assert_eq!(
+        parse("1 +. 2"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(0, ExprKind::Int(1))),
+                Box::new(ParsedExpr::new(5, ExprKind::Int(2)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_operands_with_int_op() {
+    // 1.0 + 2.0 should parse
+    assert_eq!(
+        parse("1.0 + 2.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::Plus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(6, ExprKind::Float(2.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn mixed_float_int_all_ops() {
+    // 1.0 + 2 -. 3.0 tests that all combinations parse regardless of operand types
+    assert_eq!(
+        parse("1.0 + 2 -. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMinus(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::Plus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                        Box::new(ParsedExpr::new(6, ExprKind::Int(2)))
+                    )
+                )),
+                Box::new(ParsedExpr::new(11, ExprKind::Float(3.0)))
+            )
+        )
+    );
+}
+
 // ─── error cases ────────────────────────────────────────────────────
 
 #[test]

@@ -39,21 +39,25 @@ pub enum Token<'a> {
     RBrace,
 
     // operators
-    Assign,
-    Not,
-    NotEq,
-    And,
-    Times,
-    Plus,
-    Minus,
-    Divide,
-    LessThan,
-    LessThanOrEq,
-    Eq,
-    GreaterThan,
-    GreaterThanOrEq,
-    Pipe,
-    Or,
+    Assign,          // =
+    Not,             // !
+    NotEq,           // !=
+    And,             // &&
+    Plus,            // +
+    Minus,           // -
+    Times,           // *
+    Divide,          // /
+    FPlus,           // +.
+    FMinus,          // -.
+    FTimes,          // *.
+    FDivide,         // /.
+    LessThan,        // <
+    LessThanOrEq,    // <=
+    Eq,              // ==
+    GreaterThan,     // >
+    GreaterThanOrEq, // >=
+    Pipe,            // |>
+    Or,              // ||
 
     // miscellaneous
     Invalid(char),
@@ -102,10 +106,14 @@ pub enum TokenKind {
     Not,
     NotEq,
     And,
-    Times,
     Plus,
     Minus,
+    Times,
     Divide,
+    FPlus,
+    FMinus,
+    FTimes,
+    FDivide,
     LessThan,
     LessThanOrEq,
     Eq,
@@ -175,10 +183,14 @@ impl Token<'_> {
             Token::Not => TokenKind::Not,
             Token::NotEq => TokenKind::NotEq,
             Token::And => TokenKind::And,
-            Token::Times => TokenKind::Times,
             Token::Plus => TokenKind::Plus,
             Token::Minus => TokenKind::Minus,
+            Token::Times => TokenKind::Times,
             Token::Divide => TokenKind::Divide,
+            Token::FPlus => TokenKind::FPlus,
+            Token::FMinus => TokenKind::FMinus,
+            Token::FTimes => TokenKind::FTimes,
+            Token::FDivide => TokenKind::FDivide,
             Token::LessThan => TokenKind::LessThan,
             Token::LessThanOrEq => TokenKind::LessThanOrEq,
             Token::Eq => TokenKind::Eq,
