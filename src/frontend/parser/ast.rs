@@ -121,6 +121,10 @@ pub enum ExprKind<'a, A> {
     Minus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> - <right>
     Mult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> * <right>
     Div(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> / <right>
+    FPlus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> +. <right>
+    FMinus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> -. <right>
+    FMult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> *. <right>
+    FDiv(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> /. <right>
     Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
     Less(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> < <right>
     LessEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
@@ -173,6 +177,10 @@ where
             ExprKind::Minus(left, right) => write!(f, "({left} - {right})"),
             ExprKind::Mult(left, right) => write!(f, "({left} * {right})"),
             ExprKind::Div(left, right) => write!(f, "({left} / {right})"),
+            ExprKind::FPlus(left, right) => write!(f, "({left} +. {right})"),
+            ExprKind::FMinus(left, right) => write!(f, "({left} -. {right})"),
+            ExprKind::FMult(left, right) => write!(f, "({left} *. {right})"),
+            ExprKind::FDiv(left, right) => write!(f, "({left} /. {right})"),
             ExprKind::Pipe(left, right) => write!(f, "({left} |> {right})"),
             ExprKind::Less(left, right) => write!(f, "({left} < {right})"),
             ExprKind::LessEq(left, right) => write!(f, "({left} <= {right})"),
@@ -221,6 +229,10 @@ impl<'a, A> ExprKind<'a, A> {
             TokenKind::Minus => ExprKind::Minus(left, right),
             TokenKind::Times => ExprKind::Mult(left, right),
             TokenKind::Divide => ExprKind::Div(left, right),
+            TokenKind::FPlus => ExprKind::FPlus(left, right),
+            TokenKind::FMinus => ExprKind::FMinus(left, right),
+            TokenKind::FTimes => ExprKind::FMult(left, right),
+            TokenKind::FDivide => ExprKind::FDiv(left, right),
             TokenKind::Pipe => ExprKind::Pipe(left, right),
             TokenKind::LessThan => ExprKind::Less(left, right),
             TokenKind::LessThanOrEq => ExprKind::LessEq(left, right),

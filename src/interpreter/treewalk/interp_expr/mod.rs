@@ -15,10 +15,14 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
         ExprKind::Neg(expr) => interp_neg(expr, env),
         ExprKind::Bang(expr) => interp_bang(expr, env),
         ExprKind::Call(func, args) => interp_call(func, args.iter().collect(), env),
-        ExprKind::Plus(left, right) => interp_arith_binop(left, right, env, |l, r| l + r, |l, r| l + r),
-        ExprKind::Minus(left, right) => interp_arith_binop(left, right, env, |l, r| l - r, |l, r| l - r),
-        ExprKind::Mult(left, right) => interp_arith_binop(left, right, env, |l, r| l * r, |l, r| l * r),
-        ExprKind::Div(left, right) => interp_arith_binop(left, right, env, |l, r| l / r, |l, r| l / r),
+        ExprKind::Plus(left, right) => interp_int_arith_binop(left, right, env, |l, r| l + r),
+        ExprKind::Minus(left, right) => interp_int_arith_binop(left, right, env, |l, r| l - r),
+        ExprKind::Mult(left, right) => interp_int_arith_binop(left, right, env, |l, r| l * r),
+        ExprKind::Div(left, right) => interp_int_arith_binop(left, right, env, |l, r| l / r),
+        ExprKind::FPlus(left, right) => interp_float_arith_binop(left, right, env, |l, r| l + r),
+        ExprKind::FMinus(left, right) => interp_float_arith_binop(left, right, env, |l, r| l - r),
+        ExprKind::FMult(left, right) => interp_float_arith_binop(left, right, env, |l, r| l * r),
+        ExprKind::FDiv(left, right) => interp_float_arith_binop(left, right, env, |l, r| l / r),
         ExprKind::Pipe(left, right) => interp_call(right, vec![left], env),
         ExprKind::Less(left, right) => interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r),
         ExprKind::LessEq(left, right) => interp_cmp_binop(left, right, env, |l, r| l <= r, |l, r| l <= r),
@@ -106,19 +110,31 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
     }
 }
 
-fn interp_arith_binop<'a>(
+fn interp_int_arith_binop<'a>(
     left: &ParsedExpr<'a>,
     right: &ParsedExpr<'a>,
     env: Rc<Env<'a>>,
     int_op: fn(i64, i64) -> i64,
-    float_op: fn(f64, f64) -> f64,
 ) -> Rc<Value<'a>> {
     let left_val = interp_expr(left, Rc::clone(&env));
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
         (Value::Int(l), Value::Int(r)) => Value::Int(int_op(*l, *r)).into(),
-        (Value::Float(l), Value::Float(r)) => Value::Float(float_op(*l, *r)).into(),
         (l, r) => panic!("FATAL ERROR: type mismatch: {l:?} and {r:?}"),
+    }
+}
+
+fn interp_float_arith_binop<'a>(
+    left: &ParsedExpr<'a>,
+    right: &ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
+    float_op: fn(f64, f64) -> f64,
+) -> Rc<Value<'a>> {
+    let left_val = interp_expr(left, Rc::clone(&env));
+    let right_val = interp_expr(right, env);
+    match (&*left_val, &*right_val) {
+        (Value::Float(l), Value::Float(r)) => Value::Float(float_op(*l, *r)).into(),
+        (l, r) => panic!("FATAL ERROR: expected float values for floating-point operation, found {l:?} and {r:?}"),
     }
 }
 

@@ -260,6 +260,10 @@ fn two_char_operators() {
         (">=", TokenKind::GreaterThanOrEq),
         ("|>", TokenKind::Pipe),
         ("||", TokenKind::Or),
+        ("+.", TokenKind::FPlus),
+        ("-.", TokenKind::FMinus),
+        ("*.", TokenKind::FTimes),
+        ("/.", TokenKind::FDivide),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -590,6 +594,46 @@ fn arithmetic_expression() {
             TokenKind::Minus,
             TokenKind::Id,
             TokenKind::Divide,
+            TokenKind::Id,
+        ]
+    );
+}
+
+#[test]
+fn float_arithmetic_expression() {
+    let toks = tokens("a +. b -. c *. d /. e");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Id,
+            TokenKind::FPlus,
+            TokenKind::Id,
+            TokenKind::FMinus,
+            TokenKind::Id,
+            TokenKind::FTimes,
+            TokenKind::Id,
+            TokenKind::FDivide,
+            TokenKind::Id,
+        ]
+    );
+}
+
+#[test]
+fn mixed_int_and_float_operators() {
+    let toks = tokens("x + y +. z - a -. b");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Id,
+            TokenKind::Plus,
+            TokenKind::Id,
+            TokenKind::FPlus,
+            TokenKind::Id,
+            TokenKind::Minus,
+            TokenKind::Id,
+            TokenKind::FMinus,
             TokenKind::Id,
         ]
     );

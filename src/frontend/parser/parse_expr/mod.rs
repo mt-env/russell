@@ -15,16 +15,16 @@ enum Precedence {
     And = 3,  // logical and: &&
     Eq = 4,   // equality: ==, !=
     Rel = 5,  // relational: <, <=, >, >=
-    Add = 6,  // additive: +, -
-    Mult = 7, // multiplicative: *, /
+    Add = 6,  // additive: +, +., -, -.
+    Mult = 7, // multiplicative: *, *., /, /.
     Call = 8, // function call (postfix)
 }
 
 impl Precedence {
     fn of(token: &SpannedToken) -> Precedence {
         match token.kind() {
-            TokenKind::Times | TokenKind::Divide => Precedence::Mult,
-            TokenKind::Plus | TokenKind::Minus => Precedence::Add,
+            TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => Precedence::Mult,
+            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => Precedence::Add,
             TokenKind::LessThan | TokenKind::LessThanOrEq | TokenKind::GreaterThan | TokenKind::GreaterThanOrEq => {
                 Precedence::Rel
             }
