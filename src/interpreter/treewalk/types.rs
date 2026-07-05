@@ -52,7 +52,7 @@ pub(super) enum Value<'a> {
     Closure(Rc<Env<'a>>, ParsedBinding<'a>, Box<ParsedExpr<'a>>),
     Constructor(&'a str, Type<'a>, Vec<ParsedBinding<'a>>),
     Fn(&'a str, Vec<ParsedBinding<'a>>, Vec<ParsedStmt<'a>>),
-    Adt(Type<'a>, &'a str, HashMap<&'a str, Rc<Value<'a>>>),
+    Adt(Type<'a>, &'a str, Vec<Rc<Value<'a>>>),
 }
 
 impl Display for Value<'_> {
@@ -67,14 +67,7 @@ impl Display for Value<'_> {
                 write!(f, "<constructor {name} {joined}>")
             }
             Value::Fn(name, _, _) => write!(f, "<function {name}>"),
-            Value::Adt(adt_type, name, data) => {
-                let fields = data
-                    .iter()
-                    .map(|(k, v)| format!("{k}: {v}"))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "<ADT {adt_type} {name} {{{fields}}}>")
-            }
+            Value::Adt(adt_type, name, _) => write!(f, "<ADT {adt_type} {name}>"),
         }
     }
 }
