@@ -23,6 +23,9 @@ fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
         match defn.node {
             Defn::Typedef { id, ty_vars: _, arms } => {
                 for (name, bindings) in arms {
+                    if map.contains_key(name) {
+                        panic!("FATAL ERROR: {} already bound", name);
+                    }
                     map.insert(name, Rc::new(Value::Constructor(name, Type::TypeId(id), bindings)));
                 }
             }
@@ -32,6 +35,9 @@ fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
                 ret_ty: _,
                 body,
             } => {
+                if map.contains_key(name) {
+                    panic!("FATAL ERROR: {} already bound", name);
+                }
                 map.insert(name, Rc::new(Value::Fn(name, bindings, body)));
             }
         }
