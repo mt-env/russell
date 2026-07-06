@@ -270,6 +270,10 @@ fn two_char_operators() {
         ("-.", TokenKind::FMinus),
         ("*.", TokenKind::FTimes),
         ("/.", TokenKind::FDivide),
+        ("<.", TokenKind::FLessThan),
+        (">.", TokenKind::FGreaterThan),
+        ("<=.", TokenKind::FLessThanOrEq),
+        (">=.", TokenKind::FGreaterThanOrEq),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -287,6 +291,17 @@ fn two_char_op_preferred_over_one_char() {
     let toks = tokens("<=");
     assert_eq!(toks.len(), 1);
     assert_eq!(toks[0].kind(), TokenKind::LessThanOrEq);
+}
+
+#[test]
+fn three_char_op_preferred_over_shorter_prefixes() {
+    let toks = tokens("<=.");
+    assert_eq!(toks.len(), 1);
+    assert_eq!(toks[0].kind(), TokenKind::FLessThanOrEq);
+
+    let toks = tokens(">=.");
+    assert_eq!(toks.len(), 1);
+    assert_eq!(toks[0].kind(), TokenKind::FGreaterThanOrEq);
 }
 
 // whitespace handling
@@ -580,6 +595,26 @@ fn comparison_operators() {
             TokenKind::GreaterThan,
             TokenKind::Id,
             TokenKind::GreaterThanOrEq,
+            TokenKind::Id,
+        ]
+    );
+}
+
+#[test]
+fn float_comparison_operators() {
+    let toks = tokens("a <. b <=. c >. d >=. e");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Id,
+            TokenKind::FLessThan,
+            TokenKind::Id,
+            TokenKind::FLessThanOrEq,
+            TokenKind::Id,
+            TokenKind::FGreaterThan,
+            TokenKind::Id,
+            TokenKind::FGreaterThanOrEq,
             TokenKind::Id,
         ]
     );
