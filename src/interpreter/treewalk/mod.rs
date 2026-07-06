@@ -24,12 +24,19 @@ fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
     let mut map = HashMap::new();
     for defn in defns {
         match defn.node {
-            Defn::Typedef { id, ty_vars: _, arms } => {
+            Defn::Typedef {
+                id,
+                ty_vars: _,
+                arms,
+            } => {
                 for (name, bindings) in arms {
                     if map.contains_key(name) {
                         panic!("FATAL ERROR: {} already bound", name);
                     }
-                    map.insert(name, Rc::new(Value::Constructor(name, Type::TypeId(id), bindings)));
+                    map.insert(
+                        name,
+                        Rc::new(Value::Constructor(name, Type::TypeId(id), bindings)),
+                    );
                 }
             }
             Defn::Fn {

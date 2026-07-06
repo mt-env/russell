@@ -217,7 +217,10 @@ fn typedef_single_constructor_with_field() {
             0,
             "Wrapper".into(),
             vec![],
-            vec![("wrap".into(), vec![ParsedBinding::new(23, "x".into(), Type::Int)])]
+            vec![(
+                "wrap".into(),
+                vec![ParsedBinding::new(23, "x".into(), Type::Int)]
+            )]
         )
     );
 }
