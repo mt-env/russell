@@ -1,5 +1,5 @@
 use crate::frontend::{
-    parser::ast::{ExprKind, ParsedExpr, SpannedBinding},
+    parser::ast::{ExprKind, ParsedExpr, ParsedMatchArm},
     typechecker::{
         check::check,
         context::Context,
@@ -25,6 +25,10 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, ctx: &mut Context) -> TypeResult<T
         ExprKind::Minus(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Minus, ctx),
         ExprKind::Mult(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Mult, ctx),
         ExprKind::Div(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Div, ctx),
+        ExprKind::FPlus(spanned, spanned1) => todo!(),
+        ExprKind::FMinus(spanned, spanned1) => todo!(),
+        ExprKind::FMult(spanned, spanned1) => todo!(),
+        ExprKind::FDiv(spanned, spanned1) => todo!(),
         ExprKind::Pipe(left, right) => todo!(),
         ExprKind::Less(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Less, ctx),
         ExprKind::LessEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::LessEq, ctx),
@@ -195,7 +199,7 @@ fn infer_if<'a>(
 fn infer_match<'a>(
     offset: usize,
     expr: ParsedExpr<'a>,
-    arms: Vec<(&'a str, Vec<SpannedBinding<'a>>, ParsedExpr<'a>)>,
+    arms: Vec<ParsedMatchArm<'a>>,
     ctx: &mut Context,
 ) -> TypeResult<TypedExpr<'a>> {
     todo!()

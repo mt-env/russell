@@ -18,8 +18,17 @@ pub fn typecheck(_defns: Vec<ParsedDefn>) -> Vec<TypedDefn> {
 fn process_global_env(defns: Vec<ParsedDefn>) -> Env {
     for defn in defns {
         match defn.node {
-            Defn::Typedef(_, _) => todo!(),
-            Defn::Fn(_, _, _, _) => todo!(),
+            Defn::Typedef {
+                id: _,
+                ty_vars: _,
+                arms: _,
+            } => todo!(),
+            Defn::Fn {
+                name: _,
+                bindings: _,
+                ret_ty: _,
+                body: _,
+            } => todo!(),
         }
     }
     todo!()
