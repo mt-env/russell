@@ -65,7 +65,7 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     parser.expect(TokenKind::Arrow)?;
     let return_type = parse_type(parser)?;
 
-    // parse the function body (LBrace, statements, RBrace, Semicolon)
+    // parse the function body (LBrace, statements, RBrace)
     parser.expect(TokenKind::LBrace)?;
 
     let mut statements = Vec::new();

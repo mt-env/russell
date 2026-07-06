@@ -1,7 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use crate::{
-    frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
+    frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm},
     interpreter::treewalk::{Env, interp_fn::interp_fn, types::Value},
 };
 
@@ -99,9 +99,9 @@ fn interp_call<'a>(func: &ParsedExpr<'a>, args: Vec<&ParsedExpr<'a>>, env: Rc<En
                     args.len()
                 );
             }
-            let mut field_vals = HashMap::new();
-            for (binding, arg) in bindings.iter().zip(args) {
-                field_vals.insert(binding.node.id, interp_expr(arg, Rc::clone(&env)));
+            let mut field_vals = Vec::new();
+            for arg in args {
+                field_vals.push(interp_expr(arg, Rc::clone(&env)));
             }
             Value::Adt(adt_type.clone(), name, field_vals).into()
         }
@@ -168,14 +168,10 @@ fn interp_if<'a>(
     }
 }
 
-fn interp_match<'a>(
-    expr: &ParsedExpr<'a>,
-    arms: &[(&'a str, Vec<ParsedBinding<'a>>, ParsedExpr<'a>)],
-    env: Rc<Env<'a>>,
-) -> Rc<Value<'a>> {
+fn interp_match<'a>(expr: &ParsedExpr<'a>, arms: &[ParsedMatchArm<'a>], env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
-    let Value::Adt(_adt_type, constructor, fields) = &*expr_val else {
+    let Value::Adt(_, constructor, fields) = &*expr_val else {
         panic!(
             "FATAL ERROR: expected ADT value in match expression, found {:?}",
             expr_val
@@ -183,29 +179,25 @@ fn interp_match<'a>(
     };
 
     // find the correct constructor and bind it
-    for (arm_constructor, arm_bindings, arm_expr) in arms {
-        if constructor != arm_constructor {
+    for arm in arms {
+        if *constructor != arm.node.id {
             continue;
         }
-        if fields.len() != arm_bindings.len() {
+
+        let bindings = &arm.node.bindings;
+        if fields.len() != bindings.len() {
             panic!(
                 "FATAL ERROR: expected {} fields in constructor {}, found {}",
-                arm_bindings.len(),
+                bindings.len(),
                 constructor,
                 fields.len()
             );
         }
         let mut local_env = Rc::clone(&env);
-        for arm_binding in arm_bindings {
-            let Some(field_val) = fields.get(&arm_binding.node.id) else {
-                panic!(
-                    "FATAL ERROR: no field named {} in constructor {}",
-                    arm_binding.node.id, constructor
-                );
-            };
-            local_env = Env::extend(local_env, arm_binding.node.id, Rc::clone(field_val));
+        for (id, val) in bindings.iter().zip(fields) {
+            local_env = Env::extend(local_env, id, Rc::clone(val))
         }
-        return interp_expr(arm_expr, local_env);
+        return interp_expr(&arm.node.expr, local_env);
     }
     panic!("FATAL ERROR: no match arms matched");
 }
