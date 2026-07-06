@@ -197,7 +197,7 @@ fn fn_with_read_and_echo() {
 fn typedef_empty() {
     assert_eq!(
         parse("typedef Empty { }"),
-        ParsedDefn::make_typedef(0, "Empty".into(), vec![])
+        ParsedDefn::make_typedef(0, "Empty".into(), vec![], vec![])
     );
 }
 
@@ -205,7 +205,7 @@ fn typedef_empty() {
 fn typedef_single_nullary_constructor() {
     assert_eq!(
         parse("typedef Unit { unit() }"),
-        ParsedDefn::make_typedef(0, "Unit".into(), vec![("unit".into(), vec![])])
+        ParsedDefn::make_typedef(0, "Unit".into(), vec![], vec![("unit".into(), vec![])])
     );
 }
 
@@ -216,10 +216,8 @@ fn typedef_single_constructor_with_field() {
         ParsedDefn::make_typedef(
             0,
             "Wrapper".into(),
-            vec![(
-                "wrap".into(),
-                vec![ParsedBinding::new(23, "x".into(), Type::Int)]
-            )]
+            vec![],
+            vec![("wrap".into(), vec![ParsedBinding::new(23, "x".into(), Type::Int)])]
         )
     );
 }
@@ -231,6 +229,7 @@ fn typedef_multiple_constructors() {
         ParsedDefn::make_typedef(
             0,
             "Color".into(),
+            vec![],
             vec![
                 ("red".into(), vec![]),
                 ("green".into(), vec![]),
@@ -247,6 +246,7 @@ fn typedef_constructors_with_fields() {
         ParsedDefn::make_typedef(
             0,
             "Shape".into(),
+            vec![],
             vec![
                 (
                     "circle".into(),
@@ -271,6 +271,7 @@ fn typedef_option_pattern() {
         ParsedDefn::make_typedef(
             0,
             "Option".into(),
+            vec![],
             vec![
                 (
                     "some".into(),
@@ -280,6 +281,47 @@ fn typedef_option_pattern() {
             ]
         )
     );
+}
+
+#[test]
+fn typedef_option_tycon() {
+    assert_eq!(
+        parse("typedef Option(A) { some(x: A), none() }"),
+        ParsedDefn::make_typedef(
+            0,
+            "Option".into(),
+            vec!["A"],
+            vec![
+                (
+                    "some".into(),
+                    vec![ParsedBinding::new(25, "x".into(), Type::TypeId("A"))]
+                ),
+                ("none".into(), vec![]),
+            ]
+        )
+    );
+}
+
+#[test]
+fn typedef_result_tycon() {
+    assert_eq!(
+        parse("typedef Result(Ok, Err) { ok(good: Ok), err(bad: Err) }"),
+        ParsedDefn::make_typedef(
+            0,
+            "Result".into(),
+            vec!["Ok", "Err"],
+            vec![
+                (
+                    "ok".into(),
+                    vec![ParsedBinding::new(29, "good".into(), Type::TypeId("Ok"))]
+                ),
+                (
+                    "err".into(),
+                    vec![ParsedBinding::new(44, "bad".into(), Type::TypeId("Err"))]
+                )
+            ]
+        )
+    )
 }
 
 // ─── dispatch errors ────────────────────────────────────────────────

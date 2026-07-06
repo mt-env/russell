@@ -1,7 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use crate::{
-    frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
+    frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm},
     interpreter::treewalk::{Env, interp_fn::interp_fn, types::Value},
 };
 
@@ -17,18 +17,14 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
         ExprKind::Neg(expr) => interp_neg(expr, env),
         ExprKind::Bang(expr) => interp_bang(expr, env),
         ExprKind::Call(func, args) => interp_call(func, args.iter().collect(), env),
-        ExprKind::Plus(left, right) => {
-            interp_arith_binop(left, right, env, |l, r| l + r, |l, r| l + r)
-        }
-        ExprKind::Minus(left, right) => {
-            interp_arith_binop(left, right, env, |l, r| l - r, |l, r| l - r)
-        }
-        ExprKind::Mult(left, right) => {
-            interp_arith_binop(left, right, env, |l, r| l * r, |l, r| l * r)
-        }
-        ExprKind::Div(left, right) => {
-            interp_arith_binop(left, right, env, |l, r| l / r, |l, r| l / r)
-        }
+        ExprKind::Plus(left, right) => interp_int_arith_binop(left, right, env, |l, r| l + r),
+        ExprKind::Minus(left, right) => interp_int_arith_binop(left, right, env, |l, r| l - r),
+        ExprKind::Mult(left, right) => interp_int_arith_binop(left, right, env, |l, r| l * r),
+        ExprKind::Div(left, right) => interp_int_arith_binop(left, right, env, |l, r| l / r),
+        ExprKind::FPlus(left, right) => interp_float_arith_binop(left, right, env, |l, r| l + r),
+        ExprKind::FMinus(left, right) => interp_float_arith_binop(left, right, env, |l, r| l - r),
+        ExprKind::FMult(left, right) => interp_float_arith_binop(left, right, env, |l, r| l * r),
+        ExprKind::FDiv(left, right) => interp_float_arith_binop(left, right, env, |l, r| l / r),
         ExprKind::Pipe(left, right) => interp_call(right, vec![left], env),
         ExprKind::Less(left, right) => {
             interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r)
@@ -143,9 +139,9 @@ fn interp_call<'a>(
                     args.len()
                 );
             }
-            let mut field_vals = HashMap::new();
-            for (binding, arg) in bindings.iter().zip(args) {
-                field_vals.insert(binding.node.id, interp_expr(arg, Rc::clone(&env)));
+            let mut field_vals = Vec::new();
+            for arg in args {
+                field_vals.push(interp_expr(arg, Rc::clone(&env)));
             }
             Value::Adt(adt_type.clone(), name, field_vals).into()
         }
@@ -154,19 +150,31 @@ fn interp_call<'a>(
     }
 }
 
-fn interp_arith_binop<'a>(
+fn interp_int_arith_binop<'a>(
     left: &ParsedExpr<'a>,
     right: &ParsedExpr<'a>,
     env: Rc<Env<'a>>,
     int_op: fn(i64, i64) -> i64,
-    float_op: fn(f64, f64) -> f64,
 ) -> Rc<Value<'a>> {
     let left_val = interp_expr(left, Rc::clone(&env));
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
         (Value::Int(l), Value::Int(r)) => Value::Int(int_op(*l, *r)).into(),
-        (Value::Float(l), Value::Float(r)) => Value::Float(float_op(*l, *r)).into(),
         (l, r) => panic!("FATAL ERROR: type mismatch: {l:?} and {r:?}"),
+    }
+}
+
+fn interp_float_arith_binop<'a>(
+    left: &ParsedExpr<'a>,
+    right: &ParsedExpr<'a>,
+    env: Rc<Env<'a>>,
+    float_op: fn(f64, f64) -> f64,
+) -> Rc<Value<'a>> {
+    let left_val = interp_expr(left, Rc::clone(&env));
+    let right_val = interp_expr(right, env);
+    match (&*left_val, &*right_val) {
+        (Value::Float(l), Value::Float(r)) => Value::Float(float_op(*l, *r)).into(),
+        (l, r) => panic!("FATAL ERROR: expected float values for floating-point operation, found {l:?} and {r:?}"),
     }
 }
 
@@ -200,14 +208,10 @@ fn interp_if<'a>(
     }
 }
 
-fn interp_match<'a>(
-    expr: &ParsedExpr<'a>,
-    arms: &[(&'a str, Vec<ParsedBinding<'a>>, ParsedExpr<'a>)],
-    env: Rc<Env<'a>>,
-) -> Rc<Value<'a>> {
+fn interp_match<'a>(expr: &ParsedExpr<'a>, arms: &[ParsedMatchArm<'a>], env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
-    let Value::Adt(_adt_type, constructor, fields) = &*expr_val else {
+    let Value::Adt(_, constructor, fields) = &*expr_val else {
         panic!(
             "FATAL ERROR: expected ADT value in match expression, found {:?}",
             expr_val
@@ -215,29 +219,25 @@ fn interp_match<'a>(
     };
 
     // find the correct constructor and bind it
-    for (arm_constructor, arm_bindings, arm_expr) in arms {
-        if constructor != arm_constructor {
+    for arm in arms {
+        if *constructor != arm.node.id {
             continue;
         }
-        if fields.len() != arm_bindings.len() {
+
+        let bindings = &arm.node.bindings;
+        if fields.len() != bindings.len() {
             panic!(
                 "FATAL ERROR: expected {} fields in constructor {}, found {}",
-                arm_bindings.len(),
+                bindings.len(),
                 constructor,
                 fields.len()
             );
         }
         let mut local_env = Rc::clone(&env);
-        for arm_binding in arm_bindings {
-            let Some(field_val) = fields.get(&arm_binding.node.id) else {
-                panic!(
-                    "FATAL ERROR: no field named {} in constructor {}",
-                    arm_binding.node.id, constructor
-                );
-            };
-            local_env = Env::extend(local_env, arm_binding.node.id, Rc::clone(field_val));
+        for (id, val) in bindings.iter().zip(fields) {
+            local_env = Env::extend(local_env, id, Rc::clone(val))
         }
-        return interp_expr(arm_expr, local_env);
+        return interp_expr(&arm.node.expr, local_env);
     }
     panic!("FATAL ERROR: no match arms matched");
 }

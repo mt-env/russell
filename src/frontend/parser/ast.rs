@@ -6,24 +6,30 @@ pub type SpannedExpr<'a, A> = Spanned<Expr<'a, A>>;
 pub type SpannedStmt<'a, A> = Spanned<Stmt<'a, A>>;
 pub type SpannedDefn<'a, A> = Spanned<Defn<'a, A>>;
 pub type SpannedBinding<'a> = Spanned<Binding<'a>>;
+pub type SpannedMatchArm<'a, A> = Spanned<MatchArm<'a, A>>;
 
 pub type ParsedExpr<'a> = SpannedExpr<'a, ()>;
 pub type ParsedStmt<'a> = SpannedStmt<'a, ()>;
 pub type ParsedDefn<'a> = SpannedDefn<'a, ()>;
 pub type ParsedBinding<'a> = SpannedBinding<'a>;
+pub type ParsedMatchArm<'a> = SpannedMatchArm<'a, ()>;
 
 #[derive(Debug, PartialEq)]
 pub enum Defn<'a, A> {
-    // typedef <typeId> { <id> ( <binding> , ... ) , ... }
-    Typedef(&'a str, Vec<(&'a str, Vec<SpannedBinding<'a>>)>),
+    // typedef <typeId> (ty_vars, ... )? { <id> ( <binding> , ... ) , ... }
+    Typedef {
+        id: &'a str,
+        ty_vars: Vec<&'a str>,
+        arms: Vec<(&'a str, Vec<SpannedBinding<'a>>)>,
+    },
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
-    Fn(
-        &'a str,
-        Vec<SpannedBinding<'a>>,
-        Type<'a>,
-        Vec<SpannedStmt<'a, A>>,
-    ),
+    Fn {
+        name: &'a str,
+        bindings: Vec<SpannedBinding<'a>>,
+        ret_ty: Type<'a>,
+        body: Vec<SpannedStmt<'a, A>>,
+    },
 }
 
 impl<'a> ParsedDefn<'a> {
@@ -36,18 +42,24 @@ impl<'a> ParsedDefn<'a> {
     ) -> Self {
         Spanned {
             offset,
-            node: Defn::Fn(id, bindings, ret, stmts),
+            node: Defn::Fn {
+                name: id,
+                bindings,
+                ret_ty: ret,
+                body: stmts,
+            },
         }
     }
 
     pub fn make_typedef(
         offset: usize,
         id: &'a str,
+        ty_vars: Vec<&'a str>,
         arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>,
     ) -> Self {
         Spanned {
             offset,
-            node: Defn::Typedef(id, arms),
+            node: Defn::Typedef { id, ty_vars, arms },
         }
     }
 }
@@ -121,6 +133,10 @@ pub enum ExprKind<'a, A> {
     Minus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> - <right>
     Mult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> * <right>
     Div(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> / <right>
+    FPlus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> +. <right>
+    FMinus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> -. <right>
+    FMult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> *. <right>
+    FDiv(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> /. <right>
     Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
     Less(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> < <right>
     LessEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
@@ -138,11 +154,8 @@ pub enum ExprKind<'a, A> {
         Box<SpannedExpr<'a, A>>,
     ),
 
-    // match <expr> { <id>(<bindings>) -> <expr>, ... }
-    Match(
-        Box<SpannedExpr<'a, A>>,
-        Vec<(&'a str, Vec<SpannedBinding<'a>>, SpannedExpr<'a, A>)>,
-    ),
+    // match <expr> { <id>(<id>, ...) -> <expr>, ... }
+    Match(Box<SpannedExpr<'a, A>>, Vec<SpannedMatchArm<'a, A>>),
 }
 
 // Display ignores the annotation entirely.
@@ -177,6 +190,10 @@ where
             ExprKind::Minus(left, right) => write!(f, "({left} - {right})"),
             ExprKind::Mult(left, right) => write!(f, "({left} * {right})"),
             ExprKind::Div(left, right) => write!(f, "({left} / {right})"),
+            ExprKind::FPlus(left, right) => write!(f, "({left} +. {right})"),
+            ExprKind::FMinus(left, right) => write!(f, "({left} -. {right})"),
+            ExprKind::FMult(left, right) => write!(f, "({left} *. {right})"),
+            ExprKind::FDiv(left, right) => write!(f, "({left} /. {right})"),
             ExprKind::Pipe(left, right) => write!(f, "({left} |> {right})"),
             ExprKind::Less(left, right) => write!(f, "({left} < {right})"),
             ExprKind::LessEq(left, right) => write!(f, "({left} <= {right})"),
@@ -192,14 +209,7 @@ where
             ExprKind::Match(expr, cases) => {
                 let cases_str = cases
                     .iter()
-                    .map(|(id, bindings, case_expr)| {
-                        let bindings_str = bindings
-                            .iter()
-                            .map(|binding| format!("{binding}"))
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        format!("{id}({bindings_str}) -> {case_expr}")
-                    })
+                    .map(|case| format!("{case}"))
                     .collect::<Vec<_>>()
                     .join(", ");
                 write!(f, "match {expr} {{ {cases_str} }}")
@@ -229,6 +239,10 @@ impl<'a, A> ExprKind<'a, A> {
             TokenKind::Minus => ExprKind::Minus(left, right),
             TokenKind::Times => ExprKind::Mult(left, right),
             TokenKind::Divide => ExprKind::Div(left, right),
+            TokenKind::FPlus => ExprKind::FPlus(left, right),
+            TokenKind::FMinus => ExprKind::FMinus(left, right),
+            TokenKind::FTimes => ExprKind::FMult(left, right),
+            TokenKind::FDivide => ExprKind::FDiv(left, right),
             TokenKind::Pipe => ExprKind::Pipe(left, right),
             TokenKind::LessThan => ExprKind::Less(left, right),
             TokenKind::LessThanOrEq => ExprKind::LessEq(left, right),
@@ -281,6 +295,28 @@ impl<'a> ParsedBinding<'a> {
         Spanned {
             offset,
             node: Binding { id, typ },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchArm<'a, A> {
+    pub id: &'a str,
+    pub bindings: Vec<&'a str>,
+    pub expr: SpannedExpr<'a, A>,
+}
+
+impl<A> Display for MatchArm<'_, A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({}) -> {}", self.id, self.bindings.join(", "), self.expr)
+    }
+}
+
+impl<'a> ParsedMatchArm<'a> {
+    pub fn new(offset: usize, id: &'a str, bindings: Vec<&'a str>, expr: ParsedExpr<'a>) -> Self {
+        Spanned {
+            offset,
+            node: MatchArm { id, bindings, expr },
         }
     }
 }

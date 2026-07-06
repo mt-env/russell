@@ -1,8 +1,8 @@
 use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::{SpannedToken, TokenKind};
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr};
-use crate::frontend::parser::parse_type::{parse_binding, parse_binding_list};
+use crate::frontend::parser::ast::{ExprKind, ParsedExpr, ParsedMatchArm};
+use crate::frontend::parser::parse_type::parse_binding;
 
 #[cfg(test)]
 mod tests;
@@ -15,20 +15,19 @@ enum Precedence {
     And = 3,  // logical and: &&
     Eq = 4,   // equality: ==, !=
     Rel = 5,  // relational: <, <=, >, >=
-    Add = 6,  // additive: +, -
-    Mult = 7, // multiplicative: *, /
+    Add = 6,  // additive: +, +., -, -.
+    Mult = 7, // multiplicative: *, *., /, /.
     Call = 8, // function call (postfix)
 }
 
 impl Precedence {
     fn of(token: &SpannedToken) -> Precedence {
         match token.kind() {
-            TokenKind::Times | TokenKind::Divide => Precedence::Mult,
-            TokenKind::Plus | TokenKind::Minus => Precedence::Add,
-            TokenKind::LessThan
-            | TokenKind::LessThanOrEq
-            | TokenKind::GreaterThan
-            | TokenKind::GreaterThanOrEq => Precedence::Rel,
+            TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => Precedence::Mult,
+            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => Precedence::Add,
+            TokenKind::LessThan | TokenKind::LessThanOrEq | TokenKind::GreaterThan | TokenKind::GreaterThanOrEq => {
+                Precedence::Rel
+            }
             TokenKind::Eq | TokenKind::NotEq => Precedence::Eq,
             TokenKind::And => Precedence::And,
             TokenKind::Or => Precedence::Or,
@@ -169,7 +168,37 @@ fn parse_match_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
     parser.expect(TokenKind::Match)?;
     let scrutinee = parse_expr(parser)?;
     parser.expect(TokenKind::LBrace)?;
-    let arms = parse_match_arms(parser)?;
+
+    // parse arms of a match statement
+    let mut arms = Vec::new();
+    while parser.peek().kind() != TokenKind::RBrace {
+        let curr_loc = parser.peek().offset;
+        let id = parser.expect_id()?;
+        let bindings = {
+            parser.expect(TokenKind::LParen)?;
+            let mut ids = Vec::new();
+            if parser.peek().kind() != TokenKind::RParen {
+                ids.push(parser.expect_id()?);
+                while parser.peek().kind() == TokenKind::Comma {
+                    parser.advance();
+                    ids.push(parser.expect_id()?);
+                }
+            }
+            parser.expect(TokenKind::RParen)?;
+            ids
+        };
+        parser.expect(TokenKind::Arrow)?;
+        let body = parse_expr(parser)?;
+
+        arms.push(ParsedMatchArm::new(curr_loc, id, bindings, body));
+
+        if parser.peek().kind() == TokenKind::Comma {
+            parser.advance();
+        } else {
+            break;
+        }
+    }
+
     parser.expect(TokenKind::RBrace)?;
     Ok(ParsedExpr::new(
         loc,
@@ -199,28 +228,4 @@ fn parse_call_expr<'a>(
         left.offset,
         ExprKind::Call(Box::new(left), args),
     ))
-}
-
-// parse match arms: <id>(<binding>, ...) -> <expr>, ...
-// arms are comma-separated and end at '}'.
-fn parse_match_arms<'a>(
-    parser: &mut Parser<'a>,
-) -> ParseResult<'a, Vec<(&'a str, Vec<ParsedBinding<'a>>, ParsedExpr<'a>)>> {
-    let mut arms = Vec::new();
-
-    while parser.peek().kind() != TokenKind::RBrace {
-        let constructor = parser.expect_id()?;
-        let bindings = parse_binding_list(parser)?;
-        parser.expect(TokenKind::Arrow)?;
-        let body = parse_expr(parser)?;
-        arms.push((constructor, bindings, body));
-
-        if parser.peek().kind() == TokenKind::Comma {
-            parser.advance();
-        } else {
-            break;
-        }
-    }
-
-    Ok(arms)
 }

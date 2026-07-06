@@ -29,7 +29,7 @@ const TYPES: [(&str, Token); 3] = [
 ];
 
 // operators
-const OPERATORS: [(&str, Token); 23] = [
+const OPERATORS: [(&str, Token); 27] = [
     // two-char ops
     ("!=", Token::NotEq),
     ("&&", Token::And),
@@ -39,6 +39,10 @@ const OPERATORS: [(&str, Token); 23] = [
     (">=", Token::GreaterThanOrEq),
     ("|>", Token::Pipe),
     ("||", Token::Or),
+    ("+.", Token::FPlus),
+    ("-.", Token::FMinus),
+    ("*.", Token::FTimes),
+    ("/.", Token::FDivide),
     // one-char ops
     ("=", Token::Assign),
     ("!", Token::Not),
@@ -135,7 +139,16 @@ fn read_num(program: &str) -> (Token<'_>, &str) {
     let mut first_non_digit = program.len();
     for (index, char) in program.char_indices() {
         if char == '.' && !seen_dot {
-            seen_dot = true;
+            if program[index + 1..]
+                .chars()
+                .next()
+                .is_some_and(|next| next.is_ascii_digit())
+            {
+                seen_dot = true;
+            } else {
+                first_non_digit = index;
+                break;
+            }
         } else if !char.is_ascii_digit() {
             first_non_digit = index;
             break;

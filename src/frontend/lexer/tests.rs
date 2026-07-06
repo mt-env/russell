@@ -91,9 +91,17 @@ fn float_leading_zero() {
 
 #[test]
 fn float_trailing_dot() {
-    // "1." should lex as a float (dot is consumed greedily)
     let toks = tokens("1.");
-    assert_eq!(toks[0].kind(), TokenKind::Float);
+    assert_eq!(toks[0].kind(), TokenKind::Int);
+    assert_eq!(toks[1].kind(), TokenKind::Invalid);
+}
+
+#[test]
+fn float_dot_requires_following_digit() {
+    let toks = tokens("1.foo");
+    assert_eq!(toks[0].kind(), TokenKind::Int);
+    assert_eq!(toks[1].kind(), TokenKind::Invalid);
+    assert_eq!(toks[2].kind(), TokenKind::Id);
 }
 
 #[test]
@@ -258,6 +266,10 @@ fn two_char_operators() {
         (">=", TokenKind::GreaterThanOrEq),
         ("|>", TokenKind::Pipe),
         ("||", TokenKind::Or),
+        ("+.", TokenKind::FPlus),
+        ("-.", TokenKind::FMinus),
+        ("*.", TokenKind::FTimes),
+        ("/.", TokenKind::FDivide),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -588,6 +600,46 @@ fn arithmetic_expression() {
             TokenKind::Minus,
             TokenKind::Id,
             TokenKind::Divide,
+            TokenKind::Id,
+        ]
+    );
+}
+
+#[test]
+fn float_arithmetic_expression() {
+    let toks = tokens("a +. b -. c *. d /. e");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Id,
+            TokenKind::FPlus,
+            TokenKind::Id,
+            TokenKind::FMinus,
+            TokenKind::Id,
+            TokenKind::FTimes,
+            TokenKind::Id,
+            TokenKind::FDivide,
+            TokenKind::Id,
+        ]
+    );
+}
+
+#[test]
+fn mixed_int_and_float_operators() {
+    let toks = tokens("x + y +. z - a -. b");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Id,
+            TokenKind::Plus,
+            TokenKind::Id,
+            TokenKind::FPlus,
+            TokenKind::Id,
+            TokenKind::Minus,
+            TokenKind::Id,
+            TokenKind::FMinus,
             TokenKind::Id,
         ]
     );

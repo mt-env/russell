@@ -77,6 +77,48 @@ fn fn_type_with_typeid() {
 }
 
 #[test]
+fn parenthesized_type() {
+    assert_eq!(parse("(Int)"), Type::Int);
+}
+
+#[test]
+fn parenthesized_fn_type_grouping() {
+    assert_eq!(
+        parse("(Int -> Bool) -> Int"),
+        Type::Fn(
+            Box::new(Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
+            Box::new(Type::Int)
+        )
+    );
+}
+
+#[test]
+fn nested_parentheses() {
+    assert_eq!(
+        parse("Int -> (Bool -> (Int -> Bool) -> Int) -> Bool"),
+        Type::Fn(
+            Box::new(Type::Int),
+            Box::new(Type::Fn(
+                Box::new(Type::Fn(
+                    Box::new(Type::Bool),
+                    Box::new(Type::Fn(
+                        Box::new(Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
+                        Box::new(Type::Int),
+                    ))
+                )),
+                Box::new(Type::Bool),
+            ))
+        )
+    )
+}
+
+#[test]
+fn parenthesized_type_error_missing_rparen() {
+    let mut p = parser_from("(Int -> Bool");
+    assert!(super::parse_type(&mut p).is_err());
+}
+
+#[test]
 fn error_on_int_literal() {
     let mut p = parser_from("42");
     assert!(super::parse_type(&mut p).is_err());

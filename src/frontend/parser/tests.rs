@@ -39,7 +39,7 @@ fn parse_single_typedef() {
     assert_eq!(defns.len(), 1);
     assert_eq!(
         defns[0],
-        ParsedDefn::make_typedef(0, "Unit".into(), vec![("unit".into(), vec![])])
+        ParsedDefn::make_typedef(0, "Unit".into(), vec![], vec![("unit".into(), vec![])])
     );
 }
 
@@ -48,8 +48,8 @@ fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0].node, Defn::Typedef(name, ..) if *name == "Color"));
-    assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "main"));
+    assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars: _, arms: _ } if *id == "Color"));
+    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "main"));
 }
 
 #[test]
@@ -60,9 +60,9 @@ fn parse_multiple_fns() {
         fn baz() -> Int { return 3; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 3);
-    assert!(matches!(&defns[0].node, Defn::Fn(name, ..) if *name == "foo"));
-    assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "bar"));
-    assert!(matches!(&defns[2].node, Defn::Fn(name, ..) if *name == "baz"));
+    assert!(matches!(&defns[0].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "foo"));
+    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "bar"));
+    assert!(matches!(&defns[2].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "baz"));
 }
 
 #[test]
@@ -70,14 +70,12 @@ fn parse_typedef_then_fn_using_it() {
     let src = "\
         typedef Option { some(x: Int), none() } \
         fn unwrap(opt: Option) -> Int { \
-            return match opt { some(x: Int) -> x, none() -> 0 }; \
+            return match opt { some(x) -> x, none() -> 0 }; \
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(
-        matches!(&defns[0].node, Defn::Typedef(name, ctors) if *name == "Option" && ctors.len() == 2)
-    );
-    assert!(matches!(&defns[1].node, Defn::Fn(name, ..) if *name == "unwrap"));
+    assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2));
+    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "unwrap"));
 }
 
 // ─── peek ───────────────────────────────────────────────────────────

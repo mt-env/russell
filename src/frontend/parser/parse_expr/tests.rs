@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr, Type};
+use crate::frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm, Type};
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input))
@@ -911,7 +911,7 @@ fn match_single_arm() {
             0,
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
-                vec![("a".into(), vec![], ParsedExpr::new(17, ExprKind::Int(1)))]
+                vec![ParsedMatchArm::new(10, "a", vec![], ParsedExpr::new(17, ExprKind::Int(1)))]
             )
         )
     );
@@ -926,8 +926,8 @@ fn match_multiple_arms() {
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
                 vec![
-                    ("a".into(), vec![], ParsedExpr::new(17, ExprKind::Int(1))),
-                    ("b".into(), vec![], ParsedExpr::new(27, ExprKind::Int(2))),
+                    ParsedMatchArm::new(10, "a", vec![], ParsedExpr::new(17, ExprKind::Int(1))),
+                    ParsedMatchArm::new(20, "b", vec![], ParsedExpr::new(27, ExprKind::Int(2))),
                 ]
             )
         )
@@ -937,18 +937,14 @@ fn match_multiple_arms() {
 #[test]
 fn match_with_bindings() {
     assert_eq!(
-        parse("match x { some(val: Int) -> val, none() -> 0 }"),
+        parse("match x { some(val) -> val, none() -> 0 }"),
         ParsedExpr::new(
             0,
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
                 vec![
-                    (
-                        "some".into(),
-                        vec![ParsedBinding::new(15, "val".into(), Type::Int)],
-                        ParsedExpr::new(28, ExprKind::Id("val".into()))
-                    ),
-                    ("none".into(), vec![], ParsedExpr::new(43, ExprKind::Int(0))),
+                    ParsedMatchArm::new(10, "some", vec!["val"], ParsedExpr::new(23, ExprKind::Id("val"))),
+                    ParsedMatchArm::new(28, "none", vec![], ParsedExpr::new(38, ExprKind::Int(0))),
                 ]
             )
         )
@@ -958,19 +954,20 @@ fn match_with_bindings() {
 #[test]
 fn match_arm_with_expr_body() {
     assert_eq!(
-        parse("match x { a(n: Int) -> n + 1 }"),
+        parse("match x { a(n) -> n + 1 }"),
         ParsedExpr::new(
             0,
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
-                vec![(
-                    "a".into(),
-                    vec![ParsedBinding::new(12, "n".into(), Type::Int)],
+                vec![ParsedMatchArm::new(
+                    10,
+                    "a",
+                    vec!["n"],
                     ParsedExpr::new(
-                        23,
+                        18,
                         ExprKind::Plus(
-                            Box::new(ParsedExpr::new(23, ExprKind::Id("n".into()))),
-                            Box::new(ParsedExpr::new(27, ExprKind::Int(1)))
+                            Box::new(ParsedExpr::new(18, ExprKind::Id("n"))),
+                            Box::new(ParsedExpr::new(22, ExprKind::Int(1)))
                         )
                     )
                 )]
@@ -989,8 +986,8 @@ fn match_trailing_comma() {
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
                 vec![
-                    ("a".into(), vec![], ParsedExpr::new(17, ExprKind::Int(1))),
-                    ("b".into(), vec![], ParsedExpr::new(27, ExprKind::Int(2))),
+                    ParsedMatchArm::new(10, "a", vec![], ParsedExpr::new(17, ExprKind::Int(1))),
+                    ParsedMatchArm::new(20, "b", vec![], ParsedExpr::new(27, ExprKind::Int(2))),
                 ]
             )
         )
@@ -1000,22 +997,20 @@ fn match_trailing_comma() {
 #[test]
 fn match_with_multiple_bindings() {
     assert_eq!(
-        parse("match p { point(x: Int, y: Int) -> x + y }"),
+        parse("match p { point(x, y) -> x + y }"),
         ParsedExpr::new(
             0,
             ExprKind::Match(
-                Box::new(ParsedExpr::new(6, ExprKind::Id("p".into()))),
-                vec![(
-                    "point".into(),
-                    vec![
-                        ParsedBinding::new(16, "x".into(), Type::Int),
-                        ParsedBinding::new(24, "y".into(), Type::Int),
-                    ],
+                Box::new(ParsedExpr::new(6, ExprKind::Id("p"))),
+                vec![ParsedMatchArm::new(
+                    10,
+                    "point",
+                    vec!["x", "y"],
                     ParsedExpr::new(
-                        35,
+                        25,
                         ExprKind::Plus(
-                            Box::new(ParsedExpr::new(35, ExprKind::Id("x".into()))),
-                            Box::new(ParsedExpr::new(39, ExprKind::Id("y".into())))
+                            Box::new(ParsedExpr::new(25, ExprKind::Id("x"))),
+                            Box::new(ParsedExpr::new(29, ExprKind::Id("y")))
                         )
                     )
                 )]
@@ -1236,6 +1231,178 @@ fn call_in_pipe() {
                         vec![ParsedExpr::new(7, ExprKind::Id("y".into()))]
                     )
                 ))
+            )
+        )
+    );
+}
+
+// ─── floating-point operators ────────────────────────────────────
+
+#[test]
+fn float_addition() {
+    assert_eq!(
+        parse("1.0 +. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(7, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_subtraction() {
+    assert_eq!(
+        parse("3.14 -. 1.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMinus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(3.14))),
+                Box::new(ParsedExpr::new(8, ExprKind::Float(1.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_multiplication() {
+    assert_eq!(
+        parse("2.0 *. 3.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMult(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(2.0))),
+                Box::new(ParsedExpr::new(7, ExprKind::Float(3.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_division() {
+    assert_eq!(
+        parse("10.0 /. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FDiv(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(10.0))),
+                Box::new(ParsedExpr::new(8, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn mixed_float_ops() {
+    // 1.0 +. 2.0 *. 3.0 = 1.0 +. (2.0 *. 3.0)
+    assert_eq!(
+        parse("1.0 +. 2.0 *. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(
+                    7,
+                    ExprKind::FMult(
+                        Box::new(ParsedExpr::new(7, ExprKind::Float(2.0))),
+                        Box::new(ParsedExpr::new(14, ExprKind::Float(3.0)))
+                    )
+                ))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_ops_left_assoc() {
+    // 1.0 +. 2.0 +. 3.0 = (1.0 +. 2.0) +. 3.0
+    assert_eq!(
+        parse("1.0 +. 2.0 +. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::FPlus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                        Box::new(ParsedExpr::new(7, ExprKind::Float(2.0)))
+                    )
+                )),
+                Box::new(ParsedExpr::new(14, ExprKind::Float(3.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_and_int_ops_mixed() {
+    // x + 1 +. y tests that both regular and float ops can be parsed
+    assert_eq!(
+        parse("1 + 2 +. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::Plus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Int(1))),
+                        Box::new(ParsedExpr::new(4, ExprKind::Int(2)))
+                    )
+                )),
+                Box::new(ParsedExpr::new(9, ExprKind::Float(3.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn int_operands_with_float_op() {
+    // 1 +. 2 should parse (type error only at interpreter)
+    assert_eq!(
+        parse("1 +. 2"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FPlus(
+                Box::new(ParsedExpr::new(0, ExprKind::Int(1))),
+                Box::new(ParsedExpr::new(5, ExprKind::Int(2)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_operands_with_int_op() {
+    // 1.0 + 2.0 should parse
+    assert_eq!(
+        parse("1.0 + 2.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::Plus(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(6, ExprKind::Float(2.0)))
+            )
+        )
+    );
+}
+
+#[test]
+fn mixed_float_int_all_ops() {
+    // 1.0 + 2 -. 3.0 tests that all combinations parse regardless of operand types
+    assert_eq!(
+        parse("1.0 + 2 -. 3.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMinus(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::Plus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                        Box::new(ParsedExpr::new(6, ExprKind::Int(2)))
+                    )
+                )),
+                Box::new(ParsedExpr::new(11, ExprKind::Float(3.0)))
             )
         )
     );
