@@ -30,14 +30,10 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, ctx: &mut Context) -> TypeResult<T
         ExprKind::FMult(spanned, spanned1) => todo!(),
         ExprKind::FDiv(spanned, spanned1) => todo!(),
         ExprKind::Pipe(left, right) => todo!(),
-        ExprKind::Less(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Less, ctx),
-        ExprKind::LessEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::LessEq, ctx),
-        ExprKind::Greater(left, right) => {
-            infer_cmp_binop(loc, *left, *right, ExprKind::Greater, ctx)
-        }
-        ExprKind::GreaterEq(left, right) => {
-            infer_cmp_binop(loc, *left, *right, ExprKind::GreaterEq, ctx)
-        }
+        ExprKind::Lt(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Lt, ctx),
+        ExprKind::LtEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::LtEq, ctx),
+        ExprKind::Gt(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Gt, ctx),
+        ExprKind::GtEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::GtEq, ctx),
         ExprKind::Eq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Eq, ctx),
         ExprKind::NotEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::NotEq, ctx),
         ExprKind::Or(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::Or, ctx),

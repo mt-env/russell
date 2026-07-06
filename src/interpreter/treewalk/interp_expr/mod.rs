@@ -26,16 +26,12 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
         ExprKind::FMult(left, right) => interp_float_arith_binop(left, right, env, |l, r| l * r),
         ExprKind::FDiv(left, right) => interp_float_arith_binop(left, right, env, |l, r| l / r),
         ExprKind::Pipe(left, right) => interp_call(right, vec![left], env),
-        ExprKind::Less(left, right) => {
-            interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r)
-        }
-        ExprKind::LessEq(left, right) => {
+        ExprKind::Lt(left, right) => interp_cmp_binop(left, right, env, |l, r| l < r, |l, r| l < r),
+        ExprKind::LtEq(left, right) => {
             interp_cmp_binop(left, right, env, |l, r| l <= r, |l, r| l <= r)
         }
-        ExprKind::Greater(left, right) => {
-            interp_cmp_binop(left, right, env, |l, r| l > r, |l, r| l > r)
-        }
-        ExprKind::GreaterEq(left, right) => {
+        ExprKind::Gt(left, right) => interp_cmp_binop(left, right, env, |l, r| l > r, |l, r| l > r),
+        ExprKind::GtEq(left, right) => {
             interp_cmp_binop(left, right, env, |l, r| l >= r, |l, r| l >= r)
         }
         ExprKind::Eq(left, right) => {
@@ -174,7 +170,9 @@ fn interp_float_arith_binop<'a>(
     let right_val = interp_expr(right, env);
     match (&*left_val, &*right_val) {
         (Value::Float(l), Value::Float(r)) => Value::Float(float_op(*l, *r)).into(),
-        (l, r) => panic!("FATAL ERROR: expected float values for floating-point operation, found {l:?} and {r:?}"),
+        (l, r) => panic!(
+            "FATAL ERROR: expected float values for floating-point operation, found {l:?} and {r:?}"
+        ),
     }
 }
 
@@ -208,7 +206,11 @@ fn interp_if<'a>(
     }
 }
 
-fn interp_match<'a>(expr: &ParsedExpr<'a>, arms: &[ParsedMatchArm<'a>], env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+fn interp_match<'a>(
+    expr: &ParsedExpr<'a>,
+    arms: &[ParsedMatchArm<'a>],
+    env: Rc<Env<'a>>,
+) -> Rc<Value<'a>> {
     // check that the value is an ADT
     let expr_val = interp_expr(expr, Rc::clone(&env));
     let Value::Adt(_, constructor, fields) = &*expr_val else {

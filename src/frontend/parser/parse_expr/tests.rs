@@ -181,7 +181,7 @@ fn less_than() {
         parse("a < b"),
         ParsedExpr::new(
             0,
-            ExprKind::Less(
+            ExprKind::Lt(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
             )
@@ -195,7 +195,7 @@ fn less_than_or_eq() {
         parse("a <= b"),
         ParsedExpr::new(
             0,
-            ExprKind::LessEq(
+            ExprKind::LtEq(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
             )
@@ -209,7 +209,7 @@ fn greater_than() {
         parse("a > b"),
         ParsedExpr::new(
             0,
-            ExprKind::Greater(
+            ExprKind::Gt(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
             )
@@ -223,7 +223,7 @@ fn greater_than_or_eq() {
         parse("a >= b"),
         ParsedExpr::new(
             0,
-            ExprKind::GreaterEq(
+            ExprKind::GtEq(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
             )
@@ -352,7 +352,7 @@ fn add_before_relational() {
         parse("a + b < c"),
         ParsedExpr::new(
             0,
-            ExprKind::Less(
+            ExprKind::Lt(
                 Box::new(ParsedExpr::new(
                     0,
                     ExprKind::Plus(
@@ -376,7 +376,7 @@ fn relational_before_equality() {
             ExprKind::Eq(
                 Box::new(ParsedExpr::new(
                     0,
-                    ExprKind::Less(
+                    ExprKind::Lt(
                         Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                         Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
                     )
@@ -911,7 +911,12 @@ fn match_single_arm() {
             0,
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
-                vec![ParsedMatchArm::new(10, "a", vec![], ParsedExpr::new(17, ExprKind::Int(1)))]
+                vec![ParsedMatchArm::new(
+                    10,
+                    "a",
+                    vec![],
+                    ParsedExpr::new(17, ExprKind::Int(1))
+                )]
             )
         )
     );
@@ -943,7 +948,12 @@ fn match_with_bindings() {
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
                 vec![
-                    ParsedMatchArm::new(10, "some", vec!["val"], ParsedExpr::new(23, ExprKind::Id("val"))),
+                    ParsedMatchArm::new(
+                        10,
+                        "some",
+                        vec!["val"],
+                        ParsedExpr::new(23, ExprKind::Id("val"))
+                    ),
                     ParsedMatchArm::new(28, "none", vec![], ParsedExpr::new(38, ExprKind::Int(0))),
                 ]
             )
@@ -1172,7 +1182,7 @@ fn full_precedence_chain() {
                                         Box::new(ParsedExpr::new(15, ExprKind::Id("d".into()))),
                                         Box::new(ParsedExpr::new(
                                             20,
-                                            ExprKind::Less(
+                                            ExprKind::Lt(
                                                 Box::new(ParsedExpr::new(
                                                     20,
                                                     ExprKind::Id("e".into())

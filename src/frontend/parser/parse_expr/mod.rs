@@ -23,11 +23,20 @@ enum Precedence {
 impl Precedence {
     fn of(token: &SpannedToken) -> Precedence {
         match token.kind() {
-            TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => Precedence::Mult,
-            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => Precedence::Add,
-            TokenKind::LessThan | TokenKind::LessThanOrEq | TokenKind::GreaterThan | TokenKind::GreaterThanOrEq => {
-                Precedence::Rel
+            TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => {
+                Precedence::Mult
             }
+            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => {
+                Precedence::Add
+            }
+            TokenKind::LessThan
+            | TokenKind::LessThanOrEq
+            | TokenKind::GreaterThan
+            | TokenKind::GreaterThanOrEq
+            | TokenKind::FLessThan
+            | TokenKind::FLessThanOrEq
+            | TokenKind::FGreaterThan
+            | TokenKind::FGreaterThanOrEq => Precedence::Rel,
             TokenKind::Eq | TokenKind::NotEq => Precedence::Eq,
             TokenKind::And => Precedence::And,
             TokenKind::Or => Precedence::Or,

@@ -16,7 +16,8 @@ fn typeck(input: &str) -> TypedExpr<'_> {
     let mut parser = Parser::new(lexer::lex(input));
     let parsed_expr = parser::parse_expr::parse_expr(&mut parser).unwrap();
     let env = Env::Global(HashMap::new());
-    infer(parsed_expr, &env).unwrap()
+    // infer(parsed_expr, &env).unwrap()
+    todo!()
 }
 
 #[test]
@@ -113,7 +114,7 @@ fn test_relational() {
         TypedExpr::new(
             0,
             TypeValue::Bool,
-            ExprKind::Less(
+            ExprKind::Lt(
                 Box::new(TypedExpr::new(0, TypeValue::Int, ExprKind::Int(1))),
                 Box::new(TypedExpr::new(4, TypeValue::Int, ExprKind::Int(2)))
             )
