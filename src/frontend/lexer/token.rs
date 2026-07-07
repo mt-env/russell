@@ -39,25 +39,29 @@ pub enum Token<'a> {
     RBrace,
 
     // operators
-    Assign,          // =
-    Not,             // !
-    NotEq,           // !=
-    And,             // &&
-    Plus,            // +
-    Minus,           // -
-    Times,           // *
-    Divide,          // /
-    FPlus,           // +.
-    FMinus,          // -.
-    FTimes,          // *.
-    FDivide,         // /.
-    LessThan,        // <
-    LessThanOrEq,    // <=
-    Eq,              // ==
-    GreaterThan,     // >
-    GreaterThanOrEq, // >=
-    Pipe,            // |>
-    Or,              // ||
+    Assign,           // =
+    Not,              // !
+    NotEq,            // !=
+    And,              // &&
+    Plus,             // +
+    Minus,            // -
+    Times,            // *
+    Divide,           // /
+    FPlus,            // +.
+    FMinus,           // -.
+    FTimes,           // *.
+    FDivide,          // /.
+    LessThan,         // <
+    LessThanOrEq,     // <=
+    GreaterThan,      // >
+    GreaterThanOrEq,  // >=
+    FLessThan,        // <.
+    FLessThanOrEq,    // <=.
+    FGreaterThan,     // >.
+    FGreaterThanOrEq, // >=.
+    Eq,               // ==
+    Pipe,             // |>
+    Or,               // ||
 
     // miscellaneous
     Invalid(char),
@@ -116,9 +120,13 @@ pub enum TokenKind {
     FDivide,
     LessThan,
     LessThanOrEq,
-    Eq,
     GreaterThan,
     GreaterThanOrEq,
+    FLessThan,
+    FLessThanOrEq,
+    FGreaterThan,
+    FGreaterThanOrEq,
+    Eq,
     Pipe,
     Or,
 
@@ -196,9 +204,13 @@ impl Token<'_> {
             Token::FDivide => TokenKind::FDivide,
             Token::LessThan => TokenKind::LessThan,
             Token::LessThanOrEq => TokenKind::LessThanOrEq,
-            Token::Eq => TokenKind::Eq,
             Token::GreaterThan => TokenKind::GreaterThan,
             Token::GreaterThanOrEq => TokenKind::GreaterThanOrEq,
+            Token::FLessThan => TokenKind::FLessThan,
+            Token::FLessThanOrEq => TokenKind::FLessThanOrEq,
+            Token::FGreaterThan => TokenKind::FGreaterThan,
+            Token::FGreaterThanOrEq => TokenKind::FGreaterThanOrEq,
+            Token::Eq => TokenKind::Eq,
             Token::Pipe => TokenKind::Pipe,
             Token::Or => TokenKind::Or,
             Token::Invalid(_) => TokenKind::Invalid,

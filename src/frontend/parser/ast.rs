@@ -138,10 +138,14 @@ pub enum ExprKind<'a, A> {
     FMult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> *. <right>
     FDiv(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> /. <right>
     Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
-    Less(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> < <right>
-    LessEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
-    Greater(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> > <right>
-    GreaterEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
+    Lt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> < <right>
+    LtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
+    Gt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> > <right>
+    GtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
+    FLt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> <. <right>
+    FLtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <=. <right>
+    FGt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> >. <right>
+    FGtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >=. <right>
     Eq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> == <right>
     NotEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> != <right>
     Or(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> || <right>
@@ -195,10 +199,14 @@ where
             ExprKind::FMult(left, right) => write!(f, "({left} *. {right})"),
             ExprKind::FDiv(left, right) => write!(f, "({left} /. {right})"),
             ExprKind::Pipe(left, right) => write!(f, "({left} |> {right})"),
-            ExprKind::Less(left, right) => write!(f, "({left} < {right})"),
-            ExprKind::LessEq(left, right) => write!(f, "({left} <= {right})"),
-            ExprKind::Greater(left, right) => write!(f, "({left} > {right})"),
-            ExprKind::GreaterEq(left, right) => write!(f, "({left} >= {right})"),
+            ExprKind::Lt(left, right) => write!(f, "({left} < {right})"),
+            ExprKind::LtEq(left, right) => write!(f, "({left} <= {right})"),
+            ExprKind::Gt(left, right) => write!(f, "({left} > {right})"),
+            ExprKind::GtEq(left, right) => write!(f, "({left} >= {right})"),
+            ExprKind::FLt(left, right) => write!(f, "({left} <. {right})"),
+            ExprKind::FLtEq(left, right) => write!(f, "({left} <=. {right})"),
+            ExprKind::FGt(left, right) => write!(f, "({left} >. {right})"),
+            ExprKind::FGtEq(left, right) => write!(f, "({left} >=. {right})"),
             ExprKind::Eq(left, right) => write!(f, "({left} == {right})"),
             ExprKind::NotEq(left, right) => write!(f, "({left} != {right})"),
             ExprKind::Or(left, right) => write!(f, "({left} || {right})"),
@@ -244,10 +252,14 @@ impl<'a, A> ExprKind<'a, A> {
             TokenKind::FTimes => ExprKind::FMult(left, right),
             TokenKind::FDivide => ExprKind::FDiv(left, right),
             TokenKind::Pipe => ExprKind::Pipe(left, right),
-            TokenKind::LessThan => ExprKind::Less(left, right),
-            TokenKind::LessThanOrEq => ExprKind::LessEq(left, right),
-            TokenKind::GreaterThan => ExprKind::Greater(left, right),
-            TokenKind::GreaterThanOrEq => ExprKind::GreaterEq(left, right),
+            TokenKind::LessThan => ExprKind::Lt(left, right),
+            TokenKind::LessThanOrEq => ExprKind::LtEq(left, right),
+            TokenKind::GreaterThan => ExprKind::Gt(left, right),
+            TokenKind::GreaterThanOrEq => ExprKind::GtEq(left, right),
+            TokenKind::FLessThan => ExprKind::FLt(left, right),
+            TokenKind::FLessThanOrEq => ExprKind::FLtEq(left, right),
+            TokenKind::FGreaterThan => ExprKind::FGt(left, right),
+            TokenKind::FGreaterThanOrEq => ExprKind::FGtEq(left, right),
             TokenKind::Eq => ExprKind::Eq(left, right),
             TokenKind::NotEq => ExprKind::NotEq(left, right),
             TokenKind::Or => ExprKind::Or(left, right),
@@ -308,7 +320,13 @@ pub struct MatchArm<'a, A> {
 
 impl<A> Display for MatchArm<'_, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} ({}) -> {}", self.id, self.bindings.join(", "), self.expr)
+        write!(
+            f,
+            "{} ({}) -> {}",
+            self.id,
+            self.bindings.join(", "),
+            self.expr
+        )
     }
 }
 

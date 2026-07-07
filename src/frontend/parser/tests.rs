@@ -49,7 +49,9 @@ fn parse_multiple_definitions() {
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
     assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars: _, arms: _ } if *id == "Color"));
-    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "main"));
+    assert!(
+        matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "main")
+    );
 }
 
 #[test]
@@ -60,9 +62,15 @@ fn parse_multiple_fns() {
         fn baz() -> Int { return 3; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 3);
-    assert!(matches!(&defns[0].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "foo"));
-    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "bar"));
-    assert!(matches!(&defns[2].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "baz"));
+    assert!(
+        matches!(&defns[0].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "foo")
+    );
+    assert!(
+        matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "bar")
+    );
+    assert!(
+        matches!(&defns[2].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "baz")
+    );
 }
 
 #[test]
@@ -74,8 +82,12 @@ fn parse_typedef_then_fn_using_it() {
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2));
-    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "unwrap"));
+    assert!(
+        matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2)
+    );
+    assert!(
+        matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "unwrap")
+    );
 }
 
 // ─── peek ───────────────────────────────────────────────────────────
