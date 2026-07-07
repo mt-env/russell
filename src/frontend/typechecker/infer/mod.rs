@@ -21,25 +21,25 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, ctx: &mut Context) -> TypeResult<T
         ExprKind::Neg(expr) => infer_neg(loc, *expr, ctx),
         ExprKind::Bang(expr) => infer_bang(loc, *expr, ctx),
         ExprKind::Call(left, right) => todo!(),
-        ExprKind::Plus(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Plus, ctx),
-        ExprKind::Minus(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Minus, ctx),
-        ExprKind::Mult(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Mult, ctx),
-        ExprKind::Div(left, right) => infer_arith_binop(loc, *left, *right, ExprKind::Div, ctx),
+        ExprKind::Plus(left, right) => infer_int_arith(loc, *left, *right, ExprKind::Plus, ctx),
+        ExprKind::Minus(left, right) => infer_int_arith(loc, *left, *right, ExprKind::Minus, ctx),
+        ExprKind::Mult(left, right) => infer_int_arith(loc, *left, *right, ExprKind::Mult, ctx),
+        ExprKind::Div(left, right) => infer_int_arith(loc, *left, *right, ExprKind::Div, ctx),
         ExprKind::FPlus(spanned, spanned1) => todo!(),
         ExprKind::FMinus(spanned, spanned1) => todo!(),
         ExprKind::FMult(spanned, spanned1) => todo!(),
         ExprKind::FDiv(spanned, spanned1) => todo!(),
         ExprKind::Pipe(left, right) => todo!(),
-        ExprKind::Lt(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Lt, ctx),
-        ExprKind::LtEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::LtEq, ctx),
-        ExprKind::Gt(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Gt, ctx),
-        ExprKind::GtEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::GtEq, ctx),
+        ExprKind::Lt(left, right) => infer_int_cmp(loc, *left, *right, ExprKind::Lt, ctx),
+        ExprKind::LtEq(left, right) => infer_int_cmp(loc, *left, *right, ExprKind::LtEq, ctx),
+        ExprKind::Gt(left, right) => infer_int_cmp(loc, *left, *right, ExprKind::Gt, ctx),
+        ExprKind::GtEq(left, right) => infer_int_cmp(loc, *left, *right, ExprKind::GtEq, ctx),
         ExprKind::FLt(left, right) => todo!(),
         ExprKind::FLtEq(left, right) => todo!(),
         ExprKind::FGt(left, right) => todo!(),
         ExprKind::FGtEq(left, right) => todo!(),
-        ExprKind::Eq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::Eq, ctx),
-        ExprKind::NotEq(left, right) => infer_cmp_binop(loc, *left, *right, ExprKind::NotEq, ctx),
+        ExprKind::Eq(left, right) => todo!(),
+        ExprKind::NotEq(left, right) => todo!(),
         ExprKind::Or(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::Or, ctx),
         ExprKind::And(left, right) => infer_bool_binop(loc, *left, *right, ExprKind::And, ctx),
         ExprKind::If(cond, thenb, elseb) => infer_if(loc, *cond, *thenb, *elseb, ctx),
@@ -104,7 +104,7 @@ fn infer_call() {
     todo!()
 }
 
-fn infer_arith_binop<'a>(
+fn infer_int_arith<'a>(
     offset: usize,
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
@@ -118,6 +118,19 @@ fn infer_arith_binop<'a>(
             TypeValue::Int,
             make(Box::new(checked_left), Box::new(checked_right)),
         )),
+        (_, _) => todo!(), // TODO - refactor error handling to expect multiple types
+    }
+}
+
+fn infer_float_arith<'a>(
+    offset: usize,
+    left: ParsedExpr<'a>,
+    right: ParsedExpr<'a>,
+    make: impl FnOnce(Box<TypedExpr<'a>>, Box<TypedExpr<'a>>) -> ExprKind<'a, TypeValue>,
+    ctx: &mut Context,
+) -> TypeResult<TypedExpr<'a>> {
+    let (checked_left, checked_right) = (infer(left, ctx)?, infer(right, ctx)?);
+    match (checked_left.ty(), checked_right.ty()) {
         (TypeValue::Float, TypeValue::Float) => Ok(TypedExpr::new(
             offset,
             TypeValue::Float,
@@ -131,7 +144,7 @@ fn infer_pipe() {
     todo!()
 }
 
-fn infer_cmp_binop<'a>(
+fn infer_int_cmp<'a>(
     offset: usize,
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
@@ -140,13 +153,29 @@ fn infer_cmp_binop<'a>(
 ) -> TypeResult<TypedExpr<'a>> {
     let (checked_left, checked_right) = (infer(left, ctx)?, infer(right, ctx)?);
     match (checked_left.ty(), checked_right.ty()) {
-        (TypeValue::Int, TypeValue::Int) | (TypeValue::Float, TypeValue::Float) => {
-            Ok(TypedExpr::new(
-                offset,
-                TypeValue::Bool,
-                make(Box::new(checked_left), Box::new(checked_right)),
-            ))
-        }
+        (TypeValue::Int, TypeValue::Int) => Ok(TypedExpr::new(
+            offset,
+            TypeValue::Bool,
+            make(Box::new(checked_left), Box::new(checked_right)),
+        )),
+        (_, _) => todo!(), // TODO - refactor error handling to expect multiple types
+    }
+}
+
+fn infer_float_cmp<'a>(
+    offset: usize,
+    left: ParsedExpr<'a>,
+    right: ParsedExpr<'a>,
+    make: impl FnOnce(Box<TypedExpr<'a>>, Box<TypedExpr<'a>>) -> ExprKind<'a, TypeValue>,
+    ctx: &mut Context,
+) -> TypeResult<TypedExpr<'a>> {
+    let (checked_left, checked_right) = (infer(left, ctx)?, infer(right, ctx)?);
+    match (checked_left.ty(), checked_right.ty()) {
+        (TypeValue::Float, TypeValue::Float) => Ok(TypedExpr::new(
+            offset,
+            TypeValue::Bool,
+            make(Box::new(checked_left), Box::new(checked_right)),
+        )),
         (_, _) => todo!(), // TODO - refactor error handling to expect multiple types
     }
 }
