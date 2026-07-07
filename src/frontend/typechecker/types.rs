@@ -71,7 +71,12 @@ pub enum TypeValue {
     Fn(Vec<TypeValue>, Box<TypeValue>), // (arg types, return type)
     Closure(Box<TypeValue>, Box<TypeValue>), // (arg type, return type)
     Adt(String),                        // nominal type
-    Var(Box<Option<TypeValue>>),        // type variable for inference
+    Var(usize),                         // type variable for inference
+}
+
+pub struct Scheme {
+    pub vars: Vec<usize>, // quantified type variables
+    pub ty: TypeValue,
 }
 
 impl From<Type<'_>> for TypeValue {

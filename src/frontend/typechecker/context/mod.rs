@@ -3,7 +3,9 @@ use crate::frontend::typechecker::types::{TypeValue, TypedExpr};
 #[cfg(test)]
 mod tests;
 
-pub struct Context {}
+pub struct Context {
+    ty_vars: usize,
+}
 
 impl Context {
     pub fn unify(&mut self, t1: TypeValue, t2: TypeValue) {
@@ -20,6 +22,12 @@ impl Context {
 
     pub fn extend(&mut self, id: &str, ty: TypeValue) {
         todo!()
+    }
+
+    pub fn new_tyvar(&mut self) -> TypeValue {
+        let tyvar = TypeValue::Var(self.ty_vars);
+        self.ty_vars += 1;
+        tyvar
     }
 }
 
