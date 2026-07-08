@@ -1,9 +1,8 @@
 use crate::frontend::{
     parser::ast::{ParsedExpr, ParsedStmt, Stmt, Type},
     typechecker::{
-        context::Context,
-        infer,
-        types::{Env, TypedStmt},
+        inference::{context::Context, infer::infer},
+        types::TypedStmt,
     },
 };
 
@@ -38,7 +37,7 @@ fn typecheck_let<'a>(
     expr: ParsedExpr<'a>,
     ctx: &mut Context,
 ) -> TypedStmt<'a> {
-    let typed_expr = match infer::infer(expr, ctx) {
+    let typed_expr = match infer(expr, ctx) {
         Ok(expr) => expr,
         Err(_) => todo!(), // error recovery here
     };
@@ -68,7 +67,7 @@ fn typecheck_echo<'a>(
 ) -> TypedStmt<'a> {
     match typ {
         Type::Int | Type::Bool | Type::Float => {
-            let typed_expr = match infer::infer(expr, ctx) {
+            let typed_expr = match infer(expr, ctx) {
                 Ok(expr) => expr,
                 Err(_) => todo!(), // better error handling
             };
@@ -86,7 +85,7 @@ fn typecheck_return<'a>(
     expr: ParsedExpr<'a>,
     ctx: &mut Context,
 ) -> TypedStmt<'a> {
-    let typed_expr = match infer::infer(expr, ctx) {
+    let typed_expr = match infer(expr, ctx) {
         Ok(expr) => expr,
         Err(_) => todo!(), // better error handling
     };

@@ -9,6 +9,8 @@ pub struct Context {
 
 impl Context {
     pub fn unify(&mut self, t1: TypeValue, t2: TypeValue) {
+        let a = t1;
+        let b = t2;
         todo!()
     }
 

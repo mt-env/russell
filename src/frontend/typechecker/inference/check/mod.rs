@@ -1,8 +1,8 @@
 use crate::frontend::{
     parser::ast::ParsedExpr,
     typechecker::{
-        context::Context,
-        types::{Env, TypeResult, TypeValue, TypedExpr},
+        inference::context::Context,
+        types::{TypeResult, TypeValue, TypedExpr},
     },
 };
 

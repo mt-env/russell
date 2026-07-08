@@ -1,8 +1,7 @@
 use crate::frontend::{
     parser::ast::{ExprKind, ParsedExpr, ParsedMatchArm},
     typechecker::{
-        check::check,
-        context::Context,
+        inference::{check::check, context::Context},
         types::{TypeError, TypeResult, TypeValue, TypedExpr},
     },
 };
@@ -53,11 +52,7 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, ctx: &mut Context) -> TypeResult<T
 fn infer_id<'a>(offset: usize, id: &'a str, ctx: &mut Context) -> TypeResult<TypedExpr<'a>> {
     match ctx.lookup(&id) {
         Some(ty) => Ok(TypedExpr::new(offset, ty, ExprKind::Id(id))),
-        None => Err(TypeError {
-            expected: TypeValue::Var(Box::new(None)),
-            actual: TypeValue::Var(Box::new(None)),
-            offset,
-        }),
+        None => todo!(), // error handling for undefined variable
     }
 }
 
