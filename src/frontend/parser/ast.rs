@@ -123,6 +123,7 @@ pub enum ExprKind<'a, A> {
 
     // unary operators
     Neg(Box<SpannedExpr<'a, A>>),  // - <expr>
+    FNeg(Box<SpannedExpr<'a, A>>), // -. <expr>
     Bang(Box<SpannedExpr<'a, A>>), // ! <expr>
 
     // function calls
@@ -181,6 +182,7 @@ where
             ExprKind::Id(id) => write!(f, "{id}"),
             ExprKind::Fn(binding, body) => write!(f, "(fn ({binding}) -> {body})"),
             ExprKind::Neg(expr) => write!(f, "-{expr}"),
+            ExprKind::FNeg(expr) => write!(f, "-.{expr}"),
             ExprKind::Bang(expr) => write!(f, "!{expr}"),
             ExprKind::Call(func, args) => {
                 let args_str = args
