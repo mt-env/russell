@@ -15,6 +15,7 @@ pub(super) fn interp_expr<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Val
             Value::Closure(Rc::clone(&env), binding.clone(), expr.clone()).into()
         }
         ExprKind::Neg(expr) => interp_neg(expr, env),
+        ExprKind::FNeg(expr) => interp_fneg(expr, env),
         ExprKind::Bang(expr) => interp_bang(expr, env),
         ExprKind::Call(func, args) => interp_call(func, args.iter().collect(), env),
         ExprKind::Plus(left, right) => interp_int_arith(left, right, env, |l, r| l + r),
@@ -63,6 +64,12 @@ fn interp_id<'a>(id: &'a str, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
 fn interp_neg<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
     match &*interp_expr(expr, env) {
         Value::Int(num) => Value::Int(-num).into(),
+        val => panic!("FATAL ERROR: expected numeric value, found {val:?}"),
+    }
+}
+
+fn interp_fneg<'a>(expr: &ParsedExpr<'a>, env: Rc<Env<'a>>) -> Rc<Value<'a>> {
+    match &*interp_expr(expr, env) {
         Value::Float(num) => Value::Float(-num).into(),
         val => panic!("FATAL ERROR: expected numeric value, found {val:?}"),
     }

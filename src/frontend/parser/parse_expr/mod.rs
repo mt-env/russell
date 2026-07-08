@@ -84,7 +84,7 @@ fn parse_null_denotation<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedE
         TokenKind::Int | TokenKind::Float | TokenKind::Bool | TokenKind::Id => {
             parse_atom_expr(parser)
         }
-        TokenKind::Minus | TokenKind::Not => parse_unary_expr(parser),
+        TokenKind::Minus | TokenKind::Not | TokenKind::FMinus => parse_unary_expr(parser),
         TokenKind::LParen => parse_paren_expr(parser),
         TokenKind::Fn => parse_closure_expr(parser),
         TokenKind::If => parse_if_expr(parser),
@@ -127,6 +127,10 @@ fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
         TokenKind::Minus => Ok(ParsedExpr::new(
             loc,
             ExprKind::Neg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)),
+        )),
+        TokenKind::FMinus => Ok(ParsedExpr::new(
+            loc,
+            ExprKind::FNeg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)),
         )),
         TokenKind::Not => Ok(ParsedExpr::new(
             loc,
