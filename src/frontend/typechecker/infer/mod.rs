@@ -19,6 +19,7 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, ctx: &mut Context) -> TypeResult<T
         ExprKind::Id(s) => infer_id(loc, s, ctx),
         ExprKind::Fn(binding, expr) => todo!(),
         ExprKind::Neg(expr) => infer_neg(loc, *expr, ctx),
+        ExprKind::FNeg(expr) => infer_fneg(loc, *expr, ctx),
         ExprKind::Bang(expr) => infer_bang(loc, *expr, ctx),
         ExprKind::Call(left, right) => todo!(),
         ExprKind::Plus(left, right) => infer_int_arith(loc, *left, *right, ExprKind::Plus, ctx),
@@ -85,6 +86,16 @@ fn infer_neg<'a>(
             offset,
         }),
     }
+}
+
+fn infer_fneg<'a>(
+    offset: usize,
+    expr: ParsedExpr<'a>,
+    ctx: &mut Context,
+) -> TypeResult<TypedExpr<'a>> {
+    let checked_expr = infer(expr, ctx)?;
+    ctx.unify(checked_expr.ty(), TypeValue::Float);
+    todo!()
 }
 
 fn infer_bang<'a>(
