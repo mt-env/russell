@@ -1,7 +1,7 @@
 use crate::frontend::{
     parser::ast::ParsedExpr,
     typechecker::{
-        inference::context::Context,
+        inference::context::{Context, InferredExpr, TypeId},
         types::{TypeResult, TypeValue, TypedExpr},
     },
 };
@@ -11,8 +11,8 @@ mod tests;
 
 pub(super) fn check<'a>(
     expr: ParsedExpr<'a>,
-    expected: TypeValue,
+    expected: TypeId,
     ctx: &Context,
-) -> TypeResult<TypedExpr<'a>> {
+) -> TypeResult<InferredExpr<'a>> {
     todo!()
 }
