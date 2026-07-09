@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::frontend::{
-    parser::ast::{Expr, ExprKind, SpannedExpr},
-    typechecker::types::TypeValue,
-};
+use crate::frontend::parser::ast::{Expr, ExprKind, SpannedExpr};
 
 #[cfg(test)]
 mod tests;
@@ -47,22 +44,20 @@ impl Context {
         todo!()
     }
 
-    pub fn resolve(&mut self, expr: &InferredExpr) -> TypeValue {
+    pub fn resolve(&mut self, expr: &InferredExpr) -> TypeId {
         todo!()
     }
 
-    pub fn lookup(&self, id: &str) -> Option<TypeValue> {
+    pub fn lookup(&self, id: &str) -> Option<TypeId> {
         todo!()
     }
 
-    pub fn extend(&mut self, id: &str, ty: TypeValue) {
+    pub fn extend(&mut self, id: &str, ty: TypeId) {
         todo!()
     }
 
-    pub fn new_tyvar(&mut self) -> TypeValue {
-        let tyvar = TypeValue::Var(self.ty_vars);
-        self.ty_vars += 1;
-        tyvar
+    pub fn new_tyvar(&mut self) -> TypeId {
+        todo!()
     }
 }
 

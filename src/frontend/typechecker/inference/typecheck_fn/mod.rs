@@ -42,7 +42,8 @@ fn typecheck_let<'a>(
         Err(_) => todo!(), // error recovery here
     };
     ctx.extend(id, typed_expr.ty());
-    TypedStmt::make_let(offset, id, typed_expr)
+    todo!()
+    // TypedStmt::make_let(offset, id, typed_expr)
 }
 
 fn typecheck_read<'a>(
@@ -52,7 +53,10 @@ fn typecheck_read<'a>(
     ctx: &mut Context,
 ) -> TypedStmt<'a> {
     match ty {
-        Type::Int | Type::Float | Type::Bool => ctx.extend(id, ty.clone().into()),
+        Type::Int | Type::Float | Type::Bool => {
+            todo!()
+            // ctx.extend(id, ty.clone().into());
+        }
         _ => todo!(), // error handling - invalid read
     }
 
@@ -67,13 +71,8 @@ fn typecheck_echo<'a>(
 ) -> TypedStmt<'a> {
     match typ {
         Type::Int | Type::Bool | Type::Float => {
-            let typed_expr = match infer(expr, ctx) {
-                Ok(expr) => expr,
-                Err(_) => todo!(), // better error handling
-            };
-            // todo potentially unnecessary - see #28 on gh
-            ctx.unify(typ.into(), typed_expr.ty());
-            TypedStmt::make_echo(offset, typed_expr)
+            todo!()
+            // check::check(expr, typ, ctx)
         }
         _ => todo!(), // error handling - potentially invalid echo? see #27 on gh
     }
@@ -89,6 +88,7 @@ fn typecheck_return<'a>(
         Ok(expr) => expr,
         Err(_) => todo!(), // better error handling
     };
-    ctx.unify(expected_type.into(), typed_expr.ty()); // todo better error handling
-    TypedStmt::make_return(offset, typed_expr)
+    todo!()
+    // ctx.unify(expected_type, typed_expr.ty()); // todo better error handling
+    // TypedStmt::make_return(offset, typed_expr)
 }
