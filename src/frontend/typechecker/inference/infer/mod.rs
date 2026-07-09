@@ -5,7 +5,7 @@ use crate::frontend::{
             check::check,
             context::{Context, InferredExpr, TypeId},
         },
-        types::{TypeError, TypeResult, TypeValue},
+        types::{TypeResult, TypeValue},
     },
 };
 
@@ -41,8 +41,8 @@ pub(super) fn infer<'a>(expr: ParsedExpr<'a>, ctx: &mut Context) -> TypeResult<I
         ExprKind::FLtEq(l, r) => infer_float_cmp(loc, *l, *r, ctx, ExprKind::FLtEq),
         ExprKind::FGt(l, r) => infer_float_cmp(loc, *l, *r, ctx, ExprKind::FGt),
         ExprKind::FGtEq(l, r) => infer_float_cmp(loc, *l, *r, ctx, ExprKind::FGtEq),
-        ExprKind::Eq(l, r) => todo!(),
-        ExprKind::NotEq(l, r) => todo!(),
+        ExprKind::Eq(l, r) => infer_eq(loc, *l, *r, ctx, ExprKind::Eq),
+        ExprKind::NotEq(l, r) => infer_eq(loc, *l, *r, ctx, ExprKind::NotEq),
         ExprKind::Or(l, r) => infer_bool_binop(loc, *l, *r, ctx, ExprKind::Or),
         ExprKind::And(l, r) => infer_bool_binop(loc, *l, *r, ctx, ExprKind::And),
         ExprKind::If(cond, thenb, elseb) => infer_if(loc, *cond, *thenb, *elseb, ctx),
@@ -185,6 +185,25 @@ fn infer_bool_binop<'a>(
     )
 }
 
+fn infer_eq<'a>(
+    offset: usize,
+    left: ParsedExpr<'a>,
+    right: ParsedExpr<'a>,
+    ctx: &mut Context,
+    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+) -> TypeResult<InferredExpr<'a>> {
+    let operand_ty = ctx.new_tyvar();
+    infer_binop(
+        offset,
+        left,
+        right,
+        ctx,
+        expr_kind,
+        operand_ty,
+        ctx.bool_id(),
+    )
+}
+
 fn infer_pipe() {
     todo!()
 }
@@ -196,7 +215,19 @@ fn infer_if<'a>(
     elseb: ParsedExpr<'a>,
     ctx: &mut Context,
 ) -> TypeResult<InferredExpr<'a>> {
-    todo!()
+    let checked_cond = check(cond, ctx.bool_id(), ctx)?;
+    let output_type = ctx.new_tyvar();
+    let checked_thenb = check(thenb, output_type, ctx)?;
+    let checked_elseb = check(elseb, output_type, ctx)?;
+    Ok(InferredExpr::new(
+        offset,
+        output_type,
+        ExprKind::If(
+            Box::new(checked_cond),
+            Box::new(checked_thenb),
+            Box::new(checked_elseb),
+        ),
+    ))
 }
 
 fn infer_match<'a>(
