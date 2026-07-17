@@ -7,12 +7,13 @@ Comments start from a `//` and occur until a newline character.
 
 Russell has the following primitive data:
 ```
-<integer> ::= [0-9]+
-<float>   ::= [0-9]+.[0-9]+
-<bool>    ::= true
-            | false
-<id>      ::= [a-z][a-zA-Z0-9_]*
-<typeId>  ::= [A-Z][A-Za-z]*
+<integer>   ::= [0-9]+
+<float>     ::= [0-9]+.[0-9]+
+<bool>      ::= true
+              | false
+<id>        ::= [a-z][a-zA-Z0-9_]*
+<typeId>    ::= [A-Z][A-Za-z]*
+<typeParam> ::= '[a-z][a-z]*
 ```
 
 Russell has the following keywords:
@@ -74,7 +75,7 @@ A Russell program is a list of definitions, and obeys the following grammar.
 ```
 <program> ::= <defn>, ...
 
-<defn> ::= typedef <typeId> (<typeId>, ... )? { <id> ( <binding> , ... ) , ... }
+<defn> ::= typedef <typeId> (<typeParam>, ... )? { <id> ( <binding> , ... ) , ... }
          | fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
 
 <stmnt> ::= let <id> = <expr>;
@@ -88,6 +89,7 @@ A Russell program is a list of definitions, and obeys the following grammar.
          | <id>
          | fn ( <binding> ) -> <expr>
          | - <expr>
+         | -. <expr>
          | ! <expr>
          | <expr>(<expr>)
          | <expr> + <expr>
@@ -115,6 +117,7 @@ A Russell program is a list of definitions, and obeys the following grammar.
          | Float
          | Bool
          | <typeId>
+         | <typeParam>
          | <type> -> <type>
          | ( <type> )
 
