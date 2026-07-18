@@ -34,6 +34,22 @@ fn typeid() {
 }
 
 #[test]
+fn typeparam() {
+    assert_eq!(parse("'abc"), Type::TypeParam("'abc".into()));
+}
+
+#[test]
+fn fn_type_with_typeparams() {
+    assert_eq!(
+        parse("'a -> 'b"),
+        Type::Fn(
+            Box::new(Type::TypeParam("'a".into())),
+            Box::new(Type::TypeParam("'b".into()))
+        )
+    );
+}
+
+#[test]
 fn fn_type_simple() {
     assert_eq!(
         parse("Int -> Float"),
@@ -180,6 +196,16 @@ fn binding_with_typeid() {
     assert_eq!(
         b,
         ParsedBinding::new(0, "x".into(), Type::TypeId("MyType".into()))
+    );
+}
+
+#[test]
+fn binding_with_typeparam() {
+    let mut p = parser_from("x : 'a");
+    let b = super::parse_binding(&mut p).unwrap();
+    assert_eq!(
+        b,
+        ParsedBinding::new(0, "x".into(), Type::TypeParam("'a".into()))
     );
 }
 

@@ -287,17 +287,17 @@ fn typedef_option_pattern() {
 }
 
 #[test]
-fn typedef_option_tycon() {
+fn typedef_option_type_params() {
     assert_eq!(
-        parse("typedef Option(A) { some(x: A), none() }"),
+        parse("typedef Option('a) { some(x: 'a), none() }"),
         ParsedDefn::make_typedef(
             0,
             "Option".into(),
-            vec!["A"],
+            vec!["'a"],
             vec![
                 (
                     "some".into(),
-                    vec![ParsedBinding::new(25, "x".into(), Type::TypeId("A"))]
+                    vec![ParsedBinding::new(26, "x".into(), Type::TypeParam("'a".into()))]
                 ),
                 ("none".into(), vec![]),
             ]
@@ -306,21 +306,21 @@ fn typedef_option_tycon() {
 }
 
 #[test]
-fn typedef_result_tycon() {
+fn typedef_result_type_params() {
     assert_eq!(
-        parse("typedef Result(Ok, Err) { ok(good: Ok), err(bad: Err) }"),
+        parse("typedef Result('ok, 'err) { ok(good: 'ok), err(bad: 'err) }"),
         ParsedDefn::make_typedef(
             0,
             "Result".into(),
-            vec!["Ok", "Err"],
+            vec!["'ok", "'err"],
             vec![
                 (
                     "ok".into(),
-                    vec![ParsedBinding::new(29, "good".into(), Type::TypeId("Ok"))]
+                    vec![ParsedBinding::new(31, "good".into(), Type::TypeParam("'ok".into()))]
                 ),
                 (
                     "err".into(),
-                    vec![ParsedBinding::new(44, "bad".into(), Type::TypeId("Err"))]
+                    vec![ParsedBinding::new(47, "bad".into(), Type::TypeParam("'err".into()))]
                 )
             ]
         )
