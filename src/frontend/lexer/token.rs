@@ -27,6 +27,7 @@ pub enum Token<'a> {
     FloatType,
     BoolType,
     TypeId(&'a str),
+    TypeParam(&'a str),
 
     // punctuation
     LParen,
@@ -94,6 +95,7 @@ pub enum TokenKind {
     FloatType,
     BoolType,
     TypeId,
+    TypeParam,
 
     // punctuation
     LParen,
@@ -182,6 +184,7 @@ impl Token<'_> {
             Token::FloatType => TokenKind::FloatType,
             Token::BoolType => TokenKind::BoolType,
             Token::TypeId(_) => TokenKind::TypeId,
+            Token::TypeParam(_) => TokenKind::TypeParam,
             Token::LParen => TokenKind::LParen,
             Token::RParen => TokenKind::RParen,
             Token::Comma => TokenKind::Comma,
