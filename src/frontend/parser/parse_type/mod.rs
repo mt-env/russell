@@ -13,12 +13,14 @@ pub fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
         TokenKind::FloatType,
         TokenKind::BoolType,
         TokenKind::TypeId,
+        TokenKind::TypeParam,
         TokenKind::LParen,
     ])? {
         Token::IntType => Type::Int,
         Token::FloatType => Type::Float,
         Token::BoolType => Type::Bool,
         Token::TypeId(id) => Type::TypeId(id),
+        Token::TypeParam(id) => Type::TypeParam(id),
         Token::LParen => {
             let typ = parse_type(parser)?;
             parser.expect(TokenKind::RParen)?;

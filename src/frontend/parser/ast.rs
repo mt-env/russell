@@ -277,6 +277,7 @@ pub enum Type<'a> {
     Float,
     Bool,
     TypeId(&'a str),
+    TypeParam(&'a str),
     Fn(Box<Type<'a>>, Box<Type<'a>>),
 }
 
@@ -287,6 +288,7 @@ impl Display for Type<'_> {
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::TypeId(id) => write!(f, "{id}"),
+            Type::TypeParam(id) => write!(f, "{id}"),
             Type::Fn(arg_type, ret_type) => write!(f, "({arg_type} -> {ret_type})"),
         }
     }

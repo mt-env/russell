@@ -87,6 +87,13 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn expect_typeparam(&mut self) -> ParseResult<'a, &'a str> {
+        match self.take_if(TokenKind::TypeParam) {
+            Some(Token::TypeParam(name)) => Ok(name),
+            _ => ParseError::new(TokenKind::TypeParam, self.peek()),
+        }
+    }
+
     fn take_if(&mut self, kind: TokenKind) -> Option<Token<'a>> {
         self.tokens.next_if(|t| t.kind() == kind).map(|t| t.node)
     }
