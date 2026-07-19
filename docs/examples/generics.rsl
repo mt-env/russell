@@ -1,20 +1,20 @@
 // type names that are not bound by a `typedef` are treated as
 // generic type variables, automatically quantified per definition
 
-fn id(x: A) -> A {
+fn id(x: 'a) -> 'a {
     return x;
 }
 
-fn const(x: A, y: B) -> A {
+fn const(x: 'a, y: 'b) -> 'a {
     return x;
 }
 
 // generics work with higher-order types too
-fn apply(f: A -> B, x: A) -> B {
+fn apply(f: 'a -> 'b, x: 'a) -> 'b {
     return f(x);
 }
 
-fn twice(f: A -> A, x: A) -> A {
+fn twice(f: 'a -> 'a, x: 'a) -> 'a {
     return f(f(x));
 }
 
@@ -33,11 +33,6 @@ fn main() -> Int {
     // higher-order generic use
     echo Int apply(inc, 10);
     echo Int twice(inc, 10);
-
-    // let-bound polymorphism: `f` remains generic and can be used at two types
-    let f = id;
-    echo Int f(7);
-    echo Bool f(false);
 
     return 0;
 }
