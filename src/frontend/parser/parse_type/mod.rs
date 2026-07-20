@@ -19,7 +19,21 @@ pub fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
         Token::IntType => Type::Int,
         Token::FloatType => Type::Float,
         Token::BoolType => Type::Bool,
-        Token::TypeId(id) => Type::TypeId(id),
+        Token::TypeId(id) => {
+            if parser.peek().kind() == TokenKind::LParen {
+                parser.advance();
+                let mut type_args = Vec::new();
+                type_args.push(parse_type(parser)?);
+                while parser.peek().kind() == TokenKind::Comma {
+                    parser.advance();
+                    type_args.push(parse_type(parser)?);
+                }
+                parser.expect(TokenKind::RParen)?;
+                Type::TypeApp(id, type_args)
+            } else {
+                Type::TypeId(id)
+            }
+        }
         Token::TypeParam(id) => Type::TypeParam(id),
         Token::LParen => {
             let typ = parse_type(parser)?;

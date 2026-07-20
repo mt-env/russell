@@ -34,6 +34,42 @@ fn typeid() {
 }
 
 #[test]
+fn typeapp_error_no_args() {
+    let mut p = parser_from("MyType()");
+    assert!(super::parse_type(&mut p).is_err());
+}
+
+#[test]
+fn typeapp_single_arg() {
+    assert_eq!(
+        parse("List(Int)"),
+        Type::TypeApp("List".into(), vec![Type::Int])
+    );
+}
+
+#[test]
+fn typeapp_multiple_args() {
+    assert_eq!(
+        parse("Result(Int, Bool)"),
+        Type::TypeApp("Result".into(), vec![Type::Int, Type::Bool])
+    );
+}
+
+#[test]
+fn typeapp_nested_args() {
+    assert_eq!(
+        parse("Map(Int, List(Bool))"),
+        Type::TypeApp(
+            "Map".into(),
+            vec![
+                Type::Int,
+                Type::TypeApp("List".into(), vec![Type::Bool]),
+            ]
+        )
+    );
+}
+
+#[test]
 fn typeparam() {
     assert_eq!(parse("'abc"), Type::TypeParam("'abc".into()));
 }
@@ -93,6 +129,20 @@ fn fn_type_with_typeid() {
 }
 
 #[test]
+fn fn_type_with_typeapp() {
+    assert_eq!(
+        parse("List(Int) -> Result(Int, Bool)"),
+        Type::Fn(
+            Box::new(Type::TypeApp("List".into(), vec![Type::Int])),
+            Box::new(Type::TypeApp(
+                "Result".into(),
+                vec![Type::Int, Type::Bool]
+            )),
+        )
+    );
+}
+
+#[test]
 fn parenthesized_type() {
     assert_eq!(parse("(Int)"), Type::Int);
 }
@@ -131,6 +181,18 @@ fn nested_parentheses() {
 #[test]
 fn parenthesized_type_error_missing_rparen() {
     let mut p = parser_from("(Int -> Bool");
+    assert!(super::parse_type(&mut p).is_err());
+}
+
+#[test]
+fn typeapp_error_missing_rparen() {
+    let mut p = parser_from("List(Int");
+    assert!(super::parse_type(&mut p).is_err());
+}
+
+#[test]
+fn typeapp_error_trailing_comma() {
+    let mut p = parser_from("Result(Int,)");
     assert!(super::parse_type(&mut p).is_err());
 }
 
@@ -197,6 +259,22 @@ fn binding_with_typeid() {
         b,
         ParsedBinding::new(0, "x".into(), Type::TypeId("MyType".into()))
     );
+}
+
+#[test]
+fn binding_with_typeapp() {
+    let mut p = parser_from("xs : List(Int)");
+    let b = super::parse_binding(&mut p).unwrap();
+    assert_eq!(
+        b,
+        ParsedBinding::new(0, "xs".into(), Type::TypeApp("List".into(), vec![Type::Int]))
+    );
+}
+
+#[test]
+fn binding_error_typeapp_no_args() {
+    let mut p = parser_from("xs : List()");
+    assert!(super::parse_binding(&mut p).is_err());
 }
 
 #[test]
