@@ -44,6 +44,19 @@ fn parse_single_typedef() {
 }
 
 #[test]
+fn parse_single_generic_typedef() {
+    let defns = super::parse(lex("typedef Option('a) { some(x: 'a), none() }"));
+    assert_eq!(defns.len(), 1);
+    assert!(matches!(
+        &defns[0].node,
+        Defn::Typedef { id, ty_vars, arms }
+        if *id == "Option"
+            && ty_vars == &vec!["'a"]
+            && arms.len() == 2
+    ));
+}
+
+#[test]
 fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
     let defns = super::parse(lex(src));
@@ -248,6 +261,18 @@ fn expect_typeid_builtin() {
 fn expect_typeid_failure_on_id() {
     let mut p = parser_from("foo");
     assert!(p.expect_typeid().is_err());
+}
+
+#[test]
+fn expect_typeparam_success() {
+    let mut p = parser_from("'a");
+    assert_eq!(p.expect_typeparam().unwrap(), "'a");
+}
+
+#[test]
+fn expect_typeparam_failure_on_typeid() {
+    let mut p = parser_from("MyType");
+    assert!(p.expect_typeparam().is_err());
 }
 
 // ─── expect_many ────────────────────────────────────────────────────
