@@ -1,9 +1,13 @@
 pub struct TypeId(usize);
-pub struct TypeParam(usize);
+pub struct TypeParamId(usize);
 pub struct ValueId(usize);
 
 pub enum ResolvedDefn {
-    Typedef {},
+    Typedef {
+        id: TypeId,
+        params: Vec<TypeParamId>,
+        arms: Vec<(ValueId, Vec<ResolvedBinding>)>,
+    },
 
     Fn {
         id: ValueId,
@@ -66,7 +70,7 @@ pub enum ResolvedType {
     Bool,
 
     TypeId(TypeId),
-    TypeParam(TypeParam),
+    TypeParam(TypeParamId),
 
     Fn(Box<ResolvedType>, Box<ResolvedType>),
 }
