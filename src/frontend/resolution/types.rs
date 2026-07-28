@@ -1,6 +1,14 @@
+use std::collections::HashMap;
+
 pub struct TypeId(usize);
 pub struct TypeParamId(usize);
 pub struct ValueId(usize);
+
+pub enum Identifier {
+    TypeId(TypeId),
+    TypeParamId(TypeParamId),
+    ValueId(ValueId),
+}
 
 pub enum ResolvedDefn {
     Typedef {
@@ -11,6 +19,7 @@ pub enum ResolvedDefn {
 
     Fn {
         id: ValueId,
+        params: Vec<ResolvedBinding>,
         ret_ty: ResolvedType,
         body: Vec<ResolvedStmt>,
     },
@@ -61,7 +70,7 @@ pub enum ResolvedExpr {
     And(Box<ResolvedExpr>, Box<ResolvedExpr>),
 
     If(Box<ResolvedExpr>, Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Match(Box<ResolvedExpr>, Vec<(ResolvedExpr, ResolvedExpr)>),
+    Match(Box<ResolvedExpr>, Vec<ResolvedMatchArm>),
 }
 
 pub enum ResolvedType {
@@ -71,6 +80,7 @@ pub enum ResolvedType {
 
     TypeId(TypeId),
     TypeParam(TypeParamId),
+    TypeApp(TypeId, Vec<ResolvedType>),
 
     Fn(Box<ResolvedType>, Box<ResolvedType>),
 }
@@ -84,4 +94,45 @@ pub struct ResolvedMatchArm {
     id: ValueId,
     bindings: Vec<ValueId>,
     expr: ResolvedExpr,
+}
+
+pub struct ResolverCtx<'a> {
+    num_typeids: usize,
+    num_typeparamids: usize,
+    num_valueids: usize,
+
+    env: Vec<Env<'a>>,
+}
+
+pub struct Env<'a> {
+    values: HashMap<&'a str, Identifier>,
+}
+
+impl<'a> ResolverCtx<'a> {
+    pub fn new() -> Self {
+        Self {
+            num_typeids: 0,
+            num_typeparamids: 0,
+            num_valueids: 0,
+            env: Vec::new(),
+        }
+    }
+
+    pub fn next_typeid(&mut self) -> TypeId {
+        let id = TypeId(self.num_typeids);
+        self.num_typeids += 1;
+        id
+    }
+
+    pub fn next_typeparamid(&mut self) -> TypeParamId {
+        let id = TypeParamId(self.num_typeparamids);
+        self.num_typeparamids += 1;
+        id
+    }
+
+    pub fn next_valueid(&mut self) -> ValueId {
+        let id = ValueId(self.num_valueids);
+        self.num_valueids += 1;
+        id
+    }
 }
