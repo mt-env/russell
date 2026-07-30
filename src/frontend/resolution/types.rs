@@ -102,6 +102,12 @@ pub struct ResolvedMatchArm {
     expr: ResolvedExpr,
 }
 
+impl ResolvedMatchArm {
+    pub fn new(id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExpr) -> Self {
+        Self { id, bindings, expr }
+    }
+}
+
 pub struct ResolverCtx<'a> {
     num_typeids: usize,
     num_typeparamids: usize,
@@ -146,7 +152,12 @@ impl<'a> ResolverCtx<'a> {
     pub(crate) fn add_value(&mut self, name: &'a str) -> ValueId {
         let id = self.next_valueid();
         self.ids.insert(Identifier::ValueId(id), name);
-        // TODO - add it to the environment
+        // insert into the current scope so lookups find newly-declared names
+        if let Some(env) = self.env.last_mut() {
+            env.values.insert(name, Identifier::ValueId(id));
+        } else {
+            panic!("No current scope to add value to");
+        }
         id
     }
 

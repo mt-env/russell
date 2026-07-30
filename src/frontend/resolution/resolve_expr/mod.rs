@@ -1,8 +1,8 @@
 use crate::frontend::{
-    parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
+    parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm},
     resolution::{
         resolve_type,
-        types::{Identifier, ResolvedExpr, ResolverCtx},
+        types::{Identifier, ResolvedExpr, ResolvedMatchArm, ResolverCtx},
     },
 };
 
@@ -39,7 +39,7 @@ pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> Reso
         ExprKind::Or(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::Or),
         ExprKind::And(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::And),
         ExprKind::If(cond, if_b, then_b) => resolve_if(ctx, *cond, *if_b, *then_b),
-        ExprKind::Match(expr, arms) => todo!(),
+        ExprKind::Match(expr, arms) => resolve_match(ctx, *expr, arms),
     }
 }
 
@@ -108,4 +108,45 @@ fn resolve_if<'a>(
     let if_b = resolve_expr(ctx, if_b);
     let then_b = resolve_expr(ctx, then_b);
     ResolvedExpr::If(Box::new(cond), Box::new(if_b), Box::new(then_b))
+}
+
+fn resolve_match<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    expr: ParsedExpr<'a>,
+    arms: Vec<ParsedMatchArm<'a>>,
+) -> ResolvedExpr {
+    let expr = resolve_expr(ctx, expr);
+    let mut resolved_arms = Vec::new();
+
+    for arm in arms {
+        let arm = arm.node;
+
+        // find the variant
+        let Some(variant) = ctx.lookup(arm.id) else {
+            // TODO - same as above - don't panic, allow for error recovery
+            panic!("Unbound variant: {}", arm.id);
+        };
+        let Identifier::ValueId(variant) = variant else {
+            // TODO - same as above - don't panic, allow for error recovery
+            panic!(
+                "Expected a variant for '{}', but found a type identifier",
+                arm.id
+            );
+        };
+
+        // bind the pattern variables in a new scope and resolve the body
+        ctx.push_scope();
+        let binding_ids = Vec::new();
+        for binding in arm.bindings {
+            ctx.add_value(binding);
+        }
+        let resolved_body = resolve_expr(ctx, arm.expr);
+        ctx.pop_scope();
+
+        let resolved_arm = ResolvedMatchArm::new(variant, binding_ids, resolved_body);
+
+        resolved_arms.push(resolved_arm);
+    }
+
+    ResolvedExpr::Match(Box::new(expr), resolved_arms)
 }
