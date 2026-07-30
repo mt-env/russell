@@ -2,7 +2,7 @@ use crate::frontend::{
     parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
     resolution::{
         resolve_type,
-        types::{ResolvedExpr, ResolverCtx},
+        types::{Identifier, ResolvedExpr, ResolverCtx, ValueId},
     },
 };
 
@@ -11,7 +11,7 @@ pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> Reso
         ExprKind::Int(val) => ResolvedExpr::Int(val),
         ExprKind::Float(val) => ResolvedExpr::Float(val),
         ExprKind::Bool(val) => ResolvedExpr::Bool(val),
-        ExprKind::Id(name) => todo!(),
+        ExprKind::Id(name) => resolve_id(ctx, name),
         ExprKind::Fn(param, body) => resolve_closure(ctx, param, *body),
         ExprKind::Neg(inner) => ResolvedExpr::Neg(Box::new(resolve_expr(ctx, *inner))),
         ExprKind::FNeg(inner) => ResolvedExpr::FNeg(Box::new(resolve_expr(ctx, *inner))),
@@ -43,7 +43,25 @@ pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> Reso
     }
 }
 
-pub fn resolve_closure<'a>(
+fn resolve_id<'a>(ctx: &ResolverCtx<'a>, name: &'a str) -> ResolvedExpr {
+    let Some(value_id) = ctx.lookup(name) else {
+        // TODO - instead of panicking, keep a list of errors in ctx and return a special "error"
+        // expression that can be used to continue resolving the rest of the program
+        panic!("Unbound variable: {}", name);
+    };
+
+    let Identifier::ValueId(value_id) = value_id else {
+        // TODO - same as above - don't panic, allow for error recovery
+        panic!(
+            "Expected a value identifier for '{}', but found a type identifier",
+            name
+        );
+    };
+
+    ResolvedExpr::Id(value_id)
+}
+
+fn resolve_closure<'a>(
     ctx: &mut ResolverCtx<'a>,
     param: ParsedBinding<'a>,
     body: ParsedExpr<'a>,
@@ -56,7 +74,7 @@ pub fn resolve_closure<'a>(
     ResolvedExpr::Fn(binding, Box::new(body))
 }
 
-pub fn resolve_binop<'a>(
+fn resolve_binop<'a>(
     ctx: &mut ResolverCtx<'a>,
     l: ParsedExpr<'a>,
     r: ParsedExpr<'a>,
