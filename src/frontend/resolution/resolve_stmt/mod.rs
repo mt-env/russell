@@ -16,7 +16,7 @@ pub fn resolve_stmt<'a>(ctx: &mut ResolverCtx<'a>, stmt: ParsedStmt<'a>) -> Reso
     }
 }
 
-fn resolve_let<'a>(ctx: &mut ResolverCtx<'a>, id: &'a str, expr: ParsedExpr) -> ResolvedStmt {
+fn resolve_let<'a>(ctx: &mut ResolverCtx<'a>, id: &'a str, expr: ParsedExpr<'a>) -> ResolvedStmt {
     let value_id = ctx.add_value(id);
     ResolvedStmt::Let(value_id, resolve_expr::resolve_expr(ctx, expr))
 }
@@ -26,13 +26,13 @@ fn resolve_read<'a>(ctx: &mut ResolverCtx<'a>, ty: Type, id: &'a str) -> Resolve
     ResolvedStmt::Read(value_id, resolve_type::resolve_type(ctx, ty))
 }
 
-fn resolve_echo(ctx: &mut ResolverCtx, ty: Type, expr: ParsedExpr) -> ResolvedStmt {
+fn resolve_echo<'a>(ctx: &mut ResolverCtx<'a>, ty: Type, expr: ParsedExpr<'a>) -> ResolvedStmt {
     ResolvedStmt::Echo(
         resolve_type::resolve_type(ctx, ty),
         resolve_expr::resolve_expr(ctx, expr),
     )
 }
 
-fn resolve_return(ctx: &mut ResolverCtx, expr: ParsedExpr) -> ResolvedStmt {
+fn resolve_return<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> ResolvedStmt {
     ResolvedStmt::Return(resolve_expr::resolve_expr(ctx, expr))
 }

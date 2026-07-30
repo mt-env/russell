@@ -1,15 +1,18 @@
 use crate::frontend::{
-    parser::ast::{ExprKind, ParsedExpr},
-    resolution::types::{ResolvedExpr, ResolverCtx},
+    parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
+    resolution::{
+        resolve_type,
+        types::{ResolvedExpr, ResolverCtx},
+    },
 };
 
-pub fn resolve_expr(ctx: &mut ResolverCtx, expr: ParsedExpr) -> ResolvedExpr {
+pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> ResolvedExpr {
     match expr.node.kind {
         ExprKind::Int(val) => ResolvedExpr::Int(val),
         ExprKind::Float(val) => ResolvedExpr::Float(val),
         ExprKind::Bool(val) => ResolvedExpr::Bool(val),
         ExprKind::Id(name) => todo!(),
-        ExprKind::Fn(param, body) => todo!(),
+        ExprKind::Fn(param, body) => resolve_closure(ctx, param, *body),
         ExprKind::Neg(inner) => ResolvedExpr::Neg(Box::new(resolve_expr(ctx, *inner))),
         ExprKind::FNeg(inner) => ResolvedExpr::FNeg(Box::new(resolve_expr(ctx, *inner))),
         ExprKind::Bang(inner) => ResolvedExpr::Bang(Box::new(resolve_expr(ctx, *inner))),
@@ -40,10 +43,23 @@ pub fn resolve_expr(ctx: &mut ResolverCtx, expr: ParsedExpr) -> ResolvedExpr {
     }
 }
 
-pub fn resolve_binop(
-    ctx: &mut ResolverCtx,
-    l: ParsedExpr,
-    r: ParsedExpr,
+pub fn resolve_closure<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    param: ParsedBinding<'a>,
+    body: ParsedExpr<'a>,
+) -> ResolvedExpr {
+    ctx.push_scope();
+    ctx.add_value(param.node.id);
+    let binding = resolve_type::resolve_binding(ctx, param);
+    let body = resolve_expr(ctx, body);
+    ctx.pop_scope();
+    ResolvedExpr::Fn(binding, Box::new(body))
+}
+
+pub fn resolve_binop<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    l: ParsedExpr<'a>,
+    r: ParsedExpr<'a>,
     make: impl FnOnce(Box<ResolvedExpr>, Box<ResolvedExpr>) -> ResolvedExpr,
 ) -> ResolvedExpr {
     let l = resolve_expr(ctx, l);
