@@ -17,8 +17,9 @@ pub fn resolve_stmt<'a>(ctx: &mut ResolverCtx<'a>, stmt: ParsedStmt<'a>) -> Reso
 }
 
 fn resolve_let<'a>(ctx: &mut ResolverCtx<'a>, id: &'a str, expr: ParsedExpr<'a>) -> ResolvedStmt {
+    let resolved_expr = resolve_expr::resolve_expr(ctx, expr);
     let value_id = ctx.add_value(id);
-    ResolvedStmt::Let(value_id, resolve_expr::resolve_expr(ctx, expr))
+    ResolvedStmt::Let(value_id, resolved_expr)
 }
 
 fn resolve_read<'a>(ctx: &mut ResolverCtx<'a>, ty: Type, id: &'a str) -> ResolvedStmt {
