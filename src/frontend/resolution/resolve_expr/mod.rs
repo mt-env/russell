@@ -38,7 +38,7 @@ pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> Reso
         ExprKind::NotEq(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::NotEq),
         ExprKind::Or(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::Or),
         ExprKind::And(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::And),
-        ExprKind::If(cond, if_b, then_b) => todo!(),
+        ExprKind::If(cond, if_b, then_b) => resolve_if(ctx, *cond, *if_b, *then_b),
         ExprKind::Match(expr, arms) => todo!(),
     }
 }
@@ -83,4 +83,16 @@ fn resolve_binop<'a>(
     let l = resolve_expr(ctx, l);
     let r = resolve_expr(ctx, r);
     make(Box::new(l), Box::new(r))
+}
+
+fn resolve_if<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    cond: ParsedExpr<'a>,
+    if_b: ParsedExpr<'a>,
+    then_b: ParsedExpr<'a>,
+) -> ResolvedExpr {
+    let cond = resolve_expr(ctx, cond);
+    let if_b = resolve_expr(ctx, if_b);
+    let then_b = resolve_expr(ctx, then_b);
+    ResolvedExpr::If(Box::new(cond), Box::new(if_b), Box::new(then_b))
 }
