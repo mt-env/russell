@@ -51,7 +51,7 @@ pub enum ResolvedExpr {
     FNeg(Box<ResolvedExpr>),
     Bang(Box<ResolvedExpr>),
 
-    Call(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Call(Box<ResolvedExpr>, Vec<ResolvedExpr>),
 
     Plus(Box<ResolvedExpr>, Box<ResolvedExpr>),
     Minus(Box<ResolvedExpr>, Box<ResolvedExpr>),

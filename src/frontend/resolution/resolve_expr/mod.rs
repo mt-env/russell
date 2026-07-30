@@ -2,7 +2,7 @@ use crate::frontend::{
     parser::ast::{ExprKind, ParsedBinding, ParsedExpr},
     resolution::{
         resolve_type,
-        types::{Identifier, ResolvedExpr, ResolverCtx, ValueId},
+        types::{Identifier, ResolvedExpr, ResolverCtx},
     },
 };
 
@@ -16,7 +16,7 @@ pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> Reso
         ExprKind::Neg(inner) => ResolvedExpr::Neg(Box::new(resolve_expr(ctx, *inner))),
         ExprKind::FNeg(inner) => ResolvedExpr::FNeg(Box::new(resolve_expr(ctx, *inner))),
         ExprKind::Bang(inner) => ResolvedExpr::Bang(Box::new(resolve_expr(ctx, *inner))),
-        ExprKind::Call(func, args) => todo!(),
+        ExprKind::Call(func, args) => resolve_call(ctx, *func, args),
         ExprKind::Plus(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::Plus),
         ExprKind::Minus(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::Minus),
         ExprKind::Mult(left, right) => resolve_binop(ctx, *left, *right, ResolvedExpr::Mult),
@@ -72,6 +72,19 @@ fn resolve_closure<'a>(
     let body = resolve_expr(ctx, body);
     ctx.pop_scope();
     ResolvedExpr::Fn(binding, Box::new(body))
+}
+
+fn resolve_call<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    func: ParsedExpr<'a>,
+    args: Vec<ParsedExpr<'a>>,
+) -> ResolvedExpr {
+    let func = resolve_expr(ctx, func);
+    let args = args
+        .into_iter()
+        .map(|arg| resolve_expr(ctx, arg))
+        .collect::<Vec<_>>();
+    ResolvedExpr::Call(Box::new(func), args)
 }
 
 fn resolve_binop<'a>(
