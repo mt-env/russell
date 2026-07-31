@@ -1,8 +1,67 @@
 use crate::frontend::{
-    parser::ast::ParsedDefn,
-    resolution::types::{ResolvedDefn, ResolverCtx},
+    parser::ast::{Defn, ParsedBinding, ParsedDefn, ParsedStmt, Type},
+    resolution::{
+        resolve_stmt, resolve_type,
+        types::{ResolvedDefn, ResolverCtx},
+    },
 };
 
-pub fn resolve_defn(ctx: &mut ResolverCtx, defn: ParsedDefn) -> ResolvedDefn {
+pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefn {
+    match defn.node {
+        Defn::Typedef { id, ty_vars, arms } => resolve_typedef(ctx, id, ty_vars, arms),
+        Defn::Fn {
+            name,
+            bindings,
+            ret_ty,
+            body,
+        } => resolve_fn(ctx, name, bindings, ret_ty, body),
+    }
+}
+
+fn resolve_typedef<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    id: &'a str,
+    ty_vars: Vec<&'a str>,
+    arms: Vec<(&'a str, Vec<ParsedBinding<'a>>)>,
+) -> ResolvedDefn {
     todo!()
+}
+
+fn resolve_fn<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    name: &'a str,
+    bindings: Vec<ParsedBinding<'a>>,
+    ret_ty: Type<'a>,
+    body: Vec<ParsedStmt<'a>>,
+) -> ResolvedDefn {
+    ctx.push_scope();
+
+    // find function name ID and return type
+    let Some(fn_id) = ctx.lookup_value(name) else {
+        panic!("Function {} not found in scope", name);
+    };
+
+    let ret_ty_id = resolve_type::resolve_type(ctx, ret_ty);
+
+    // add all bindings to scope
+    let mut resolved_bindings = Vec::new();
+    for param in bindings {
+        ctx.add_value(param.node.id);
+        resolved_bindings.push(resolve_type::resolve_binding(ctx, param));
+    }
+
+    // resolve function body
+    let mut resolved_body = Vec::new();
+    for stmt in body {
+        resolved_body.push(resolve_stmt::resolve_stmt(ctx, stmt));
+    }
+
+    ctx.pop_scope();
+
+    ResolvedDefn::Fn {
+        id: fn_id,
+        params: resolved_bindings,
+        ret_ty: ret_ty_id,
+        body: resolved_body,
+    }
 }
