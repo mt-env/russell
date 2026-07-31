@@ -131,25 +131,25 @@ impl<'a> ResolverCtx<'a> {
         }
     }
 
-    pub(crate) fn next_typeid(&mut self) -> TypeId {
+    pub(super) fn next_typeid(&mut self) -> TypeId {
         let id = TypeId(self.num_typeids);
         self.num_typeids += 1;
         id
     }
 
-    pub(crate) fn next_typeparamid(&mut self) -> TypeParamId {
+    pub(super) fn next_typeparamid(&mut self) -> TypeParamId {
         let id = TypeParamId(self.num_typeparamids);
         self.num_typeparamids += 1;
         id
     }
 
-    pub(crate) fn next_valueid(&mut self) -> ValueId {
+    pub(super) fn next_valueid(&mut self) -> ValueId {
         let id = ValueId(self.num_valueids);
         self.num_valueids += 1;
         id
     }
 
-    pub(crate) fn add_value(&mut self, name: &'a str) -> ValueId {
+    pub(super) fn add_value(&mut self, name: &'a str) -> ValueId {
         let id = self.next_valueid();
         self.ids.insert(Identifier::ValueId(id), name);
         // insert into the current scope so lookups find newly-declared names
@@ -161,15 +161,37 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(crate) fn push_scope(&mut self) {
+    pub(super) fn add_type(&mut self, name: &'a str) -> TypeId {
+        let id = self.next_typeid();
+        self.ids.insert(Identifier::TypeId(id), name);
+        if let Some(env) = self.env.last_mut() {
+            env.values.insert(name, Identifier::TypeId(id));
+        } else {
+            panic!("No current scope to add type to");
+        }
+        id
+    }
+
+    pub(super) fn add_typeparam(&mut self, name: &'a str) -> TypeParamId {
+        let id = self.next_typeparamid();
+        self.ids.insert(Identifier::TypeParamId(id), name);
+        if let Some(env) = self.env.last_mut() {
+            env.values.insert(name, Identifier::TypeParamId(id));
+        } else {
+            panic!("No current scope to add type parameter to");
+        }
+        id
+    }
+
+    pub(super) fn push_scope(&mut self) {
         self.env.push(Env::new());
     }
 
-    pub(crate) fn pop_scope(&mut self) {
+    pub(super) fn pop_scope(&mut self) {
         self.env.pop();
     }
 
-    pub(crate) fn lookup(&self, name: &str) -> Option<Identifier> {
+    pub(super) fn lookup(&self, name: &str) -> Option<Identifier> {
         for env in self.env.iter().rev() {
             if let Some(id) = env.values.get(name) {
                 return Some(*id);
@@ -178,7 +200,7 @@ impl<'a> ResolverCtx<'a> {
         None
     }
 
-    pub(crate) fn lookup_value(&self, name: &str) -> Option<ValueId> {
+    pub(super) fn lookup_value(&self, name: &str) -> Option<ValueId> {
         match self.lookup(name) {
             Some(Identifier::ValueId(id)) => Some(id),
             _ => None,
