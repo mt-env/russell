@@ -85,7 +85,6 @@ fn resolve_fn<'a>(
     // add all bindings to scope
     let mut resolved_bindings = Vec::new();
     for param in bindings {
-        ctx.add_value(param.node.id);
         resolved_bindings.push(resolve_type::resolve_binding(ctx, param));
     }
 

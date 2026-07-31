@@ -22,6 +22,8 @@ fn resolve_typeid(ctx: &ResolverCtx, name: &str) -> TypeId {
     }
 }
 
+// this adds in a type param if it doesn't exist
+// TODO is that a bad choice?
 fn resolve_typeparam<'a>(ctx: &mut ResolverCtx<'a>, name: &'a str) -> TypeParamId {
     match ctx.lookup_typeparam(name) {
         Some(val) => val,
@@ -48,9 +50,12 @@ fn resolve_fn<'a>(ctx: &mut ResolverCtx<'a>, domain: Type<'a>, codomain: Type<'a
     ResolvedType::Fn(Box::new(domain), Box::new(codomain))
 }
 
+// resolves a binding, adds the value to the context, and returns a ResolvedBinding
 pub fn resolve_binding<'a>(
     ctx: &mut ResolverCtx<'a>,
     binding: ParsedBinding<'a>,
 ) -> ResolvedBinding {
-    todo!()
+    let value_id = ctx.add_value(binding.node.id);
+    let resolved_type = resolve_type(ctx, binding.node.typ);
+    ResolvedBinding::new(value_id, resolved_type)
 }
