@@ -11,7 +11,7 @@ pub fn resolve_type<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>) -> ResolvedType
         Type::TypeId(name) => resolve_typeid(ctx, name),
         Type::TypeParam(name) => resolve_typeparam(ctx, name),
         Type::TypeApp(_, items) => todo!(),
-        Type::Fn(domain, codomain) => todo!(),
+        Type::Fn(domain, codomain) => resolve_fn(ctx, *domain, *codomain),
     }
 }
 
@@ -27,6 +27,12 @@ fn resolve_typeparam<'a>(ctx: &mut ResolverCtx<'a>, name: &'a str) -> ResolvedTy
         Some(val) => ResolvedType::TypeParam(val),
         None => ResolvedType::TypeParam(ctx.add_typeparam(name)),
     }
+}
+
+fn resolve_fn<'a>(ctx: &mut ResolverCtx<'a>, domain: Type<'a>, codomain: Type<'a>) -> ResolvedType {
+    let domain = resolve_type(ctx, domain);
+    let codomain = resolve_type(ctx, codomain);
+    ResolvedType::Fn(Box::new(domain), Box::new(codomain))
 }
 
 pub fn resolve_binding<'a>(
