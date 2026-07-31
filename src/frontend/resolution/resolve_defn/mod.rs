@@ -24,7 +24,46 @@ fn resolve_typedef<'a>(
     ty_vars: Vec<&'a str>,
     arms: Vec<(&'a str, Vec<ParsedBinding<'a>>)>,
 ) -> ResolvedDefn {
-    todo!()
+    // fetch type ID from global scope (should have been added in init_global_scope)
+    let Some(type_id) = ctx.lookup_type(id) else {
+        panic!("Type {} not found in scope", id);
+    };
+
+    // set up generic tyvars
+    ctx.push_scope();
+
+    let mut resolved_type_params = Vec::new();
+    for ty_var in ty_vars {
+        resolved_type_params.push(ctx.add_typeparam(ty_var));
+    }
+
+    // validate each arm
+    let mut resolved_arms = Vec::new();
+    for arm in arms {
+        let Some(constructor_id) = ctx.lookup_value(arm.0) else {
+            panic!("Constructor {} not found in scope", arm.0);
+        };
+
+        ctx.push_scope();
+        let mut resolved_bindings = Vec::new();
+        for binding in arm.1 {
+            ctx.add_value(binding.node.id);
+            // TODO - potential bug - validate that all generic types only show up from the defined
+            // type parameters?
+            resolved_bindings.push(resolve_type::resolve_binding(ctx, binding));
+        }
+        ctx.pop_scope();
+
+        resolved_arms.push((constructor_id, resolved_bindings));
+    }
+
+    ctx.pop_scope();
+
+    ResolvedDefn::Typedef {
+        id: type_id,
+        params: resolved_type_params,
+        arms: resolved_arms,
+    }
 }
 
 fn resolve_fn<'a>(
