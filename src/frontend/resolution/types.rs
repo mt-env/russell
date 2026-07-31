@@ -177,6 +177,27 @@ impl<'a> ResolverCtx<'a> {
         }
         None
     }
+
+    pub(crate) fn lookup_value(&self, name: &str) -> Option<ValueId> {
+        match self.lookup(name) {
+            Some(Identifier::ValueId(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn lookup_type(&self, name: &str) -> Option<TypeId> {
+        match self.lookup(name) {
+            Some(Identifier::TypeId(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn lookup_typeparam(&self, name: &str) -> Option<TypeParamId> {
+        match self.lookup(name) {
+            Some(Identifier::TypeParamId(id)) => Some(id),
+            _ => None,
+        }
+    }
 }
 
 pub struct Env<'a> {

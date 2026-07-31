@@ -44,20 +44,10 @@ pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> Reso
 }
 
 fn resolve_id<'a>(ctx: &ResolverCtx<'a>, name: &'a str) -> ResolvedExpr {
-    let Some(value_id) = ctx.lookup(name) else {
-        // TODO - instead of panicking, keep a list of errors in ctx and return a special "error"
-        // expression that can be used to continue resolving the rest of the program
-        panic!("Unbound variable: {}", name);
+    let Some(value_id) = ctx.lookup_value(name) else {
+        // TODO - don't panic, allow for error recovery
+        panic!("{}: unbound or not a value", name);
     };
-
-    let Identifier::ValueId(value_id) = value_id else {
-        // TODO - same as above - don't panic, allow for error recovery
-        panic!(
-            "Expected a value identifier for '{}', but found a type identifier",
-            name
-        );
-    };
-
     ResolvedExpr::Id(value_id)
 }
 
@@ -122,16 +112,8 @@ fn resolve_match<'a>(
         let arm = arm.node;
 
         // find the variant
-        let Some(variant) = ctx.lookup(arm.id) else {
-            // TODO - same as above - don't panic, allow for error recovery
-            panic!("Unbound variant: {}", arm.id);
-        };
-        let Identifier::ValueId(variant) = variant else {
-            // TODO - same as above - don't panic, allow for error recovery
-            panic!(
-                "Expected a variant for '{}', but found a type identifier",
-                arm.id
-            );
+        let Some(variant) = ctx.lookup_value(arm.id) else {
+            panic!("cannot find variant {}", arm.id);
         };
 
         // bind the pattern variables in a new scope and resolve the body
