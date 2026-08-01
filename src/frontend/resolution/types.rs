@@ -1,21 +1,22 @@
 use std::collections::HashMap;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TypeId(usize);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TypeParamId(usize);
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ValueId(usize);
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Eq, Hash, PartialEq, Debug)]
 pub enum Identifier {
     TypeId(TypeId),
     TypeParamId(TypeParamId),
     ValueId(ValueId),
 }
 
+#[derive(PartialEq, Debug)]
 pub enum ResolvedDefn {
     Typedef {
         id: TypeId,
@@ -31,6 +32,7 @@ pub enum ResolvedDefn {
     },
 }
 
+#[derive(PartialEq, Debug)]
 pub enum ResolvedStmt {
     Let(ValueId, ResolvedExpr),
     Read(ValueId, ResolvedType),
@@ -38,6 +40,7 @@ pub enum ResolvedStmt {
     Return(ResolvedExpr),
 }
 
+#[derive(PartialEq, Debug)]
 pub enum ResolvedExpr {
     Int(i64),
     Bool(bool),
@@ -79,6 +82,7 @@ pub enum ResolvedExpr {
     Match(Box<ResolvedExpr>, Vec<ResolvedMatchArm>),
 }
 
+#[derive(PartialEq, Debug)]
 pub enum ResolvedType {
     Int,
     Float,
@@ -91,11 +95,19 @@ pub enum ResolvedType {
     Fn(Box<ResolvedType>, Box<ResolvedType>),
 }
 
+#[derive(PartialEq, Debug)]
 pub struct ResolvedBinding {
     id: ValueId,
     typ: ResolvedType,
 }
 
+impl ResolvedBinding {
+    pub fn new(id: ValueId, typ: ResolvedType) -> Self {
+        Self { id, typ }
+    }
+}
+
+#[derive(PartialEq, Debug)]
 pub struct ResolvedMatchArm {
     id: ValueId,
     bindings: Vec<ValueId>,
@@ -120,14 +132,12 @@ pub struct ResolverCtx<'a> {
 
 impl<'a> ResolverCtx<'a> {
     pub(crate) fn new() -> Self {
-        let mut env = Vec::new();
-        env.push(Env::new());
         Self {
             num_typeids: 0,
             num_typeparamids: 0,
             num_valueids: 0,
             ids: HashMap::new(),
-            env,
+            env: vec![Env::new()],
         }
     }
 
@@ -224,6 +234,12 @@ impl<'a> ResolverCtx<'a> {
 
 pub struct Env<'a> {
     values: HashMap<&'a str, Identifier>,
+}
+
+impl<'a> Default for Env<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'a> Env<'a> {
