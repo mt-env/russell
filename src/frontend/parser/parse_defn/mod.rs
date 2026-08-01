@@ -2,13 +2,13 @@ use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::TokenKind;
 use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{ParsedDefn, SpannedBinding};
-use crate::frontend::parser::parse_stmt::parse_stmnt;
+use crate::frontend::parser::parse_stmt::parse_stmt;
 use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
 
 #[cfg(test)]
 mod tests;
 
-pub fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+pub(crate) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     match parser.peek().kind() {
         TokenKind::Fn => parse_fndef(parser),
         TokenKind::Typedef => parse_typedef(parser),
@@ -70,7 +70,7 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 
     let mut statements = Vec::new();
     while parser.peek().kind() != TokenKind::RBrace {
-        match parse_stmnt(parser) {
+        match parse_stmt(parser) {
             Ok(stmnt) => statements.push(stmnt),
             Err(e) => {
                 parser.push_error(e);
