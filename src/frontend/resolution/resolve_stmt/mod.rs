@@ -6,6 +6,9 @@ use crate::frontend::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 pub fn resolve_stmt<'a>(ctx: &mut ResolverCtx<'a>, stmt: ParsedStmt<'a>) -> ResolvedStmt {
     // TODO - retain source location information for error reporting
     match stmt.node {
