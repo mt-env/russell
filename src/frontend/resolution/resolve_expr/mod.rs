@@ -57,7 +57,7 @@ fn resolve_closure<'a>(
     body: ParsedExpr<'a>,
 ) -> ResolvedExpr {
     ctx.push_scope();
-    let binding = resolve_type::resolve_binding(ctx, param);
+    let binding = resolve_type::add_binding(ctx, param);
     let body = resolve_expr(ctx, body);
     ctx.pop_scope();
     ResolvedExpr::Fn(binding, Box::new(body))

@@ -27,12 +27,12 @@ fn resolve_let<'a>(ctx: &mut ResolverCtx<'a>, id: &'a str, expr: ParsedExpr<'a>)
 
 fn resolve_read<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>, id: &'a str) -> ResolvedStmt {
     let value_id = ctx.add_value(id);
-    ResolvedStmt::Read(value_id, resolve_type::resolve_type(ctx, ty))
+    ResolvedStmt::Read(value_id, resolve_type::add_type(ctx, ty))
 }
 
 fn resolve_echo<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>, expr: ParsedExpr<'a>) -> ResolvedStmt {
     ResolvedStmt::Echo(
-        resolve_type::resolve_type(ctx, ty),
+        resolve_type::add_type(ctx, ty),
         resolve_expr::resolve_expr(ctx, expr),
     )
 }
