@@ -51,9 +51,11 @@ fn resolve_typedef<'a>(
         let mut resolved_bindings = Vec::new();
         for binding in arm.1 {
             ctx.add_value(binding.node.id);
-            // TODO - potential bug - validate that all generic types only show up from the defined
-            // type parameters?
-            resolved_bindings.push(resolve_type::resolve_binding(ctx, binding));
+            let resolved_binding = match resolve_type::add_binding_existing_typaram(ctx, binding) {
+                Some(val) => val,
+                None => panic!("type parameter not found"), // TODO proper error handling
+            };
+            resolved_bindings.push(resolved_binding);
         }
         ctx.pop_scope();
 
@@ -83,12 +85,12 @@ fn resolve_fn<'a>(
         panic!("Function {} not found in scope", name);
     };
 
-    let ret_ty_id = resolve_type::resolve_type(ctx, ret_ty);
+    let ret_ty_id = resolve_type::add_type(ctx, ret_ty);
 
     // add all bindings to scope
     let mut resolved_bindings = Vec::new();
     for param in bindings {
-        resolved_bindings.push(resolve_type::resolve_binding(ctx, param));
+        resolved_bindings.push(resolve_type::add_binding(ctx, param));
     }
 
     // resolve function body
