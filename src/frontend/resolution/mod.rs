@@ -9,6 +9,9 @@ pub mod resolve_stmt;
 pub mod resolve_type;
 pub mod types;
 
+#[cfg(test)]
+mod tests;
+
 pub fn resolve(defns: Vec<ParsedDefn>) {
     let mut ctx = ResolverCtx::new();
     init_global_scope(&mut ctx, &defns);
@@ -18,7 +21,7 @@ pub fn resolve(defns: Vec<ParsedDefn>) {
 }
 
 pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]) {
-    // TODO - intialize global types for int, float, bool?
+    let mut has_main = false;
     for defn in defns {
         match &defn.node {
             Defn::Typedef {
@@ -32,8 +35,15 @@ pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]
                 }
             }
             Defn::Fn { name, .. } => {
+                if *name == "main" {
+                    has_main = true;
+                }
                 ctx.add_value(name);
             }
         }
     }
+    if !has_main {
+        panic!("Program must contain a 'main' function");
+    }
+    // TODO - resolve collisions in global scope
 }
