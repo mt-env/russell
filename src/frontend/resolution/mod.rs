@@ -1,6 +1,6 @@
 use crate::frontend::{
     parser::ast::{Defn, ParsedDefn},
-    resolution::types::ResolverCtx,
+    resolution::types::{ResolvedDefn, ResolverCtx},
 };
 
 pub mod resolve_defn;
@@ -12,12 +12,14 @@ pub mod types;
 #[cfg(test)]
 mod tests;
 
-pub fn resolve(defns: Vec<ParsedDefn>) {
+pub fn resolve(defns: Vec<ParsedDefn>) -> Vec<ResolvedDefn> {
     let mut ctx = ResolverCtx::new();
     init_global_scope(&mut ctx, &defns);
+    let mut resolved_defns = Vec::new();
     for defn in defns {
-        resolve_defn::resolve_defn(&mut ctx, defn);
+        resolved_defns.push(resolve_defn::resolve_defn(&mut ctx, defn));
     }
+    resolved_defns
 }
 
 pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]) {
