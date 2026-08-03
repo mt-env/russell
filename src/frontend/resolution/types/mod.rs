@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TypeId(usize);
 
