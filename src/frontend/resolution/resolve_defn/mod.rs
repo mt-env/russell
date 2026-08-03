@@ -6,6 +6,9 @@ use crate::frontend::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefn {
     match defn.node {
         Defn::Typedef { id, ty_vars, arms } => resolve_typedef(ctx, id, ty_vars, arms),
