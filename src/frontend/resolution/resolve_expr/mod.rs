@@ -2,7 +2,7 @@ use crate::frontend::{
     parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm},
     resolution::{
         resolve_type,
-        types::{Identifier, ResolvedExpr, ResolvedMatchArm, ResolverCtx},
+        types::{ResolvedExpr, ResolvedMatchArm, ResolverCtx},
     },
 };
 
@@ -80,7 +80,7 @@ fn resolve_binop<'a>(
     ctx: &mut ResolverCtx<'a>,
     l: ParsedExpr<'a>,
     r: ParsedExpr<'a>,
-    make: impl FnOnce(Box<ResolvedExpr>, Box<ResolvedExpr>) -> ResolvedExpr,
+    make: impl Fn(Box<ResolvedExpr>, Box<ResolvedExpr>) -> ResolvedExpr,
 ) -> ResolvedExpr {
     let l = resolve_expr(ctx, l);
     let r = resolve_expr(ctx, r);
