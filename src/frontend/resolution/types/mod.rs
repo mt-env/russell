@@ -174,6 +174,13 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
+    pub(super) fn add_value_nodup(&mut self, name: &'a str) -> ValueId {
+        match self.lookup_value(name) {
+            Some(_) => panic!("Duplicate value name: {}", name),
+            None => self.add_value(name),
+        }
+    }
+
     pub(super) fn add_type(&mut self, name: &'a str) -> TypeId {
         let id = self.next_typeid();
         self.ids.insert(Identifier::TypeId(id), name);
@@ -183,6 +190,13 @@ impl<'a> ResolverCtx<'a> {
             panic!("No current scope to add type to");
         }
         id
+    }
+
+    pub(super) fn add_type_nodup(&mut self, name: &'a str) -> TypeId {
+        match self.lookup_type(name) {
+            Some(_) => panic!("Duplicate type name: {}", name),
+            None => self.add_type(name),
+        }
     }
 
     pub(super) fn add_typeparam(&mut self, name: &'a str) -> TypeParamId {

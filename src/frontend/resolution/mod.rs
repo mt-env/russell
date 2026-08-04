@@ -31,16 +31,16 @@ pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]
                 ty_vars: _,
                 arms,
             } => {
-                ctx.add_type(id);
+                ctx.add_type_nodup(id);
                 for arm in arms {
-                    ctx.add_value(arm.0);
+                    ctx.add_value_nodup(arm.0);
                 }
             }
             Defn::Fn { name, .. } => {
                 if *name == "main" {
                     has_main = true;
                 }
-                ctx.add_value(name);
+                ctx.add_value_nodup(name);
             }
         }
     }
