@@ -3,6 +3,9 @@ use crate::frontend::{
     resolution::types::{ResolvedBinding, ResolvedType, ResolverCtx, TypeId, TypeParamId},
 };
 
+#[cfg(test)]
+mod tests;
+
 pub(super) fn add_type<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>) -> ResolvedType {
     match ty {
         Type::Int => ResolvedType::Int,
@@ -88,15 +91,27 @@ fn lookup_fn<'a>(
 }
 
 // resolves a binding, adds the value to the context, and returns a ResolvedBinding
-pub fn add_binding<'a>(ctx: &mut ResolverCtx<'a>, binding: ParsedBinding<'a>) -> ResolvedBinding {
+pub(super) fn add_binding<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    binding: ParsedBinding<'a>,
+) -> ResolvedBinding {
     let value_id = ctx.add_value(binding.node.id);
+    let resolved_type = add_type(ctx, binding.node.typ);
+    ResolvedBinding::new(value_id, resolved_type)
+}
+
+pub(super) fn add_binding_no_shadowing<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    binding: ParsedBinding<'a>,
+) -> ResolvedBinding {
+    let value_id = ctx.add_value_nodup(binding.node.id);
     let resolved_type = add_type(ctx, binding.node.typ);
     ResolvedBinding::new(value_id, resolved_type)
 }
 
 // adds a binding but won't automatically create a new typeparam
 // returns none if the typeparam doesn't exist in the context
-pub fn add_binding_existing_typaram<'a>(
+pub(super) fn add_binding_existing_typaram<'a>(
     ctx: &mut ResolverCtx<'a>,
     binding: ParsedBinding<'a>,
 ) -> Option<ResolvedBinding> {

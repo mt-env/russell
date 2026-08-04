@@ -90,7 +90,7 @@ fn resolve_fn<'a>(
     // add all bindings to scope
     let mut resolved_bindings = Vec::new();
     for param in bindings {
-        resolved_bindings.push(resolve_type::add_binding(ctx, param));
+        resolved_bindings.push(resolve_type::add_binding_no_shadowing(ctx, param));
     }
 
     // resolve function body
