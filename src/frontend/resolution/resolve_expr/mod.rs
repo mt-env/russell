@@ -6,6 +6,9 @@ use crate::frontend::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> ResolvedExpr {
     match expr.node.kind {
         ExprKind::Int(val) => ResolvedExpr::Int(val),
@@ -117,9 +120,9 @@ fn resolve_match<'a>(
 
         // bind the pattern variables in a new scope and resolve the body
         ctx.push_scope();
-        let binding_ids = Vec::new();
+        let mut binding_ids = Vec::new();
         for binding in arm.bindings {
-            ctx.add_value(binding);
+            binding_ids.push(ctx.add_value(binding));
         }
         let resolved_body = resolve_expr(ctx, arm.expr);
         ctx.pop_scope();
