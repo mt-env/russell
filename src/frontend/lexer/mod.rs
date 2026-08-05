@@ -3,7 +3,7 @@ pub mod token;
 #[cfg(test)]
 mod tests;
 
-use crate::frontend::lexer::token::{SpannedToken, Token};
+use crate::frontend::lexer::token::{LexError, SpannedToken, Token};
 
 // reserved keywords
 const KEYWORDS: [(&str, Token); 12] = [
@@ -66,179 +66,209 @@ const OPERATORS: [(&str, Token); 31] = [
     ("}", Token::RBrace),
 ];
 
-/// Given the entire program as a string, lexes it into a vector of spanned tokens.
 pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
-    let base = program.as_ptr() as usize;
+    let mut lexer = Lexer::new(program);
+    // todo - should this be in lexer struct, maybe?
     let mut tokens = Vec::new();
-    let mut rest = program;
-
+    let mut errors = Vec::new();
     loop {
-        rest = eat_whitespace(rest);
-        let offset = rest.as_ptr() as usize - base;
-        let (token, remaining) = next_token(rest);
-        let done = matches!(token, Token::EoF);
-        tokens.push(SpannedToken::new(token, offset));
-        rest = remaining;
-        if done {
-            break;
+        match lexer.next_token(program) {
+            Ok(token) => {
+                tokens.push(SpannedToken::new(token, lexer.offset));
+                if matches!(token, Token::EoF) {
+                    break;
+                }
+            }
+            Err(e) => {
+                errors.push(e);
+            }
         }
     }
-
     tokens
 }
 
-/// Lexes the next token in the given program.
-/// Returns the token, and the rest of the program, which has not been lexed.
-/// Assumes leading whitespace has already been consumed.
-fn next_token(program: &str) -> (Token<'_>, &str) {
-    let first_char = match program.chars().next() {
-        Some(c) => c,
-        None => return (Token::EoF, program),
-    };
-
-    // determine if the token is an operator
-    for (op_str, op_token) in OPERATORS {
-        if let Some(rest) = program.strip_prefix(op_str) {
-            return (op_token, rest);
-        }
-    }
-
-    // determine if the token is a float/int
-    if first_char.is_ascii_digit() {
-        return read_num(program);
-    }
-
-    // determine if the token is a keyword or variable
-    if first_char.is_lowercase() {
-        return read_ident(program);
-    }
-
-    // determine if the token is a type identifier
-    if first_char.is_uppercase() {
-        return read_type_ident(program);
-    }
-
-    // determine if the token is a type parameter
-    if first_char == '\'' {
-        return read_type_param(program);
-    }
-
-    // otherwise, the token is invalid
-    (
-        Token::Invalid(first_char),
-        &program[first_char.len_utf8()..],
-    )
+#[derive(Clone, Copy)]
+struct Lexer<'a> {
+    program: &'a str,
+    offset: usize,
 }
 
-/// Discards any whitespace or comments at the start of `program`.
-fn eat_whitespace(program: &str) -> &str {
-    let mut s = program.trim_start();
-    while s.starts_with("//") {
-        s = match s.find('\n') {
-            Some(i) => &s[i + 1..],
-            None => &s[s.len()..],
+impl<'a> Lexer<'a> {
+    fn new(program: &'a str) -> Self {
+        Self { program, offset: 0 }
+    }
+
+    fn next_token(&mut self, program: &str) -> Result<Token<'a>, LexError> {
+        self.eat_whitespace();
+
+        let first_char = match program.chars().next() {
+            Some(c) => c,
+            None => return Ok(Token::EoF),
         };
-        s = s.trim_start();
-    }
-    s
-}
 
-fn read_num(program: &str) -> (Token<'_>, &str) {
-    // greedily grab all characters that form a number, allowing at most one '.'
-    let mut seen_dot = false;
-    let mut first_non_digit = program.len();
-    for (index, char) in program.char_indices() {
-        if char == '.' && !seen_dot {
-            if program[index + 1..]
-                .chars()
-                .next()
-                .is_some_and(|next| next.is_ascii_digit())
-            {
-                seen_dot = true;
-            } else {
+        // determine if the token is an operator
+        for (op_str, op_token) in OPERATORS {
+            if let Some(_) = program.strip_prefix(op_str) {
+                self.offset += op_str.len();
+                return Ok(op_token);
+            }
+        }
+
+        // determine if the token is a float/int
+        if first_char.is_ascii_digit() {
+            return self.read_num();
+        }
+
+        // determine if the token is a keyword or variable
+        if first_char.is_lowercase() {
+            return Ok(self.read_ident());
+        }
+
+        // determine if the token is a type identifier
+        if first_char.is_uppercase() {
+            return Ok(self.read_type_ident());
+        }
+
+        // determine if the token is a type parameter
+        if first_char == '\'' {
+            return Ok(self.read_type_param());
+        }
+
+        // otherwise, the token is invalid
+        self.offset += first_char.len_utf8();
+        Ok(Token::Invalid(first_char))
+    }
+
+    /// Discards any whitespace or comments at the start of `program`.
+    fn eat_whitespace(&mut self) {
+        todo!()
+        // let mut s = &self.program[self.offset..].chars().into_iter();
+        // while let Some(c) = s.next()
+        //     && c.is_whitespace()
+        // {
+        //     self.offset += c.len_utf8();
+        // }
+        // while s.starts_with("//") {
+        //     s = match s.find('\n') {
+        //         Some(i) => &s[i + 1..],
+        //         None => &s[s.len()..],
+        //     };
+        //     s = s.trim_start();
+        // }
+    }
+
+    fn read_num(&mut self) -> Result<Token<'a>, LexError> {
+        // greedily grab all characters that form a number, allowing at most one '.'
+        let mut seen_dot = false;
+        let program = &self.program[self.offset..];
+        let mut first_non_digit = program.len();
+        for (index, char) in program.char_indices() {
+            if char == '.' && !seen_dot {
+                if program[index + 1..]
+                    .chars()
+                    .next()
+                    .is_some_and(|next| next.is_ascii_digit())
+                {
+                    seen_dot = true;
+                } else {
+                    first_non_digit = index;
+                    break;
+                }
+            } else if !char.is_ascii_digit() {
                 first_non_digit = index;
                 break;
             }
-        } else if !char.is_ascii_digit() {
-            first_non_digit = index;
-            break;
         }
-    }
-    let digits = &program[..first_non_digit];
-    let rest = &program[first_non_digit..];
+        let digits = &program[..first_non_digit];
+        self.offset += first_non_digit;
 
-    if seen_dot {
-        (Token::Float(digits.parse::<f64>().unwrap()), rest)
-    } else {
-        match digits.parse::<i64>() {
-            Ok(num) => (Token::Int(num), rest),
-            Err(_) => (Token::Overflow(digits), rest),
-        }
-    }
-}
+        if seen_dot {
+            match digits.parse::<f64>() {
+                Ok(f) => Ok(Token::Float(f)),
 
-fn read_ident(program: &str) -> (Token<'_>, &str) {
-    // greedily grab all characters until we see something that's not a letter
-    let mut first_non_letter = program.len();
-    for (index, char) in program.char_indices() {
-        if !(char.is_alphanumeric() || char == '_') {
-            first_non_letter = index;
-            break;
-        }
-    }
-    let ident = &program[..first_non_letter];
-    let rest = &program[first_non_letter..];
-
-    // check against keywords, fallback to identifier (variable) if no match
-    for (keyword_str, keyword_token) in KEYWORDS {
-        if ident == keyword_str {
-            return (keyword_token, rest);
+                // this might not be reachable; i wonder if it'd be better not to check for "only
+                // one dot" and just parse until we hit a non-digit, and let the parse fail if there
+                // are multiple dots
+                Err(_) => Err(LexError::InvalidFloat(digits)),
+            }
+        } else {
+            match digits.parse::<i64>() {
+                Ok(i) => Ok(Token::Int(i)),
+                // i think this is just for overflow?
+                Err(_) => Err(LexError::InvalidInt(digits)),
+            }
         }
     }
 
-    (Token::Id(ident), rest)
-}
+    fn read_ident(&mut self) -> Token<'a> {
+        let program = &self.program[self.offset..];
 
-fn read_type_ident(program: &str) -> (Token<'_>, &str) {
-    // greedily grab all characters until we see something that's not a letter
-    let mut first_non_letter = program.len();
-    for (index, char) in program.char_indices() {
-        if !char.is_alphabetic() {
-            first_non_letter = index;
-            break;
+        // greedily grab all characters until we see something that's not a letter
+        let mut first_non_letter = program.len();
+        for (index, char) in program.char_indices() {
+            if !(char.is_alphanumeric() || char == '_') {
+                first_non_letter = index;
+                break;
+            }
         }
-    }
-    let ident = &program[..first_non_letter];
-    let rest = &program[first_non_letter..];
+        let ident = &program[..first_non_letter];
+        self.offset += ident.len();
 
-    // check against keywords, fallback to identifier (variable) if no match
-    for (type_str, type_token) in TYPES {
-        if ident == type_str {
-            return (type_token, rest);
+        // check against keywords, fallback to identifier (variable) if no match
+        for (keyword_str, keyword_token) in KEYWORDS {
+            if ident == keyword_str {
+                return keyword_token;
+            }
         }
-    }
 
-    (Token::TypeId(ident), rest)
-}
-
-fn read_type_param(program: &str) -> (Token<'_>, &str) {
-    // greedily grab the apostrophe-prefixed type parameter name
-    let mut first_non_lowercase = program.len();
-    for (index, char) in program.char_indices() {
-        if index == 0 {
-            continue; // skip leading apostrophe
-        }
-        if !char.is_lowercase() {
-            first_non_lowercase = index;
-            break;
-        }
+        Token::Id(ident)
     }
 
-    if first_non_lowercase > 1 {
-        let param = &program[..first_non_lowercase];
-        let rest = &program[first_non_lowercase..];
-        (Token::TypeParam(param), rest)
-    } else {
-        (Token::Invalid('\''), &program[1..])
+    fn read_type_ident(&mut self) -> Token<'a> {
+        // greedily grab all characters until we see something that's not a letter
+        let program = &self.program[self.offset..];
+        let mut first_non_letter = program.len();
+        for (index, char) in program.char_indices() {
+            if !char.is_alphabetic() {
+                first_non_letter = index;
+                break;
+            }
+        }
+        let ident = &program[..first_non_letter];
+        self.offset += first_non_letter;
+
+        // check against keywords, fallback to identifier (variable) if no match
+        for (type_str, type_token) in TYPES {
+            if ident == type_str {
+                return type_token;
+            }
+        }
+
+        // (Token::TypeId(ident), rest)
+        Token::TypeId(ident)
+    }
+
+    fn read_type_param(&mut self) -> Token<'a> {
+        // greedily grab the apostrophe-prefixed type parameter name
+        let program = &self.program[self.offset..]; // skip leading apostrophe
+        let mut first_non_lowercase = program.len();
+        for (index, char) in program.char_indices() {
+            if index == 0 {
+                continue; // skip leading apostrophe
+            }
+            if !char.is_lowercase() {
+                first_non_lowercase = index;
+                break;
+            }
+        }
+
+        if first_non_lowercase > 1 {
+            let param = &program[..first_non_lowercase];
+            self.offset += first_non_lowercase;
+            Token::TypeParam(param)
+        } else {
+            self.offset += 1;
+            Token::Invalid('\'')
+        }
     }
 }
