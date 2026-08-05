@@ -25,7 +25,10 @@ fn parse_single_fn() {
             "main".into(),
             vec![],
             Type::Int,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Int(0)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Int(0))
+            )]
         )
     );
 }
@@ -41,12 +44,27 @@ fn parse_single_typedef() {
 }
 
 #[test]
+fn parse_single_generic_typedef() {
+    let defns = super::parse(lex("typedef Option('a) { some(x: 'a), none() }"));
+    assert_eq!(defns.len(), 1);
+    assert!(matches!(
+        &defns[0].node,
+        Defn::Typedef { id, ty_vars, arms }
+        if *id == "Option"
+            && ty_vars == &vec!["'a"]
+            && arms.len() == 2
+    ));
+}
+
+#[test]
 fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
     assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars: _, arms: _ } if *id == "Color"));
-    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "main"));
+    assert!(
+        matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "main")
+    );
 }
 
 #[test]
@@ -57,9 +75,15 @@ fn parse_multiple_fns() {
         fn baz() -> Int { return 3; }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 3);
-    assert!(matches!(&defns[0].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "foo"));
-    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "bar"));
-    assert!(matches!(&defns[2].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "baz"));
+    assert!(
+        matches!(&defns[0].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "foo")
+    );
+    assert!(
+        matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "bar")
+    );
+    assert!(
+        matches!(&defns[2].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "baz")
+    );
 }
 
 #[test]
@@ -71,8 +95,12 @@ fn parse_typedef_then_fn_using_it() {
         }";
     let defns = super::parse(lex(src));
     assert_eq!(defns.len(), 2);
-    assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2));
-    assert!(matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "unwrap"));
+    assert!(
+        matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2)
+    );
+    assert!(
+        matches!(&defns[1].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "unwrap")
+    );
 }
 
 // ─── peek ───────────────────────────────────────────────────────────
@@ -233,6 +261,18 @@ fn expect_typeid_builtin() {
 fn expect_typeid_failure_on_id() {
     let mut p = parser_from("foo");
     assert!(p.expect_typeid().is_err());
+}
+
+#[test]
+fn expect_typeparam_success() {
+    let mut p = parser_from("'a");
+    assert_eq!(p.expect_typeparam().unwrap(), "'a");
+}
+
+#[test]
+fn expect_typeparam_failure_on_typeid() {
+    let mut p = parser_from("MyType");
+    assert!(p.expect_typeparam().is_err());
 }
 
 // ─── expect_many ────────────────────────────────────────────────────

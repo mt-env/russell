@@ -1,24 +1,40 @@
 use crate::frontend::error::parse_error::ParseResult;
 use crate::frontend::lexer::token::{Token, TokenKind};
-use crate::frontend::parser::ast::{ParsedBinding, Type};
 use crate::frontend::parser::Parser;
+use crate::frontend::parser::ast::{ParsedBinding, Type};
 
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
+pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
     // parse an atomic type
     let l_type = match parser.expect_many(&[
         TokenKind::IntType,
         TokenKind::FloatType,
         TokenKind::BoolType,
         TokenKind::TypeId,
+        TokenKind::TypeParam,
         TokenKind::LParen,
     ])? {
         Token::IntType => Type::Int,
         Token::FloatType => Type::Float,
         Token::BoolType => Type::Bool,
-        Token::TypeId(id) => Type::TypeId(id),
+        Token::TypeId(id) => {
+            if parser.peek().kind() == TokenKind::LParen {
+                parser.advance();
+                let mut type_args = Vec::new();
+                type_args.push(parse_type(parser)?);
+                while parser.peek().kind() == TokenKind::Comma {
+                    parser.advance();
+                    type_args.push(parse_type(parser)?);
+                }
+                parser.expect(TokenKind::RParen)?;
+                Type::TypeApp(id, type_args)
+            } else {
+                Type::TypeId(id)
+            }
+        }
+        Token::TypeParam(id) => Type::TypeParam(id),
         Token::LParen => {
             let typ = parse_type(parser)?;
             parser.expect(TokenKind::RParen)?;
@@ -46,7 +62,9 @@ pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Pars
     Ok(ParsedBinding::new(loc, id, id_type))
 }
 
-pub(super) fn parse_binding_list<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
+pub(super) fn parse_binding_list<'a>(
+    parser: &mut Parser<'a>,
+) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut bindings = Vec::new();

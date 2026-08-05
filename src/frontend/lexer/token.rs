@@ -27,6 +27,7 @@ pub enum Token<'a> {
     FloatType,
     BoolType,
     TypeId(&'a str),
+    TypeParam(&'a str),
 
     // punctuation
     LParen,
@@ -39,25 +40,29 @@ pub enum Token<'a> {
     RBrace,
 
     // operators
-    Assign,          // =
-    Not,             // !
-    NotEq,           // !=
-    And,             // &&
-    Plus,            // +
-    Minus,           // -
-    Times,           // *
-    Divide,          // /
-    FPlus,           // +.
-    FMinus,          // -.
-    FTimes,          // *.
-    FDivide,         // /.
-    LessThan,        // <
-    LessThanOrEq,    // <=
-    Eq,              // ==
-    GreaterThan,     // >
-    GreaterThanOrEq, // >=
-    Pipe,            // |>
-    Or,              // ||
+    Assign,           // =
+    Not,              // !
+    NotEq,            // !=
+    And,              // &&
+    Plus,             // +
+    Minus,            // -
+    Times,            // *
+    Divide,           // /
+    FPlus,            // +.
+    FMinus,           // -.
+    FTimes,           // *.
+    FDivide,          // /.
+    LessThan,         // <
+    LessThanOrEq,     // <=
+    GreaterThan,      // >
+    GreaterThanOrEq,  // >=
+    FLessThan,        // <.
+    FLessThanOrEq,    // <=.
+    FGreaterThan,     // >.
+    FGreaterThanOrEq, // >=.
+    Eq,               // ==
+    Pipe,             // |>
+    Or,               // ||
 
     // miscellaneous
     Invalid(char),
@@ -90,6 +95,7 @@ pub enum TokenKind {
     FloatType,
     BoolType,
     TypeId,
+    TypeParam,
 
     // punctuation
     LParen,
@@ -116,9 +122,13 @@ pub enum TokenKind {
     FDivide,
     LessThan,
     LessThanOrEq,
-    Eq,
     GreaterThan,
     GreaterThanOrEq,
+    FLessThan,
+    FLessThanOrEq,
+    FGreaterThan,
+    FGreaterThanOrEq,
+    Eq,
     Pipe,
     Or,
 
@@ -138,7 +148,10 @@ pub type SpannedToken<'a> = Spanned<Token<'a>>;
 
 impl<'a> SpannedToken<'a> {
     pub fn new(token: Token<'a>, offset: usize) -> Self {
-        Spanned { node: token, offset }
+        Spanned {
+            node: token,
+            offset,
+        }
     }
 
     pub fn token(&self) -> &Token<'a> {
@@ -171,6 +184,7 @@ impl Token<'_> {
             Token::FloatType => TokenKind::FloatType,
             Token::BoolType => TokenKind::BoolType,
             Token::TypeId(_) => TokenKind::TypeId,
+            Token::TypeParam(_) => TokenKind::TypeParam,
             Token::LParen => TokenKind::LParen,
             Token::RParen => TokenKind::RParen,
             Token::Comma => TokenKind::Comma,
@@ -193,9 +207,13 @@ impl Token<'_> {
             Token::FDivide => TokenKind::FDivide,
             Token::LessThan => TokenKind::LessThan,
             Token::LessThanOrEq => TokenKind::LessThanOrEq,
-            Token::Eq => TokenKind::Eq,
             Token::GreaterThan => TokenKind::GreaterThan,
             Token::GreaterThanOrEq => TokenKind::GreaterThanOrEq,
+            Token::FLessThan => TokenKind::FLessThan,
+            Token::FLessThanOrEq => TokenKind::FLessThanOrEq,
+            Token::FGreaterThan => TokenKind::FGreaterThan,
+            Token::FGreaterThanOrEq => TokenKind::FGreaterThanOrEq,
+            Token::Eq => TokenKind::Eq,
             Token::Pipe => TokenKind::Pipe,
             Token::Or => TokenKind::Or,
             Token::Invalid(_) => TokenKind::Invalid,

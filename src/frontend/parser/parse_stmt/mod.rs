@@ -8,14 +8,19 @@ use crate::frontend::parser::parse_type::parse_type;
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_stmnt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+pub(crate) fn parse_stmt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     match parser.peek().kind() {
         TokenKind::Let => parse_let(parser),
         TokenKind::Read => parse_read(parser),
         TokenKind::Echo => parse_echo(parser),
         TokenKind::Return => parse_return(parser),
         _ => ParseError::many(
-            &[TokenKind::Let, TokenKind::Read, TokenKind::Echo, TokenKind::Return],
+            &[
+                TokenKind::Let,
+                TokenKind::Read,
+                TokenKind::Echo,
+                TokenKind::Return,
+            ],
             parser.peek(),
         ),
     }

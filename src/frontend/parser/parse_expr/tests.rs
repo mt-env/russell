@@ -49,7 +49,10 @@ fn identifier() {
 fn negate_int() {
     assert_eq!(
         parse("-1"),
-        ParsedExpr::new(0, ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Int(1)))))
+        ParsedExpr::new(
+            0,
+            ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Int(1))))
+        )
     );
 }
 
@@ -57,7 +60,10 @@ fn negate_int() {
 fn negate_identifier() {
     assert_eq!(
         parse("-x"),
-        ParsedExpr::new(0, ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Id("x".into())))))
+        ParsedExpr::new(
+            0,
+            ExprKind::Neg(Box::new(ParsedExpr::new(1, ExprKind::Id("x".into()))))
+        )
     );
 }
 
@@ -65,7 +71,10 @@ fn negate_identifier() {
 fn bang_bool() {
     assert_eq!(
         parse("!true"),
-        ParsedExpr::new(0, ExprKind::Bang(Box::new(ParsedExpr::new(1, ExprKind::Bool(true)))))
+        ParsedExpr::new(
+            0,
+            ExprKind::Bang(Box::new(ParsedExpr::new(1, ExprKind::Bool(true))))
+        )
     );
 }
 
@@ -172,7 +181,7 @@ fn less_than() {
         parse("a < b"),
         ParsedExpr::new(
             0,
-            ExprKind::Less(
+            ExprKind::Lt(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
             )
@@ -186,7 +195,7 @@ fn less_than_or_eq() {
         parse("a <= b"),
         ParsedExpr::new(
             0,
-            ExprKind::LessEq(
+            ExprKind::LtEq(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
             )
@@ -200,7 +209,7 @@ fn greater_than() {
         parse("a > b"),
         ParsedExpr::new(
             0,
-            ExprKind::Greater(
+            ExprKind::Gt(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
             )
@@ -214,7 +223,7 @@ fn greater_than_or_eq() {
         parse("a >= b"),
         ParsedExpr::new(
             0,
-            ExprKind::GreaterEq(
+            ExprKind::GtEq(
                 Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                 Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
             )
@@ -343,7 +352,7 @@ fn add_before_relational() {
         parse("a + b < c"),
         ParsedExpr::new(
             0,
-            ExprKind::Less(
+            ExprKind::Lt(
                 Box::new(ParsedExpr::new(
                     0,
                     ExprKind::Plus(
@@ -352,6 +361,27 @@ fn add_before_relational() {
                     )
                 )),
                 Box::new(ParsedExpr::new(8, ExprKind::Id("c".into())))
+            )
+        )
+    );
+}
+
+#[test]
+fn add_before_float_relational() {
+    // a + b <. c = (a + b) <. c
+    assert_eq!(
+        parse("a + b <. c"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FLt(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::Plus(
+                        Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
+                        Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
+                    )
+                )),
+                Box::new(ParsedExpr::new(9, ExprKind::Id("c".into())))
             )
         )
     );
@@ -367,7 +397,28 @@ fn relational_before_equality() {
             ExprKind::Eq(
                 Box::new(ParsedExpr::new(
                     0,
-                    ExprKind::Less(
+                    ExprKind::Lt(
+                        Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
+                        Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
+                    )
+                )),
+                Box::new(ParsedExpr::new(9, ExprKind::Id("c".into())))
+            )
+        )
+    );
+}
+
+#[test]
+fn mixed_relational_same_precedence_left_assoc() {
+    // a < b <. c = (a < b) <. c
+    assert_eq!(
+        parse("a < b <. c"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FLt(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::Lt(
                         Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                         Box::new(ParsedExpr::new(4, ExprKind::Id("b".into())))
                     )
@@ -389,6 +440,27 @@ fn equality_before_and() {
                 Box::new(ParsedExpr::new(
                     0,
                     ExprKind::Eq(
+                        Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
+                        Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
+                    )
+                )),
+                Box::new(ParsedExpr::new(10, ExprKind::Id("c".into())))
+            )
+        )
+    );
+}
+
+#[test]
+fn relational_before_and_with_float_rel() {
+    // a <. b && c = (a <. b) && c
+    assert_eq!(
+        parse("a <. b && c"),
+        ParsedExpr::new(
+            0,
+            ExprKind::And(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::FLt(
                         Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
                         Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
                     )
@@ -664,7 +736,10 @@ fn call_no_args() {
         parse("f()"),
         ParsedExpr::new(
             0,
-            ExprKind::Call(Box::new(ParsedExpr::new(0, ExprKind::Id("f".into()))), vec![])
+            ExprKind::Call(
+                Box::new(ParsedExpr::new(0, ExprKind::Id("f".into()))),
+                vec![]
+            )
         )
     );
 }
@@ -899,7 +974,12 @@ fn match_single_arm() {
             0,
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
-                vec![ParsedMatchArm::new(10, "a", vec![], ParsedExpr::new(17, ExprKind::Int(1)))]
+                vec![ParsedMatchArm::new(
+                    10,
+                    "a",
+                    vec![],
+                    ParsedExpr::new(17, ExprKind::Int(1))
+                )]
             )
         )
     );
@@ -931,7 +1011,12 @@ fn match_with_bindings() {
             ExprKind::Match(
                 Box::new(ParsedExpr::new(6, ExprKind::Id("x".into()))),
                 vec![
-                    ParsedMatchArm::new(10, "some", vec!["val"], ParsedExpr::new(23, ExprKind::Id("val"))),
+                    ParsedMatchArm::new(
+                        10,
+                        "some",
+                        vec!["val"],
+                        ParsedExpr::new(23, ExprKind::Id("val"))
+                    ),
                     ParsedMatchArm::new(28, "none", vec![], ParsedExpr::new(38, ExprKind::Int(0))),
                 ]
             )
@@ -1160,17 +1245,93 @@ fn full_precedence_chain() {
                                         Box::new(ParsedExpr::new(15, ExprKind::Id("d".into()))),
                                         Box::new(ParsedExpr::new(
                                             20,
-                                            ExprKind::Less(
-                                                Box::new(ParsedExpr::new(20, ExprKind::Id("e".into()))),
+                                            ExprKind::Lt(
+                                                Box::new(ParsedExpr::new(
+                                                    20,
+                                                    ExprKind::Id("e".into())
+                                                )),
                                                 Box::new(ParsedExpr::new(
                                                     24,
                                                     ExprKind::Plus(
-                                                        Box::new(ParsedExpr::new(24, ExprKind::Id("f".into()))),
+                                                        Box::new(ParsedExpr::new(
+                                                            24,
+                                                            ExprKind::Id("f".into())
+                                                        )),
                                                         Box::new(ParsedExpr::new(
                                                             28,
                                                             ExprKind::Mult(
-                                                                Box::new(ParsedExpr::new(28, ExprKind::Id("g".into()))),
-                                                                Box::new(ParsedExpr::new(32, ExprKind::Id("h".into())))
+                                                                Box::new(ParsedExpr::new(
+                                                                    28,
+                                                                    ExprKind::Id("g".into())
+                                                                )),
+                                                                Box::new(ParsedExpr::new(
+                                                                    32,
+                                                                    ExprKind::Id("h".into())
+                                                                ))
+                                                            )
+                                                        ))
+                                                    )
+                                                ))
+                                            )
+                                        ))
+                                    )
+                                ))
+                            )
+                        ))
+                    )
+                ))
+            )
+        )
+    );
+}
+
+#[test]
+fn full_precedence_chain_with_float_relational() {
+    // a |> b || c && d == e <. f +. g *. h
+    // = a |> (b || (c && (d == (e <. (f +. (g *. h))))))
+    assert_eq!(
+        parse("a |> b || c && d == e <. f +. g *. h"),
+        ParsedExpr::new(
+            0,
+            ExprKind::Pipe(
+                Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
+                Box::new(ParsedExpr::new(
+                    5,
+                    ExprKind::Or(
+                        Box::new(ParsedExpr::new(5, ExprKind::Id("b".into()))),
+                        Box::new(ParsedExpr::new(
+                            10,
+                            ExprKind::And(
+                                Box::new(ParsedExpr::new(10, ExprKind::Id("c".into()))),
+                                Box::new(ParsedExpr::new(
+                                    15,
+                                    ExprKind::Eq(
+                                        Box::new(ParsedExpr::new(15, ExprKind::Id("d".into()))),
+                                        Box::new(ParsedExpr::new(
+                                            20,
+                                            ExprKind::FLt(
+                                                Box::new(ParsedExpr::new(
+                                                    20,
+                                                    ExprKind::Id("e".into())
+                                                )),
+                                                Box::new(ParsedExpr::new(
+                                                    25,
+                                                    ExprKind::FPlus(
+                                                        Box::new(ParsedExpr::new(
+                                                            25,
+                                                            ExprKind::Id("f".into())
+                                                        )),
+                                                        Box::new(ParsedExpr::new(
+                                                            30,
+                                                            ExprKind::FMult(
+                                                                Box::new(ParsedExpr::new(
+                                                                    30,
+                                                                    ExprKind::Id("g".into())
+                                                                )),
+                                                                Box::new(ParsedExpr::new(
+                                                                    35,
+                                                                    ExprKind::Id("h".into())
+                                                                ))
                                                             )
                                                         ))
                                                     )
@@ -1265,6 +1426,83 @@ fn float_division() {
             ExprKind::FDiv(
                 Box::new(ParsedExpr::new(0, ExprKind::Float(10.0))),
                 Box::new(ParsedExpr::new(8, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_less_than() {
+    assert_eq!(
+        parse("1.0 <. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FLt(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(7, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_less_than_or_eq() {
+    assert_eq!(
+        parse("1.0 <=. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FLtEq(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(8, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_greater_than() {
+    assert_eq!(
+        parse("1.0 >. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FGt(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(7, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_greater_than_or_eq() {
+    assert_eq!(
+        parse("1.0 >=. 2.5"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FGtEq(
+                Box::new(ParsedExpr::new(0, ExprKind::Float(1.0))),
+                Box::new(ParsedExpr::new(8, ExprKind::Float(2.5)))
+            )
+        )
+    );
+}
+
+#[test]
+fn float_relational_before_equality() {
+    // a <. b == c = (a <. b) == c
+    assert_eq!(
+        parse("a <. b == c"),
+        ParsedExpr::new(
+            0,
+            ExprKind::Eq(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::FLt(
+                        Box::new(ParsedExpr::new(0, ExprKind::Id("a".into()))),
+                        Box::new(ParsedExpr::new(5, ExprKind::Id("b".into())))
+                    )
+                )),
+                Box::new(ParsedExpr::new(10, ExprKind::Id("c".into())))
             )
         )
     );

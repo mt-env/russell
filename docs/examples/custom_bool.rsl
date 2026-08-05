@@ -34,8 +34,8 @@ fn main() -> Int {
     echo Int custom_if_i64(c_true(), 0, 1);
     echo Int custom_if_i64(c_false(), 0, 1);
 
-    echo Float custom_if_f64(c_true(), 0, 1);
-    echo Float custom_if_f64(c_false(), 0, 1);
+    echo Float custom_if_f64(c_true(), 0.0, 1.0);
+    echo Float custom_if_f64(c_false(), 0.0, 1.0);
 
     return 0;
 }

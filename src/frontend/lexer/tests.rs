@@ -22,7 +22,13 @@ fn tokens_with_offsets(input: &str) -> Vec<(Token<'_>, usize)> {
 /// helper: assert that a single-token input produces the expected token kind
 fn assert_single(input: &str, expected: TokenKind) {
     let toks = tokens(input);
-    assert_eq!(toks.len(), 1, "expected 1 token for {:?}, got {:?}", input, toks);
+    assert_eq!(
+        toks.len(),
+        1,
+        "expected 1 token for {:?}, got {:?}",
+        input,
+        toks
+    );
     assert_eq!(toks[0].kind(), expected);
 }
 
@@ -221,6 +227,47 @@ fn type_id_stops_at_non_alpha() {
     assert!(matches!(toks[1], Token::Int(2)));
 }
 
+#[test]
+fn type_param_single_letter() {
+    let toks = tokens("'a");
+    match &toks[0] {
+        Token::TypeParam(s) => assert_eq!(*s, "'a"),
+        other => panic!("expected TypeParam, got {:?}", other),
+    }
+}
+
+#[test]
+fn type_param_stops_at_non_alpha() {
+    let toks = tokens("'abc1");
+    match &toks[0] {
+        Token::TypeParam(s) => assert_eq!(*s, "'abc"),
+        other => panic!("expected TypeParam, got {:?}", other),
+    }
+    assert!(matches!(toks[1], Token::Int(1)));
+}
+
+#[test]
+fn invalid_type_param_without_name() {
+    let toks = tokens("'");
+    assert_eq!(toks.len(), 1);
+    assert!(matches!(toks[0], Token::Invalid('\'')));
+}
+
+#[test]
+fn invalid_type_param_with_uppercase() {
+    let toks = tokens("'Abc");
+    assert_eq!(toks[0].kind(), TokenKind::Invalid);
+    assert_eq!(toks[1].kind(), TokenKind::TypeId);
+}
+
+#[test]
+fn invalid_type_param_without_lowercase() {
+    let toks = tokens("'_x");
+    assert_eq!(toks[0].kind(), TokenKind::Invalid);
+    assert_eq!(toks[1].kind(), TokenKind::Invalid);
+    assert_eq!(toks[2].kind(), TokenKind::Id);
+}
+
 // ─── One-character operators / punctuation ──────────────────────────────────
 
 #[test]
@@ -264,6 +311,10 @@ fn two_char_operators() {
         ("-.", TokenKind::FMinus),
         ("*.", TokenKind::FTimes),
         ("/.", TokenKind::FDivide),
+        ("<.", TokenKind::FLessThan),
+        (">.", TokenKind::FGreaterThan),
+        ("<=.", TokenKind::FLessThanOrEq),
+        (">=.", TokenKind::FGreaterThanOrEq),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -281,6 +332,17 @@ fn two_char_op_preferred_over_one_char() {
     let toks = tokens("<=");
     assert_eq!(toks.len(), 1);
     assert_eq!(toks[0].kind(), TokenKind::LessThanOrEq);
+}
+
+#[test]
+fn three_char_op_preferred_over_shorter_prefixes() {
+    let toks = tokens("<=.");
+    assert_eq!(toks.len(), 1);
+    assert_eq!(toks[0].kind(), TokenKind::FLessThanOrEq);
+
+    let toks = tokens(">=.");
+    assert_eq!(toks.len(), 1);
+    assert_eq!(toks[0].kind(), TokenKind::FGreaterThanOrEq);
 }
 
 // whitespace handling
@@ -541,6 +603,34 @@ fn typedef_statement() {
 }
 
 #[test]
+fn generic_typedef_statement() {
+    let toks = tokens("typedef Option('a) { some(x: 'a), none() }");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Typedef,
+            TokenKind::TypeId,
+            TokenKind::LParen,
+            TokenKind::TypeParam,
+            TokenKind::RParen,
+            TokenKind::LBrace,
+            TokenKind::Id,
+            TokenKind::LParen,
+            TokenKind::Id,
+            TokenKind::Colon,
+            TokenKind::TypeParam,
+            TokenKind::RParen,
+            TokenKind::Comma,
+            TokenKind::Id,
+            TokenKind::LParen,
+            TokenKind::RParen,
+            TokenKind::RBrace,
+        ]
+    );
+}
+
+#[test]
 fn boolean_expression() {
     let toks = tokens("!a && b || c != d");
     let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
@@ -574,6 +664,26 @@ fn comparison_operators() {
             TokenKind::GreaterThan,
             TokenKind::Id,
             TokenKind::GreaterThanOrEq,
+            TokenKind::Id,
+        ]
+    );
+}
+
+#[test]
+fn float_comparison_operators() {
+    let toks = tokens("a <. b <=. c >. d >=. e");
+    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Id,
+            TokenKind::FLessThan,
+            TokenKind::Id,
+            TokenKind::FLessThanOrEq,
+            TokenKind::Id,
+            TokenKind::FGreaterThan,
+            TokenKind::Id,
+            TokenKind::FGreaterThanOrEq,
             TokenKind::Id,
         ]
     );

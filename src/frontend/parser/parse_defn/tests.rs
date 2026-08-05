@@ -22,7 +22,10 @@ fn fn_no_params() {
             "main".into(),
             vec![],
             Type::Int,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Int(0)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Int(0))
+            )]
         )
     );
 }
@@ -106,7 +109,10 @@ fn fn_with_float_return() {
             "pi".into(),
             vec![],
             Type::Float,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Float(3.14)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Float(3.14))
+            )]
         )
     );
 }
@@ -120,7 +126,10 @@ fn fn_with_bool_return() {
             "yes".into(),
             vec![],
             Type::Bool,
-            vec![ParsedStmt::make_return(19, ParsedExpr::new(26, ExprKind::Bool(true)))]
+            vec![ParsedStmt::make_return(
+                19,
+                ParsedExpr::new(26, ExprKind::Bool(true))
+            )]
         )
     );
 }
@@ -133,7 +142,11 @@ fn fn_with_fn_type_param() {
             0,
             "apply".into(),
             vec![
-                ParsedBinding::new(9, "f".into(), Type::Fn(Box::new(Type::Int), Box::new(Type::Int))),
+                ParsedBinding::new(
+                    9,
+                    "f".into(),
+                    Type::Fn(Box::new(Type::Int), Box::new(Type::Int))
+                ),
                 ParsedBinding::new(24, "x".into(), Type::Int),
             ],
             Type::Int,
@@ -204,7 +217,10 @@ fn typedef_single_constructor_with_field() {
             0,
             "Wrapper".into(),
             vec![],
-            vec![("wrap".into(), vec![ParsedBinding::new(23, "x".into(), Type::Int)])]
+            vec![(
+                "wrap".into(),
+                vec![ParsedBinding::new(23, "x".into(), Type::Int)]
+            )]
         )
     );
 }
@@ -235,7 +251,10 @@ fn typedef_constructors_with_fields() {
             "Shape".into(),
             vec![],
             vec![
-                ("circle".into(), vec![ParsedBinding::new(23, "r".into(), Type::Float)]),
+                (
+                    "circle".into(),
+                    vec![ParsedBinding::new(23, "r".into(), Type::Float)]
+                ),
                 (
                     "rect".into(),
                     vec![
@@ -257,7 +276,10 @@ fn typedef_option_pattern() {
             "Option".into(),
             vec![],
             vec![
-                ("some".into(), vec![ParsedBinding::new(22, "x".into(), Type::Int)]),
+                (
+                    "some".into(),
+                    vec![ParsedBinding::new(22, "x".into(), Type::Int)]
+                ),
                 ("none".into(), vec![]),
             ]
         )
@@ -265,17 +287,21 @@ fn typedef_option_pattern() {
 }
 
 #[test]
-fn typedef_option_tycon() {
+fn typedef_option_type_params() {
     assert_eq!(
-        parse("typedef Option(A) { some(x: A), none() }"),
+        parse("typedef Option('a) { some(x: 'a), none() }"),
         ParsedDefn::make_typedef(
             0,
             "Option".into(),
-            vec!["A"],
+            vec!["'a"],
             vec![
                 (
                     "some".into(),
-                    vec![ParsedBinding::new(25, "x".into(), Type::TypeId("A"))]
+                    vec![ParsedBinding::new(
+                        26,
+                        "x".into(),
+                        Type::TypeParam("'a".into())
+                    )]
                 ),
                 ("none".into(), vec![]),
             ]
@@ -284,21 +310,29 @@ fn typedef_option_tycon() {
 }
 
 #[test]
-fn typedef_result_tycon() {
+fn typedef_result_type_params() {
     assert_eq!(
-        parse("typedef Result(Ok, Err) { ok(good: Ok), err(bad: Err) }"),
+        parse("typedef Result('ok, 'err) { ok(good: 'ok), err(bad: 'err) }"),
         ParsedDefn::make_typedef(
             0,
             "Result".into(),
-            vec!["Ok", "Err"],
+            vec!["'ok", "'err"],
             vec![
                 (
                     "ok".into(),
-                    vec![ParsedBinding::new(29, "good".into(), Type::TypeId("Ok"))]
+                    vec![ParsedBinding::new(
+                        31,
+                        "good".into(),
+                        Type::TypeParam("'ok".into())
+                    )]
                 ),
                 (
                     "err".into(),
-                    vec![ParsedBinding::new(44, "bad".into(), Type::TypeId("Err"))]
+                    vec![ParsedBinding::new(
+                        47,
+                        "bad".into(),
+                        Type::TypeParam("'err".into())
+                    )]
                 )
             ]
         )

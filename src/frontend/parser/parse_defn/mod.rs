@@ -2,13 +2,13 @@ use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::TokenKind;
 use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::{ParsedDefn, SpannedBinding};
-use crate::frontend::parser::parse_stmt::parse_stmnt;
+use crate::frontend::parser::parse_stmt::parse_stmt;
 use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
 
 #[cfg(test)]
 mod tests;
 
-pub(super) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+pub(crate) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
     match parser.peek().kind() {
         TokenKind::Fn => parse_fndef(parser),
         TokenKind::Typedef => parse_typedef(parser),
@@ -25,14 +25,14 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
     parser.expect(TokenKind::Typedef)?;
     let name = parser.expect_typeid()?;
 
-    // parse type variables
+    // parse type parameters
     let mut ty_vars = Vec::new();
     if parser.peek().kind() == TokenKind::LParen {
         parser.advance();
-        ty_vars.push(parser.expect_typeid()?);
+        ty_vars.push(parser.expect_typeparam()?);
         while parser.peek().kind() == TokenKind::Comma {
             parser.advance();
-            ty_vars.push(parser.expect_typeid()?);
+            ty_vars.push(parser.expect_typeparam()?);
         }
         parser.expect(TokenKind::RParen)?;
     }
@@ -70,21 +70,32 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 
     let mut statements = Vec::new();
     while parser.peek().kind() != TokenKind::RBrace {
-        match parse_stmnt(parser) {
+        match parse_stmt(parser) {
             Ok(stmnt) => statements.push(stmnt),
-            Err(_) => todo!(), // TODO improve error handling
+            Err(e) => {
+                parser.push_error(e);
+                parser.synchronize();
+            }
         }
     }
 
     parser.expect(TokenKind::RBrace)?;
 
-    Ok(ParsedDefn::make_fn(loc, header.0, header.1, return_type, statements))
+    Ok(ParsedDefn::make_fn(
+        loc,
+        header.0,
+        header.1,
+        return_type,
+        statements,
+    ))
 }
 
 /// Parse a function signature: <id>(<binding>, ...)
 /// Returns the ID and a list of bindings if successful.
 /// Returns an error otherwise.
-fn parse_fn_sig<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, (&'a str, Vec<SpannedBinding<'a>>)> {
+fn parse_fn_sig<'a>(
+    parser: &mut Parser<'a>,
+) -> ParseResult<'a, (&'a str, Vec<SpannedBinding<'a>>)> {
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))

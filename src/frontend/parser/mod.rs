@@ -1,9 +1,9 @@
-pub mod ast;
+pub(crate) mod ast;
 
-mod parse_defn;
-mod parse_expr;
-mod parse_stmt;
-mod parse_type;
+pub(crate) mod parse_defn;
+pub(crate) mod parse_expr;
+pub(crate) mod parse_stmt;
+pub(crate) mod parse_type;
 
 #[cfg(test)]
 mod tests;
@@ -32,12 +32,14 @@ pub fn parse<'a>(tokens: Vec<SpannedToken<'a>>) -> Vec<ParsedDefn<'a>> {
 
 pub struct Parser<'a> {
     tokens: Peekable<IntoIter<SpannedToken<'a>>>,
+    errors: Vec<ParseError<'a>>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<SpannedToken<'a>>) -> Self {
         Parser {
             tokens: tokens.into_iter().peekable(),
+            errors: Vec::new(),
         }
     }
 
@@ -85,6 +87,13 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn expect_typeparam(&mut self) -> ParseResult<'a, &'a str> {
+        match self.take_if(TokenKind::TypeParam) {
+            Some(Token::TypeParam(name)) => Ok(name),
+            _ => ParseError::new(TokenKind::TypeParam, self.peek()),
+        }
+    }
+
     fn take_if(&mut self, kind: TokenKind) -> Option<Token<'a>> {
         self.tokens.next_if(|t| t.kind() == kind).map(|t| t.node)
     }
@@ -108,5 +117,28 @@ impl<'a> Parser<'a> {
     pub(super) fn advance(&mut self) -> SpannedToken<'a> {
         // EoF sentinel ensures this is always Some
         self.tokens.next().unwrap()
+    }
+
+    pub(super) fn push_error(&mut self, error: ParseError<'a>) {
+        self.errors.push(error);
+    }
+
+    pub(super) fn synchronize(&mut self) {
+        // todo - handle edge case
+        // there's no rbrace closing a defn - then infinite loop in parse_defn
+        // try to find an lbrace - same philosophy as this? but then you need
+        // to somehow break out of that loop parse_defn
+        while self.peek().kind() != TokenKind::EoF {
+            match self.peek().kind() {
+                TokenKind::RBrace
+                | TokenKind::Let
+                | TokenKind::Read
+                | TokenKind::Echo
+                | TokenKind::Return => return,
+                _ => {
+                    self.tokens.next();
+                }
+            }
+        }
     }
 }

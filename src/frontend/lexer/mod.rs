@@ -29,7 +29,10 @@ const TYPES: [(&str, Token); 3] = [
 ];
 
 // operators
-const OPERATORS: [(&str, Token); 27] = [
+const OPERATORS: [(&str, Token); 31] = [
+    // three-char ops
+    (">=.", Token::FGreaterThanOrEq),
+    ("<=.", Token::FLessThanOrEq),
     // two-char ops
     ("!=", Token::NotEq),
     ("&&", Token::And),
@@ -43,6 +46,8 @@ const OPERATORS: [(&str, Token); 27] = [
     ("-.", Token::FMinus),
     ("*.", Token::FTimes),
     ("/.", Token::FDivide),
+    ("<.", Token::FLessThan),
+    (">.", Token::FGreaterThan),
     // one-char ops
     ("=", Token::Assign),
     ("!", Token::Not),
@@ -113,8 +118,16 @@ fn next_token(program: &str) -> (Token<'_>, &str) {
         return read_type_ident(program);
     }
 
+    // determine if the token is a type parameter
+    if first_char == '\'' {
+        return read_type_param(program);
+    }
+
     // otherwise, the token is invalid
-    (Token::Invalid(first_char), &program[first_char.len_utf8()..])
+    (
+        Token::Invalid(first_char),
+        &program[first_char.len_utf8()..],
+    )
 }
 
 /// Discards any whitespace or comments at the start of `program`.
@@ -206,4 +219,26 @@ fn read_type_ident(program: &str) -> (Token<'_>, &str) {
     }
 
     (Token::TypeId(ident), rest)
+}
+
+fn read_type_param(program: &str) -> (Token<'_>, &str) {
+    // greedily grab the apostrophe-prefixed type parameter name
+    let mut first_non_lowercase = program.len();
+    for (index, char) in program.char_indices() {
+        if index == 0 {
+            continue; // skip leading apostrophe
+        }
+        if !char.is_lowercase() {
+            first_non_lowercase = index;
+            break;
+        }
+    }
+
+    if first_non_lowercase > 1 {
+        let param = &program[..first_non_lowercase];
+        let rest = &program[first_non_lowercase..];
+        (Token::TypeParam(param), rest)
+    } else {
+        (Token::Invalid('\''), &program[1..])
+    }
 }

@@ -23,11 +23,20 @@ enum Precedence {
 impl Precedence {
     fn of(token: &SpannedToken) -> Precedence {
         match token.kind() {
-            TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => Precedence::Mult,
-            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => Precedence::Add,
-            TokenKind::LessThan | TokenKind::LessThanOrEq | TokenKind::GreaterThan | TokenKind::GreaterThanOrEq => {
-                Precedence::Rel
+            TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => {
+                Precedence::Mult
             }
+            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => {
+                Precedence::Add
+            }
+            TokenKind::LessThan
+            | TokenKind::LessThanOrEq
+            | TokenKind::GreaterThan
+            | TokenKind::GreaterThanOrEq
+            | TokenKind::FLessThan
+            | TokenKind::FLessThanOrEq
+            | TokenKind::FGreaterThan
+            | TokenKind::FGreaterThanOrEq => Precedence::Rel,
             TokenKind::Eq | TokenKind::NotEq => Precedence::Eq,
             TokenKind::And => Precedence::And,
             TokenKind::Or => Precedence::Or,
@@ -38,11 +47,14 @@ impl Precedence {
     }
 }
 
-pub(super) fn parse_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+pub(crate) fn parse_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     parse_expr_prec(parser, Precedence::NotBinOp)
 }
 
-fn parse_expr_prec<'a>(parser: &mut Parser<'a>, min_prec: Precedence) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_expr_prec<'a>(
+    parser: &mut Parser<'a>,
+    min_prec: Precedence,
+) -> ParseResult<'a, ParsedExpr<'a>> {
     let mut left = parse_null_denotation(parser)?;
 
     loop {
@@ -69,8 +81,10 @@ fn parse_expr_prec<'a>(parser: &mut Parser<'a>, min_prec: Precedence) -> ParseRe
 // Null denotation: atoms and prefix operators.
 fn parse_null_denotation<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
     match parser.peek().kind() {
-        TokenKind::Int | TokenKind::Float | TokenKind::Bool | TokenKind::Id => parse_atom_expr(parser),
-        TokenKind::Minus | TokenKind::Not => parse_unary_expr(parser),
+        TokenKind::Int | TokenKind::Float | TokenKind::Bool | TokenKind::Id => {
+            parse_atom_expr(parser)
+        }
+        TokenKind::Minus | TokenKind::Not | TokenKind::FMinus => parse_unary_expr(parser),
         TokenKind::LParen => parse_paren_expr(parser),
         TokenKind::Fn => parse_closure_expr(parser),
         TokenKind::If => parse_if_expr(parser),
@@ -97,7 +111,10 @@ fn parse_atom_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a
     let loc = parser.peek().offset;
     match parser.peek().kind() {
         TokenKind::Int => Ok(ParsedExpr::new(loc, ExprKind::Int(parser.expect_int()?))),
-        TokenKind::Float => Ok(ParsedExpr::new(loc, ExprKind::Float(parser.expect_float()?))),
+        TokenKind::Float => Ok(ParsedExpr::new(
+            loc,
+            ExprKind::Float(parser.expect_float()?),
+        )),
         TokenKind::Bool => Ok(ParsedExpr::new(loc, ExprKind::Bool(parser.expect_bool()?))),
         TokenKind::Id => Ok(ParsedExpr::new(loc, ExprKind::Id(parser.expect_id()?))),
         _ => unreachable!(),
@@ -110,6 +127,10 @@ fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
         TokenKind::Minus => Ok(ParsedExpr::new(
             loc,
             ExprKind::Neg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)),
+        )),
+        TokenKind::FMinus => Ok(ParsedExpr::new(
+            loc,
+            ExprKind::FNeg(Box::new(parse_expr_prec(parser, Precedence::Mult)?)),
         )),
         TokenKind::Not => Ok(ParsedExpr::new(
             loc,
@@ -192,11 +213,17 @@ fn parse_match_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
     }
 
     parser.expect(TokenKind::RBrace)?;
-    Ok(ParsedExpr::new(loc, ExprKind::Match(Box::new(scrutinee), arms)))
+    Ok(ParsedExpr::new(
+        loc,
+        ExprKind::Match(Box::new(scrutinee), arms),
+    ))
 }
 
 // <left>( <expr>, ... )
-fn parse_call_expr<'a>(parser: &mut Parser<'a>, left: ParsedExpr<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_call_expr<'a>(
+    parser: &mut Parser<'a>,
+    left: ParsedExpr<'a>,
+) -> ParseResult<'a, ParsedExpr<'a>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut args = Vec::new();
@@ -210,5 +237,8 @@ fn parse_call_expr<'a>(parser: &mut Parser<'a>, left: ParsedExpr<'a>) -> ParseRe
     }
 
     parser.expect(TokenKind::RParen)?;
-    Ok(ParsedExpr::new(left.offset, ExprKind::Call(Box::new(left), args)))
+    Ok(ParsedExpr::new(
+        left.offset,
+        ExprKind::Call(Box::new(left), args),
+    ))
 }

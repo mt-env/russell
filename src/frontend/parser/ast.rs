@@ -123,6 +123,7 @@ pub enum ExprKind<'a, A> {
 
     // unary operators
     Neg(Box<SpannedExpr<'a, A>>),  // - <expr>
+    FNeg(Box<SpannedExpr<'a, A>>), // -. <expr>
     Bang(Box<SpannedExpr<'a, A>>), // ! <expr>
 
     // function calls
@@ -138,10 +139,14 @@ pub enum ExprKind<'a, A> {
     FMult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> *. <right>
     FDiv(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> /. <right>
     Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
-    Less(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> < <right>
-    LessEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
-    Greater(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> > <right>
-    GreaterEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
+    Lt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> < <right>
+    LtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
+    Gt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> > <right>
+    GtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
+    FLt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> <. <right>
+    FLtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <=. <right>
+    FGt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> >. <right>
+    FGtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >=. <right>
     Eq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> == <right>
     NotEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> != <right>
     Or(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> || <right>
@@ -177,9 +182,14 @@ where
             ExprKind::Id(id) => write!(f, "{id}"),
             ExprKind::Fn(binding, body) => write!(f, "(fn ({binding}) -> {body})"),
             ExprKind::Neg(expr) => write!(f, "-{expr}"),
+            ExprKind::FNeg(expr) => write!(f, "-.{expr}"),
             ExprKind::Bang(expr) => write!(f, "!{expr}"),
             ExprKind::Call(func, args) => {
-                let args_str = args.iter().map(|arg| format!("{arg}")).collect::<Vec<_>>().join(", ");
+                let args_str = args
+                    .iter()
+                    .map(|arg| format!("{arg}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 write!(f, "{func}({args_str})")
             }
             ExprKind::Plus(left, right) => write!(f, "({left} + {right})"),
@@ -191,10 +201,14 @@ where
             ExprKind::FMult(left, right) => write!(f, "({left} *. {right})"),
             ExprKind::FDiv(left, right) => write!(f, "({left} /. {right})"),
             ExprKind::Pipe(left, right) => write!(f, "({left} |> {right})"),
-            ExprKind::Less(left, right) => write!(f, "({left} < {right})"),
-            ExprKind::LessEq(left, right) => write!(f, "({left} <= {right})"),
-            ExprKind::Greater(left, right) => write!(f, "({left} > {right})"),
-            ExprKind::GreaterEq(left, right) => write!(f, "({left} >= {right})"),
+            ExprKind::Lt(left, right) => write!(f, "({left} < {right})"),
+            ExprKind::LtEq(left, right) => write!(f, "({left} <= {right})"),
+            ExprKind::Gt(left, right) => write!(f, "({left} > {right})"),
+            ExprKind::GtEq(left, right) => write!(f, "({left} >= {right})"),
+            ExprKind::FLt(left, right) => write!(f, "({left} <. {right})"),
+            ExprKind::FLtEq(left, right) => write!(f, "({left} <=. {right})"),
+            ExprKind::FGt(left, right) => write!(f, "({left} >. {right})"),
+            ExprKind::FGtEq(left, right) => write!(f, "({left} >=. {right})"),
             ExprKind::Eq(left, right) => write!(f, "({left} == {right})"),
             ExprKind::NotEq(left, right) => write!(f, "({left} != {right})"),
             ExprKind::Or(left, right) => write!(f, "({left} || {right})"),
@@ -224,7 +238,11 @@ impl<'a> ParsedExpr<'a> {
 }
 
 impl<'a, A> ExprKind<'a, A> {
-    pub fn binop(op: TokenKind, left: SpannedExpr<'a, A>, right: SpannedExpr<'a, A>) -> ExprKind<'a, A> {
+    pub fn binop(
+        op: TokenKind,
+        left: SpannedExpr<'a, A>,
+        right: SpannedExpr<'a, A>,
+    ) -> ExprKind<'a, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
             TokenKind::Plus => ExprKind::Plus(left, right),
@@ -236,10 +254,14 @@ impl<'a, A> ExprKind<'a, A> {
             TokenKind::FTimes => ExprKind::FMult(left, right),
             TokenKind::FDivide => ExprKind::FDiv(left, right),
             TokenKind::Pipe => ExprKind::Pipe(left, right),
-            TokenKind::LessThan => ExprKind::Less(left, right),
-            TokenKind::LessThanOrEq => ExprKind::LessEq(left, right),
-            TokenKind::GreaterThan => ExprKind::Greater(left, right),
-            TokenKind::GreaterThanOrEq => ExprKind::GreaterEq(left, right),
+            TokenKind::LessThan => ExprKind::Lt(left, right),
+            TokenKind::LessThanOrEq => ExprKind::LtEq(left, right),
+            TokenKind::GreaterThan => ExprKind::Gt(left, right),
+            TokenKind::GreaterThanOrEq => ExprKind::GtEq(left, right),
+            TokenKind::FLessThan => ExprKind::FLt(left, right),
+            TokenKind::FLessThanOrEq => ExprKind::FLtEq(left, right),
+            TokenKind::FGreaterThan => ExprKind::FGt(left, right),
+            TokenKind::FGreaterThanOrEq => ExprKind::FGtEq(left, right),
             TokenKind::Eq => ExprKind::Eq(left, right),
             TokenKind::NotEq => ExprKind::NotEq(left, right),
             TokenKind::Or => ExprKind::Or(left, right),
@@ -255,6 +277,8 @@ pub enum Type<'a> {
     Float,
     Bool,
     TypeId(&'a str),
+    TypeParam(&'a str),
+    TypeApp(&'a str, Vec<Type<'a>>),
     Fn(Box<Type<'a>>, Box<Type<'a>>),
 }
 
@@ -265,6 +289,15 @@ impl Display for Type<'_> {
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
             Type::TypeId(id) => write!(f, "{id}"),
+            Type::TypeParam(id) => write!(f, "{id}"),
+            Type::TypeApp(id, args) => {
+                let args_str = args
+                    .iter()
+                    .map(|arg| format!("{arg}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                write!(f, "{id}({args_str})")
+            }
             Type::Fn(arg_type, ret_type) => write!(f, "({arg_type} -> {ret_type})"),
         }
     }
@@ -300,7 +333,13 @@ pub struct MatchArm<'a, A> {
 
 impl<A> Display for MatchArm<'_, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} ({}) -> {}", self.id, self.bindings.join(", "), self.expr)
+        write!(
+            f,
+            "{} ({}) -> {}",
+            self.id,
+            self.bindings.join(", "),
+            self.expr
+        )
     }
 }
 
