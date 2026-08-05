@@ -26,11 +26,7 @@ pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]
     let mut has_main = false;
     for defn in defns {
         match &defn.node {
-            Defn::Typedef {
-                id,
-                ty_vars: _,
-                arms,
-            } => {
+            Defn::Typedef { id, arms, .. } => {
                 ctx.add_type_nodup(id);
                 for arm in arms {
                     ctx.add_value_nodup(arm.0);
