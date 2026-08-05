@@ -62,7 +62,7 @@ fn infer_unop<'a>(
     offset: usize,
     expr: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
     expected_type: TypeId,
 ) -> TypeResult<InferredExpr<'a>> {
     let checked_expr = check(expr, expected_type, ctx)?;
@@ -82,7 +82,7 @@ fn infer_binop<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
     operand_ty: TypeId,
     output_ty: TypeId,
 ) -> TypeResult<InferredExpr<'a>> {
@@ -100,7 +100,7 @@ fn infer_int_arith<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
 ) -> TypeResult<InferredExpr<'a>> {
     infer_binop(
         offset,
@@ -118,7 +118,7 @@ fn infer_float_arith<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
 ) -> TypeResult<InferredExpr<'a>> {
     infer_binop(
         offset,
@@ -136,7 +136,7 @@ fn infer_int_cmp<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
 ) -> TypeResult<InferredExpr<'a>> {
     infer_binop(
         offset,
@@ -154,7 +154,7 @@ fn infer_float_cmp<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
 ) -> TypeResult<InferredExpr<'a>> {
     infer_binop(
         offset,
@@ -172,7 +172,7 @@ fn infer_bool_binop<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
 ) -> TypeResult<InferredExpr<'a>> {
     infer_binop(
         offset,
@@ -190,7 +190,7 @@ fn infer_eq<'a>(
     left: ParsedExpr<'a>,
     right: ParsedExpr<'a>,
     ctx: &mut Context,
-    expr_kind: impl FnOnce(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
+    expr_kind: impl Fn(Box<InferredExpr<'a>>, Box<InferredExpr<'a>>) -> ExprKind<'a, TypeId>,
 ) -> TypeResult<InferredExpr<'a>> {
     let operand_ty = ctx.new_tyvar();
     infer_binop(

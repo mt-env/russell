@@ -1,0 +1,268 @@
+use std::collections::HashMap;
+
+#[cfg(test)]
+mod tests;
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct TypeId(usize);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct TypeParamId(usize);
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct ValueId(usize);
+
+#[derive(Copy, Clone, Eq, Hash, PartialEq, Debug)]
+pub enum Identifier {
+    TypeId(TypeId),
+    TypeParamId(TypeParamId),
+    ValueId(ValueId),
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ResolvedDefn {
+    Typedef {
+        id: TypeId,
+        params: Vec<TypeParamId>,
+        arms: Vec<(ValueId, Vec<ResolvedBinding>)>,
+    },
+
+    Fn {
+        id: ValueId,
+        params: Vec<ResolvedBinding>,
+        ret_ty: ResolvedType,
+        body: Vec<ResolvedStmt>,
+    },
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ResolvedStmt {
+    Let(ValueId, ResolvedExpr),
+    Read(ValueId, ResolvedType),
+    Echo(ResolvedType, ResolvedExpr),
+    Return(ResolvedExpr),
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ResolvedExpr {
+    Int(i64),
+    Bool(bool),
+    Float(f64),
+
+    Id(ValueId),
+
+    Fn(ResolvedBinding, Box<ResolvedExpr>),
+
+    Neg(Box<ResolvedExpr>),
+    FNeg(Box<ResolvedExpr>),
+    Bang(Box<ResolvedExpr>),
+
+    Call(Box<ResolvedExpr>, Vec<ResolvedExpr>),
+
+    Plus(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Minus(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FPlus(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FMinus(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Mult(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FMult(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Div(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FDiv(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Pipe(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Lt(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Gt(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    LtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    GtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FLt(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FGt(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FLtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    FGtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Eq(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    NotEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Or(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    And(Box<ResolvedExpr>, Box<ResolvedExpr>),
+
+    If(Box<ResolvedExpr>, Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Match(Box<ResolvedExpr>, Vec<ResolvedMatchArm>),
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ResolvedType {
+    Int,
+    Float,
+    Bool,
+
+    TypeId(TypeId),
+    TypeParam(TypeParamId),
+    TypeApp(TypeId, Vec<ResolvedType>),
+
+    Fn(Box<ResolvedType>, Box<ResolvedType>),
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ResolvedBinding {
+    id: ValueId,
+    typ: ResolvedType,
+}
+
+impl ResolvedBinding {
+    pub fn new(id: ValueId, typ: ResolvedType) -> Self {
+        Self { id, typ }
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ResolvedMatchArm {
+    id: ValueId,
+    bindings: Vec<ValueId>,
+    expr: ResolvedExpr,
+}
+
+impl ResolvedMatchArm {
+    pub fn new(id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExpr) -> Self {
+        Self { id, bindings, expr }
+    }
+}
+
+pub struct ResolverCtx<'a> {
+    num_typeids: usize,
+    num_typeparamids: usize,
+    num_valueids: usize,
+
+    ids: HashMap<Identifier, &'a str>,
+
+    env: Vec<Env<'a>>,
+}
+
+impl<'a> ResolverCtx<'a> {
+    pub(crate) fn new() -> Self {
+        Self {
+            num_typeids: 0,
+            num_typeparamids: 0,
+            num_valueids: 0,
+            ids: HashMap::new(),
+            env: vec![Env::new()],
+        }
+    }
+
+    pub(super) fn next_typeid(&mut self) -> TypeId {
+        let id = TypeId(self.num_typeids);
+        self.num_typeids += 1;
+        id
+    }
+
+    pub(super) fn next_typeparamid(&mut self) -> TypeParamId {
+        let id = TypeParamId(self.num_typeparamids);
+        self.num_typeparamids += 1;
+        id
+    }
+
+    pub(super) fn next_valueid(&mut self) -> ValueId {
+        let id = ValueId(self.num_valueids);
+        self.num_valueids += 1;
+        id
+    }
+
+    pub(super) fn add_value(&mut self, name: &'a str) -> ValueId {
+        let id = self.next_valueid();
+        self.ids.insert(Identifier::ValueId(id), name);
+        // insert into the current scope so lookups find newly-declared names
+        if let Some(env) = self.env.last_mut() {
+            env.values.insert(name, Identifier::ValueId(id));
+        } else {
+            panic!("No current scope to add value to");
+        }
+        id
+    }
+
+    pub(super) fn add_value_nodup(&mut self, name: &'a str) -> ValueId {
+        match self.lookup_value(name) {
+            Some(_) => panic!("Duplicate value name: {}", name),
+            None => self.add_value(name),
+        }
+    }
+
+    pub(super) fn add_type(&mut self, name: &'a str) -> TypeId {
+        let id = self.next_typeid();
+        self.ids.insert(Identifier::TypeId(id), name);
+        if let Some(env) = self.env.last_mut() {
+            env.values.insert(name, Identifier::TypeId(id));
+        } else {
+            panic!("No current scope to add type to");
+        }
+        id
+    }
+
+    pub(super) fn add_type_nodup(&mut self, name: &'a str) -> TypeId {
+        match self.lookup_type(name) {
+            Some(_) => panic!("Duplicate type name: {}", name),
+            None => self.add_type(name),
+        }
+    }
+
+    pub(super) fn add_typeparam(&mut self, name: &'a str) -> TypeParamId {
+        let id = self.next_typeparamid();
+        self.ids.insert(Identifier::TypeParamId(id), name);
+        if let Some(env) = self.env.last_mut() {
+            env.values.insert(name, Identifier::TypeParamId(id));
+        } else {
+            panic!("No current scope to add type parameter to");
+        }
+        id
+    }
+
+    pub(super) fn push_scope(&mut self) {
+        self.env.push(Env::new());
+    }
+
+    pub(super) fn pop_scope(&mut self) {
+        self.env.pop();
+    }
+
+    pub(super) fn lookup(&self, name: &str) -> Option<Identifier> {
+        for env in self.env.iter().rev() {
+            if let Some(id) = env.values.get(name) {
+                return Some(*id);
+            }
+        }
+        None
+    }
+
+    pub(super) fn lookup_value(&self, name: &str) -> Option<ValueId> {
+        match self.lookup(name) {
+            Some(Identifier::ValueId(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn lookup_type(&self, name: &str) -> Option<TypeId> {
+        match self.lookup(name) {
+            Some(Identifier::TypeId(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn lookup_typeparam(&self, name: &str) -> Option<TypeParamId> {
+        match self.lookup(name) {
+            Some(Identifier::TypeParamId(id)) => Some(id),
+            _ => None,
+        }
+    }
+}
+
+pub struct Env<'a> {
+    values: HashMap<&'a str, Identifier>,
+}
+
+impl<'a> Default for Env<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a> Env<'a> {
+    pub fn new() -> Self {
+        Self {
+            values: HashMap::new(),
+        }
+    }
+}

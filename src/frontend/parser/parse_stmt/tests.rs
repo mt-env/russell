@@ -8,7 +8,7 @@ fn parser_from(input: &str) -> Parser<'_> {
 
 fn parse(input: &str) -> ParsedStmt<'_> {
     let mut p = parser_from(input);
-    super::parse_stmnt(&mut p).unwrap()
+    super::parse_stmt(&mut p).unwrap()
 }
 
 // ─── let ────────────────────────────────────────────────────────────
@@ -58,13 +58,13 @@ fn let_with_identifier() {
 #[test]
 fn let_error_missing_semicolon() {
     let mut p = parser_from("let x = 42");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 #[test]
 fn let_error_missing_assign() {
     let mut p = parser_from("let x 42;");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 // ─── read ───────────────────────────────────────────────────────────
@@ -96,13 +96,13 @@ fn read_bool() {
 #[test]
 fn read_error_missing_semicolon() {
     let mut p = parser_from("read Int x");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 #[test]
 fn read_error_missing_type() {
     let mut p = parser_from("read x;");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 // ─── echo ───────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@ fn echo_with_expression() {
 #[test]
 fn echo_error_missing_semicolon() {
     let mut p = parser_from("echo Int 42");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 // ─── return ─────────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ fn return_with_expression() {
 #[test]
 fn return_error_missing_semicolon() {
     let mut p = parser_from("return 42");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 // ─── dispatch errors ────────────────────────────────────────────────
@@ -201,17 +201,17 @@ fn return_error_missing_semicolon() {
 #[test]
 fn error_on_int_literal() {
     let mut p = parser_from("42;");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 #[test]
 fn error_on_identifier() {
     let mut p = parser_from("foo;");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }
 
 #[test]
 fn error_on_operator() {
     let mut p = parser_from("+;");
-    assert!(super::parse_stmnt(&mut p).is_err());
+    assert!(super::parse_stmt(&mut p).is_err());
 }

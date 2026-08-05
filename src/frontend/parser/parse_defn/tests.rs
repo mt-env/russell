@@ -297,7 +297,11 @@ fn typedef_option_type_params() {
             vec![
                 (
                     "some".into(),
-                    vec![ParsedBinding::new(26, "x".into(), Type::TypeParam("'a".into()))]
+                    vec![ParsedBinding::new(
+                        26,
+                        "x".into(),
+                        Type::TypeParam("'a".into())
+                    )]
                 ),
                 ("none".into(), vec![]),
             ]
@@ -316,11 +320,19 @@ fn typedef_result_type_params() {
             vec![
                 (
                     "ok".into(),
-                    vec![ParsedBinding::new(31, "good".into(), Type::TypeParam("'ok".into()))]
+                    vec![ParsedBinding::new(
+                        31,
+                        "good".into(),
+                        Type::TypeParam("'ok".into())
+                    )]
                 ),
                 (
                     "err".into(),
-                    vec![ParsedBinding::new(47, "bad".into(), Type::TypeParam("'err".into()))]
+                    vec![ParsedBinding::new(
+                        47,
+                        "bad".into(),
+                        Type::TypeParam("'err".into())
+                    )]
                 )
             ]
         )

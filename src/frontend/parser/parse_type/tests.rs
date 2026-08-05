@@ -61,10 +61,7 @@ fn typeapp_nested_args() {
         parse("Map(Int, List(Bool))"),
         Type::TypeApp(
             "Map".into(),
-            vec![
-                Type::Int,
-                Type::TypeApp("List".into(), vec![Type::Bool]),
-            ]
+            vec![Type::Int, Type::TypeApp("List".into(), vec![Type::Bool]),]
         )
     );
 }
@@ -134,10 +131,7 @@ fn fn_type_with_typeapp() {
         parse("List(Int) -> Result(Int, Bool)"),
         Type::Fn(
             Box::new(Type::TypeApp("List".into(), vec![Type::Int])),
-            Box::new(Type::TypeApp(
-                "Result".into(),
-                vec![Type::Int, Type::Bool]
-            )),
+            Box::new(Type::TypeApp("Result".into(), vec![Type::Int, Type::Bool])),
         )
     );
 }
@@ -267,7 +261,11 @@ fn binding_with_typeapp() {
     let b = super::parse_binding(&mut p).unwrap();
     assert_eq!(
         b,
-        ParsedBinding::new(0, "xs".into(), Type::TypeApp("List".into(), vec![Type::Int]))
+        ParsedBinding::new(
+            0,
+            "xs".into(),
+            Type::TypeApp("List".into(), vec![Type::Int])
+        )
     );
 }
 

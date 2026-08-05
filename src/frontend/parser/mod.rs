@@ -1,9 +1,9 @@
-pub mod ast;
+pub(crate) mod ast;
 
-pub mod parse_defn;
-pub mod parse_expr;
-pub mod parse_stmt;
-pub mod parse_type;
+pub(crate) mod parse_defn;
+pub(crate) mod parse_expr;
+pub(crate) mod parse_stmt;
+pub(crate) mod parse_type;
 
 #[cfg(test)]
 mod tests;
