@@ -1,106 +1,126 @@
-use super::{Identifier, ResolverCtx};
+use super::{Env, Identifier, ResolverCtx};
 
 #[test]
 fn lookup_returns_none_for_unknown_name() {
     let ctx = ResolverCtx::new();
-    assert!(ctx.lookup("missing").is_none());
+
+    assert_eq!(ctx.lookup("missing"), None);
+    assert_eq!(ctx.lookup_value("missing"), None);
+    assert_eq!(ctx.lookup_type("Missing"), None);
+    assert_eq!(ctx.lookup_typeparam("'missing"), None);
 }
 
 #[test]
-fn add_value_registers_name_in_current_scope() {
+fn registers_each_identifier_kind() {
     let mut ctx = ResolverCtx::new();
-    let value_id = ctx.add_value("x");
+    let value = ctx.add_value("value");
+    let type_id = ctx.add_type("Type");
+    let parameter = ctx.add_typeparam("'parameter");
 
-    assert!(matches!(
-        ctx.lookup("x"),
-        Some(Identifier::ValueId(id)) if id == value_id
-    ));
+    assert_eq!(ctx.lookup("value"), Some(Identifier::ValueId(value)));
+    assert_eq!(ctx.lookup("Type"), Some(Identifier::TypeId(type_id)));
+    assert_eq!(
+        ctx.lookup("'parameter"),
+        Some(Identifier::TypeParamId(parameter))
+    );
+    assert_eq!(ctx.lookup_value("Type"), None);
+    assert_eq!(ctx.lookup_type("value"), None);
 }
 
 #[test]
-fn lookup_prefers_inner_scope_then_restores_outer_on_pop() {
+fn inner_scope_shadows_outer_scope_and_pop_restores_it() {
     let mut ctx = ResolverCtx::new();
     let outer = ctx.add_value("x");
 
     ctx.push_scope();
     let inner = ctx.add_value("x");
-    assert!(matches!(
-        ctx.lookup("x"),
-        Some(Identifier::ValueId(id)) if id == inner
-    ));
+    assert_eq!(ctx.lookup_value("x"), Some(inner));
 
     ctx.pop_scope();
-    assert!(matches!(
-        ctx.lookup("x"),
-        Some(Identifier::ValueId(id)) if id == outer
-    ));
+    assert_eq!(ctx.lookup_value("x"), Some(outer));
 }
 
 #[test]
-fn lookup_does_not_leak_inner_bindings_after_pop() {
+fn inner_bindings_do_not_leak_after_scope_is_popped() {
     let mut ctx = ResolverCtx::new();
     ctx.push_scope();
-    ctx.add_value("temp");
-    assert!(ctx.lookup("temp").is_some());
+    ctx.add_value("temporary");
 
     ctx.pop_scope();
-    assert!(ctx.lookup("temp").is_none());
+
+    assert_eq!(ctx.lookup_value("temporary"), None);
 }
 
 #[test]
-fn lookup_finds_bindings_across_multiple_nested_scopes() {
+fn lookup_walks_all_enclosing_scopes() {
     let mut ctx = ResolverCtx::new();
     let outer = ctx.add_value("outer");
     ctx.push_scope();
-    ctx.add_value("mid");
+    let middle = ctx.add_value("middle");
     ctx.push_scope();
     let inner = ctx.add_value("inner");
 
-    assert!(matches!(
-        ctx.lookup("outer"),
-        Some(Identifier::ValueId(id)) if id == outer
-    ));
-    assert!(matches!(
-        ctx.lookup("inner"),
-        Some(Identifier::ValueId(id)) if id == inner
-    ));
+    assert_eq!(ctx.lookup_value("outer"), Some(outer));
+    assert_eq!(ctx.lookup_value("middle"), Some(middle));
+    assert_eq!(ctx.lookup_value("inner"), Some(inner));
 }
 
 #[test]
-fn add_value_same_name_in_same_scope_rebinds_to_latest_id() {
+fn rebinding_in_same_scope_uses_latest_id() {
     let mut ctx = ResolverCtx::new();
     let first = ctx.add_value("x");
     let second = ctx.add_value("x");
 
-    assert!(first != second);
-    assert!(matches!(
-        ctx.lookup("x"),
-        Some(Identifier::ValueId(id)) if id == second
-    ));
+    assert_ne!(first, second);
+    assert_eq!(ctx.lookup_value("x"), Some(second));
 }
 
 #[test]
-fn next_id_generators_return_unique_ids() {
+fn id_generators_are_monotonic_and_independent() {
     let mut ctx = ResolverCtx::new();
 
-    let v1 = ctx.next_valueid();
-    let v2 = ctx.next_valueid();
-    assert!(v1 != v2);
+    let first_value = ctx.next_valueid();
+    let second_value = ctx.next_valueid();
+    let first_type = ctx.next_typeid();
+    let second_type = ctx.next_typeid();
+    let first_parameter = ctx.next_typeparamid();
+    let second_parameter = ctx.next_typeparamid();
 
-    let t1 = ctx.next_typeid();
-    let t2 = ctx.next_typeid();
-    assert!(t1 != t2);
-
-    let p1 = ctx.next_typeparamid();
-    let p2 = ctx.next_typeparamid();
-    assert!(p1 != p2);
+    assert_ne!(first_value, second_value);
+    assert_ne!(first_type, second_type);
+    assert_ne!(first_parameter, second_parameter);
 }
 
 #[test]
-fn popping_global_scope_removes_bindings() {
+fn default_environment_is_empty() {
+    let env = Env::default();
+
+    assert!(env.values.is_empty());
+}
+
+#[test]
+#[should_panic(expected = "No current scope to add value to")]
+fn adding_value_without_scope_panics() {
     let mut ctx = ResolverCtx::new();
-    ctx.add_value("x");
-    assert!(ctx.lookup("x").is_some());
     ctx.pop_scope();
-    assert!(ctx.lookup("x").is_none());
+
+    ctx.add_value("value");
+}
+
+#[test]
+#[should_panic(expected = "No current scope to add type to")]
+fn adding_type_without_scope_panics() {
+    let mut ctx = ResolverCtx::new();
+    ctx.pop_scope();
+
+    ctx.add_type("Type");
+}
+
+#[test]
+#[should_panic(expected = "No current scope to add type parameter to")]
+fn adding_type_parameter_without_scope_panics() {
+    let mut ctx = ResolverCtx::new();
+    ctx.pop_scope();
+
+    ctx.add_typeparam("'parameter");
 }

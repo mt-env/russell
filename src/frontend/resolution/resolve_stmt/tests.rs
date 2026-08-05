@@ -8,55 +8,46 @@ use crate::frontend::{
 };
 
 fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedStmt {
-    let mut p = Parser::new(lex(input));
-    let parsed_stmt = parse_stmt(&mut p).unwrap();
-    resolve_stmt::resolve_stmt(ctx, parsed_stmt)
+    let mut parser = Parser::new(lex(input));
+    let parsed = parse_stmt(&mut parser).unwrap();
+    resolve_stmt::resolve_stmt(ctx, parsed)
 }
 
 #[test]
 fn resolves_let_statement_and_binds_name() {
-    let ctx = &mut ResolverCtx::new();
-    let resolved = resolve(ctx, "let x = 7;");
-    let id = ctx.lookup_value("x");
-    assert!(id.is_some(), "expected 'x' to be bound as a value");
-    assert_eq!(
-        resolved,
-        ResolvedStmt::Let(id.unwrap(), ResolvedExpr::Int(7))
-    );
+    let mut ctx = ResolverCtx::new();
+    let resolved = resolve(&mut ctx, "let x = 7;");
+    let x = ctx.lookup_value("x").expect("x should be bound");
+
+    assert_eq!(resolved, ResolvedStmt::Let(x, ResolvedExpr::Int(7)));
 }
 
 #[test]
 fn resolves_let_statement_with_identifier_rhs() {
-    let ctx = &mut ResolverCtx::new();
-    let y_id = ctx.add_value("y");
-    let resolved = resolve(ctx, "let x = y;");
-    let x_id = ctx.lookup_value("x");
-    assert!(x_id.is_some(), "expected 'x' to be bound as a value");
-    assert_eq!(
-        resolved,
-        ResolvedStmt::Let(x_id.unwrap(), ResolvedExpr::Id(y_id))
-    );
+    let mut ctx = ResolverCtx::new();
+    let y = ctx.add_value("y");
+    let resolved = resolve(&mut ctx, "let x = y;");
+    let x = ctx.lookup_value("x").expect("x should be bound");
+
+    assert_eq!(resolved, ResolvedStmt::Let(x, ResolvedExpr::Id(y)));
 }
 
 #[test]
 fn resolves_let_statement_with_shadowing() {
-    let ctx = &mut ResolverCtx::new();
+    let mut ctx = ResolverCtx::new();
     let old = ctx.add_value("x");
-    let resolved = resolve(ctx, "let x = 10;");
-    let new = ctx.lookup_value("x");
-    assert!(new.is_some(), "expected 'x' to be bound as a value");
-    assert!(new.unwrap() != old);
-    assert_eq!(
-        resolved,
-        ResolvedStmt::Let(new.unwrap(), ResolvedExpr::Int(10))
-    );
+    let resolved = resolve(&mut ctx, "let x = 10;");
+    let new = ctx.lookup_value("x").expect("x should be rebound");
+
+    assert_ne!(new, old);
+    assert_eq!(resolved, ResolvedStmt::Let(new, ResolvedExpr::Int(10)));
 }
 
 #[test]
 fn resolves_return_identifier_using_existing_binding() {
-    let ctx = &mut ResolverCtx::new();
+    let mut ctx = ResolverCtx::new();
     let expected = ctx.add_value("x");
-    let resolved = resolve(ctx, "return x;");
+    let resolved = resolve(&mut ctx, "return x;");
     assert_eq!(resolved, ResolvedStmt::Return(ResolvedExpr::Id(expected)));
 }
 
@@ -68,8 +59,7 @@ fn resolves_return_literal_expression() {
 
 #[test]
 fn resolves_return_binary_expression() {
-    let ctx = &mut ResolverCtx::new();
-    let resolved = resolve(ctx, "return 1 + 2;");
+    let resolved = resolve(&mut ResolverCtx::new(), "return 1 + 2;");
     assert_eq!(
         resolved,
         ResolvedStmt::Return(ResolvedExpr::Plus(
@@ -81,14 +71,11 @@ fn resolves_return_binary_expression() {
 
 #[test]
 fn resolves_read_statement() {
-    let ctx = &mut ResolverCtx::new();
-    let resolved = resolve(ctx, "read Int x;");
-    let x_id = ctx.lookup_value("x");
-    assert!(x_id.is_some(), "expected 'x' to be bound as a value");
-    assert_eq!(
-        resolved,
-        ResolvedStmt::Read(x_id.unwrap(), ResolvedType::Int)
-    );
+    let mut ctx = ResolverCtx::new();
+    let resolved = resolve(&mut ctx, "read Int x;");
+    let x = ctx.lookup_value("x").expect("x should be bound");
+
+    assert_eq!(resolved, ResolvedStmt::Read(x, ResolvedType::Int));
 }
 
 #[test]
