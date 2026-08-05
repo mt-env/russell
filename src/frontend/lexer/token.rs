@@ -138,6 +138,13 @@ pub enum TokenKind {
     EoF,
 }
 
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum LexError<'a> {
+    InvalidChar(char),
+    InvalidInt(&'a str),
+    InvalidFloat(&'a str),
+}
+
 impl Display for TokenKind {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
