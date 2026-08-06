@@ -66,7 +66,7 @@ const OPERATORS: [(&str, Token); 31] = [
     ("}", Token::RBrace),
 ];
 
-pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
+pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<LexError<'_>>> {
     let mut lexer = Lexer::new(program);
     // todo - should this be in lexer struct, maybe?
     let mut tokens = Vec::new();
@@ -84,7 +84,12 @@ pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
             }
         }
     }
-    tokens
+
+    if errors.is_empty() {
+        Ok(tokens)
+    } else {
+        Err(errors)
+    }
 }
 
 struct Lexer<'a> {
@@ -98,9 +103,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn next_token(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
-        let program = &self.program[self.offset..];
         self.eat_whitespace();
 
+        let program = &self.program[self.offset..];
         let first_char = match program.chars().next() {
             Some(c) => c,
             None => return Ok(SpannedToken::new(Token::EoF, self.offset)),
@@ -108,7 +113,7 @@ impl<'a> Lexer<'a> {
 
         // determine if the token is an operator
         for (op_str, op_token) in OPERATORS {
-            if let Some(_) = program.strip_prefix(op_str) {
+            if program.starts_with(op_str) {
                 let loc = self.offset;
                 self.offset += op_str.len();
                 return Ok(SpannedToken::new(op_token, loc));

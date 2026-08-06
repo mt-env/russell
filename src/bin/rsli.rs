@@ -11,14 +11,10 @@ fn main() {
     let program = fs::read_to_string(filename).expect("FATAL ERROR: File cannot be read.");
 
     // lex the program
-    let tokens = lexer::lex(&program);
-    let errors = error::lex_error::collect_errors(&tokens);
-    if !errors.is_empty() {
-        for error in errors {
-            println!("{}", error::report(&error.into(), &program, filename));
-        }
-        return;
-    }
+    let tokens = match lexer::lex(&program) {
+        Ok(tokens) => tokens,
+        Err(errors) => todo!("report lexer errors"),
+    };
 
     // parse the program
     let defns = parser::parse(tokens);
