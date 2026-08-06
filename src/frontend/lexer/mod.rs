@@ -3,7 +3,7 @@ pub mod token;
 #[cfg(test)]
 mod tests;
 
-use crate::frontend::lexer::token::{LexError, SpannedToken, Token};
+use crate::frontend::lexer::token::{LexError, SpannedToken, Token, TokenKind};
 
 // reserved keywords
 const KEYWORDS: [(&str, Token); 12] = [
@@ -72,10 +72,10 @@ pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
     loop {
-        match lexer.next_token(program) {
+        match lexer.next_token() {
             Ok(token) => {
-                tokens.push(SpannedToken::new(token, lexer.offset));
-                if matches!(token, Token::EoF) {
+                tokens.push(token);
+                if token.kind() == TokenKind::EoF {
                     break;
                 }
             }
@@ -98,19 +98,21 @@ impl<'a> Lexer<'a> {
         Self { program, offset: 0 }
     }
 
-    fn next_token(&mut self, program: &str) -> Result<Token<'a>, LexError> {
+    fn next_token(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
+        let program = &self.program[self.offset..];
         self.eat_whitespace();
 
         let first_char = match program.chars().next() {
             Some(c) => c,
-            None => return Ok(Token::EoF),
+            None => return Ok(SpannedToken::new(Token::EoF, self.offset)),
         };
 
         // determine if the token is an operator
         for (op_str, op_token) in OPERATORS {
             if let Some(_) = program.strip_prefix(op_str) {
+                let loc = self.offset;
                 self.offset += op_str.len();
-                return Ok(op_token);
+                return Ok(SpannedToken::new(op_token, loc));
             }
         }
 
@@ -135,8 +137,9 @@ impl<'a> Lexer<'a> {
         }
 
         // otherwise, the token is invalid
+        let loc = self.offset;
         self.offset += first_char.len_utf8();
-        Ok(Token::Invalid(first_char))
+        Ok(SpannedToken::new(Token::Invalid(first_char), loc))
     }
 
     /// Discards any whitespace or comments at the start of `program`.
@@ -157,7 +160,7 @@ impl<'a> Lexer<'a> {
         // }
     }
 
-    fn read_num(&mut self) -> Result<Token<'a>, LexError> {
+    fn read_num(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
         // greedily grab all characters that form a number, allowing at most one '.'
         let mut seen_dot = false;
         let program = &self.program[self.offset..];
@@ -180,11 +183,12 @@ impl<'a> Lexer<'a> {
             }
         }
         let digits = &program[..first_non_digit];
+        let loc = self.offset;
         self.offset += first_non_digit;
 
         if seen_dot {
             match digits.parse::<f64>() {
-                Ok(f) => Ok(Token::Float(f)),
+                Ok(f) => Ok(SpannedToken::new(Token::Float(f), loc)),
 
                 // this might not be reachable; i wonder if it'd be better not to check for "only
                 // one dot" and just parse until we hit a non-digit, and let the parse fail if there
@@ -193,14 +197,14 @@ impl<'a> Lexer<'a> {
             }
         } else {
             match digits.parse::<i64>() {
-                Ok(i) => Ok(Token::Int(i)),
+                Ok(i) => Ok(SpannedToken::new(Token::Int(i), loc)),
                 // i think this is just for overflow?
                 Err(_) => Err(LexError::InvalidInt(digits)),
             }
         }
     }
 
-    fn read_ident(&mut self) -> Token<'a> {
+    fn read_ident(&mut self) -> SpannedToken<'a> {
         let program = &self.program[self.offset..];
 
         // greedily grab all characters until we see something that's not a letter
@@ -211,20 +215,22 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
+
         let ident = &program[..first_non_letter];
+        let loc = self.offset;
         self.offset += ident.len();
 
         // check against keywords, fallback to identifier (variable) if no match
         for (keyword_str, keyword_token) in KEYWORDS {
             if ident == keyword_str {
-                return keyword_token;
+                return SpannedToken::new(keyword_token, loc);
             }
         }
 
-        Token::Id(ident)
+        SpannedToken::new(Token::Id(ident), loc)
     }
 
-    fn read_type_ident(&mut self) -> Token<'a> {
+    fn read_type_ident(&mut self) -> SpannedToken<'a> {
         // greedily grab all characters until we see something that's not a letter
         let program = &self.program[self.offset..];
         let mut first_non_letter = program.len();
@@ -234,21 +240,22 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
+        let loc = self.offset;
         let ident = &program[..first_non_letter];
         self.offset += first_non_letter;
 
         // check against keywords, fallback to identifier (variable) if no match
         for (type_str, type_token) in TYPES {
             if ident == type_str {
-                return type_token;
+                return SpannedToken::new(type_token, loc);
             }
         }
 
         // (Token::TypeId(ident), rest)
-        Token::TypeId(ident)
+        SpannedToken::new(Token::TypeId(ident), loc)
     }
 
-    fn read_type_param(&mut self) -> Token<'a> {
+    fn read_type_param(&mut self) -> SpannedToken<'a> {
         // greedily grab the apostrophe-prefixed type parameter name
         let program = &self.program[self.offset..]; // skip leading apostrophe
         let mut first_non_lowercase = program.len();
@@ -262,13 +269,14 @@ impl<'a> Lexer<'a> {
             }
         }
 
+        let loc = self.offset;
         if first_non_lowercase > 1 {
             let param = &program[..first_non_lowercase];
             self.offset += first_non_lowercase;
-            Token::TypeParam(param)
+            SpannedToken::new(Token::TypeParam(param), loc)
         } else {
             self.offset += 1;
-            Token::Invalid('\'')
+            SpannedToken::new(Token::Invalid('\''), loc)
         }
     }
 }
