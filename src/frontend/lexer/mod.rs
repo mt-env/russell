@@ -3,7 +3,7 @@ pub mod token;
 #[cfg(test)]
 mod tests;
 
-use crate::frontend::lexer::token::{LexError, SpannedToken, Token, TokenKind};
+use crate::frontend::lexer::token::{LexError, SpannedLexError, SpannedToken, Token, TokenKind};
 
 // reserved keywords
 const KEYWORDS: [(&str, Token); 12] = [
@@ -66,7 +66,7 @@ const OPERATORS: [(&str, Token); 31] = [
     ("}", Token::RBrace),
 ];
 
-pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<LexError<'_>>> {
+pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<SpannedLexError<'_>>> {
     let mut lexer = Lexer::new(program);
     // todo - should this be in lexer struct, maybe?
     let mut tokens = Vec::new();
@@ -102,7 +102,7 @@ impl<'a> Lexer<'a> {
         Self { program, offset: 0 }
     }
 
-    fn next_token(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
+    fn next_token(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
         self.eat_whitespace();
 
         let program = &self.program[self.offset..];
@@ -137,13 +137,13 @@ impl<'a> Lexer<'a> {
 
         // determine if the token is a type parameter
         if first_char == '\'' {
-            return Ok(self.read_type_param());
+            return self.read_type_param();
         }
 
         // otherwise, the token is invalid
         let loc = self.offset;
         self.offset += first_char.len_utf8();
-        Ok(SpannedToken::new(Token::Invalid(first_char), loc))
+        Err(SpannedLexError::new(LexError::InvalidChar(first_char), loc))
     }
 
     fn eat_whitespace(&mut self) {
@@ -175,7 +175,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_num(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
+    fn read_num(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
         // greedily grab all characters that form a number, allowing at most one '.'
         let mut seen_dot = false;
         let program = &self.program[self.offset..];
@@ -208,13 +208,13 @@ impl<'a> Lexer<'a> {
                 // this might not be reachable; i wonder if it'd be better not to check for "only
                 // one dot" and just parse until we hit a non-digit, and let the parse fail if there
                 // are multiple dots
-                Err(_) => Err(LexError::InvalidFloat(digits)),
+                Err(_) => Err(SpannedLexError::new(LexError::InvalidFloat(digits), loc)),
             }
         } else {
             match digits.parse::<i64>() {
                 Ok(i) => Ok(SpannedToken::new(Token::Int(i), loc)),
                 // i think this is just for overflow?
-                Err(_) => Err(LexError::InvalidInt(digits)),
+                Err(_) => Err(SpannedLexError::new(LexError::InvalidInt(digits), loc)),
             }
         }
     }
@@ -270,7 +270,7 @@ impl<'a> Lexer<'a> {
         SpannedToken::new(Token::TypeId(ident), loc)
     }
 
-    fn read_type_param(&mut self) -> SpannedToken<'a> {
+    fn read_type_param(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
         // greedily grab the apostrophe-prefixed type parameter name
         let program = &self.program[self.offset..]; // skip leading apostrophe
         let mut first_non_lowercase = program.len();
@@ -288,10 +288,10 @@ impl<'a> Lexer<'a> {
         if first_non_lowercase > 1 {
             let param = &program[..first_non_lowercase];
             self.offset += first_non_lowercase;
-            SpannedToken::new(Token::TypeParam(param), loc)
+            Ok(SpannedToken::new(Token::TypeParam(param), loc))
         } else {
             self.offset += 1;
-            SpannedToken::new(Token::Invalid('\''), loc)
+            Err(SpannedLexError::new(LexError::InvalidChar('\''), loc))
         }
     }
 }

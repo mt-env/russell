@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::frontend::types::Spanned;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Token<'a> {
     // primitive values
     Id(&'a str),
@@ -145,6 +145,17 @@ pub enum LexError<'a> {
     InvalidFloat(&'a str),
 }
 
+pub type SpannedLexError<'a> = Spanned<LexError<'a>>;
+
+impl<'a> SpannedLexError<'a> {
+    pub fn new(error: LexError<'a>, offset: usize) -> Self {
+        Spanned {
+            node: error,
+            offset,
+        }
+    }
+}
+
 impl Display for TokenKind {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
@@ -152,6 +163,7 @@ impl Display for TokenKind {
 }
 
 pub type SpannedToken<'a> = Spanned<Token<'a>>;
+impl Copy for SpannedToken<'_> {}
 
 impl<'a> SpannedToken<'a> {
     pub fn new(token: Token<'a>, offset: usize) -> Self {
