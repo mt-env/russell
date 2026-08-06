@@ -87,7 +87,6 @@ pub fn lex(program: &str) -> Vec<SpannedToken<'_>> {
     tokens
 }
 
-#[derive(Clone, Copy)]
 struct Lexer<'a> {
     program: &'a str,
     offset: usize,
@@ -142,22 +141,33 @@ impl<'a> Lexer<'a> {
         Ok(SpannedToken::new(Token::Invalid(first_char), loc))
     }
 
-    /// Discards any whitespace or comments at the start of `program`.
     fn eat_whitespace(&mut self) {
-        todo!()
-        // let mut s = &self.program[self.offset..].chars().into_iter();
-        // while let Some(c) = s.next()
-        //     && c.is_whitespace()
-        // {
-        //     self.offset += c.len_utf8();
-        // }
-        // while s.starts_with("//") {
-        //     s = match s.find('\n') {
-        //         Some(i) => &s[i + 1..],
-        //         None => &s[s.len()..],
-        //     };
-        //     s = s.trim_start();
-        // }
+        loop {
+            // skip whitespace
+            while let Some(c) = self.program[self.offset..].chars().next() {
+                if c.is_whitespace() {
+                    self.offset += c.len_utf8();
+                } else {
+                    break;
+                }
+            }
+
+            // skip line comments
+            let remainder = &self.program[self.offset..];
+            if remainder.starts_with("//") {
+                while let Some(c) = self.program[self.offset..].chars().next() {
+                    self.offset += c.len_utf8();
+                    if c == '\n' {
+                        break;
+                    }
+                }
+
+                // there may be more whitespace/comments afterwards
+                continue;
+            }
+
+            break;
+        }
     }
 
     fn read_num(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
