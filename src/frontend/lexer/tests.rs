@@ -93,26 +93,28 @@ fn float_leading_zero() {
 
 #[test]
 fn float_trailing_dot() {
-    let errors = lex("1.").unwrap_err();
-    assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('.')));
-    assert_eq!(errors[0].offset, 1);
+    let toks = tokens("1.");
+    assert_eq!(toks.len(), 1);
+    assert!(matches!(toks[0], Token::Float(f) if f == 1.0));
 }
 
 #[test]
-fn float_dot_requires_following_digit() {
-    let errors = lex("1.foo").unwrap_err();
-    assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('.')));
-    assert_eq!(errors[0].offset, 1);
+fn float_trailing_dot_before_identifier() {
+    let toks = tokens("1.foo");
+    assert_eq!(toks.len(), 2);
+    assert!(matches!(toks[0], Token::Float(f) if f == 1.0));
+    assert!(matches!(toks[1], Token::Id("foo")));
 }
 
 #[test]
 fn number_with_two_dots() {
     let errors = lex("1.2.3").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('.')));
-    assert_eq!(errors[0].offset, 3);
+    assert!(matches!(
+        errors[0].node,
+        LexError::InvalidFloat("1.2.3")
+    ));
+    assert_eq!(errors[0].offset, 0);
 }
 
 // boolean literals
@@ -218,14 +220,13 @@ fn custom_type_identifier() {
 }
 
 #[test]
-fn type_id_stops_at_non_alpha() {
-    // type identifiers only consume alphabetic chars, not digits or underscores
-    let toks = tokens("Vec2");
+fn type_id_allows_digits_and_underscores() {
+    let toks = tokens("Vec2_Type");
+    assert_eq!(toks.len(), 1);
     match &toks[0] {
-        Token::TypeId(s) => assert_eq!(*s, "Vec"),
+        Token::TypeId(s) => assert_eq!(*s, "Vec2_Type"),
         other => panic!("expected TypeId, got {:?}", other),
     }
-    assert!(matches!(toks[1], Token::Int(2)));
 }
 
 #[test]
