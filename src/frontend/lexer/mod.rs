@@ -160,23 +160,16 @@ impl<'a> Lexer<'a> {
 
     fn read_num(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
         // greedily grab all characters that form a number (numbers and dots)
-        let mut seen_dot = false;
         let program = &self.program[self.offset..];
-        let mut first_non_digit = program.len();
-        for (index, char) in program.char_indices() {
-            if char == '.' {
-                seen_dot = true;
-            } else if !(char.is_numeric()) {
-                first_non_digit = index;
-                break;
-            }
-        }
+        let end = program
+            .find(|c: char| !(c.is_numeric() || c == '.'))
+            .unwrap_or(program.len());
 
-        let digits = &program[..first_non_digit];
+        let digits = &program[..end];
         let loc = self.offset;
-        self.offset += first_non_digit;
+        self.offset += end;
 
-        if seen_dot {
+        if digits.contains('.') {
             match digits.parse::<f64>() {
                 Ok(f) => Ok(SpannedToken::new(Token::Float(f), loc)),
                 Err(_) => Err(SpannedLexError::new(LexError::InvalidFloat(digits), loc)),
@@ -200,7 +193,7 @@ impl<'a> Lexer<'a> {
         let loc = self.offset;
         self.offset += ident.len();
 
-        // check against keywords, fallback to identifier (variable) if no match
+        // check against keywords, fallback to identifier/typeid if no match
         for (keyword_str, keyword_token) in KEYWORDS {
             if ident == keyword_str {
                 return SpannedToken::new(keyword_token, loc);
@@ -212,25 +205,18 @@ impl<'a> Lexer<'a> {
 
     fn read_type_param(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
         // greedily grab the apostrophe-prefixed type parameter name
-        let program = &self.program[self.offset..]; // skip leading apostrophe
-        let mut first_non_lowercase = program.len();
-        for (index, char) in program.char_indices() {
-            if index == 0 {
-                continue; // skip leading apostrophe
-            }
-            if !char.is_lowercase() {
-                first_non_lowercase = index;
-                break;
-            }
-        }
+        let program = &self.program[self.offset..];
+        let end = program[1..]
+            .find(|c: char| !c.is_lowercase())
+            .unwrap_or(program.len() - 1)
+            + 1;
 
         let loc = self.offset;
-        if first_non_lowercase > 1 {
-            let param = &program[..first_non_lowercase];
-            self.offset += first_non_lowercase;
+        self.offset += end;
+        if end > 1 {
+            let param = &program[..end];
             Ok(SpannedToken::new(Token::TypeParam(param), loc))
         } else {
-            self.offset += 1;
             Err(SpannedLexError::new(LexError::InvalidChar('\''), loc))
         }
     }
