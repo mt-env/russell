@@ -1,14 +1,14 @@
-pub mod lex_error;
 pub mod parse_error;
 
 use std::fmt;
 
-use lex_error::LexError;
 use parse_error::ParseError;
+
+use crate::frontend::lexer::token::SpannedLexError;
 
 #[derive(Debug)]
 pub enum CompilerError<'a> {
-    Lex(LexError<'a>),
+    Lex(SpannedLexError<'a>),
     Parse(ParseError<'a>),
 }
 
@@ -30,8 +30,8 @@ impl fmt::Display for CompilerError<'_> {
     }
 }
 
-impl<'a> From<LexError<'a>> for CompilerError<'a> {
-    fn from(e: LexError<'a>) -> Self {
+impl<'a> From<SpannedLexError<'a>> for CompilerError<'a> {
+    fn from(e: SpannedLexError<'a>) -> Self {
         CompilerError::Lex(e)
     }
 }

@@ -152,6 +152,16 @@ impl<'a> SpannedLexError<'a> {
     }
 }
 
+impl Display for LexError<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LexError::InvalidChar(c) => write!(f, "invalid character '{}'", c),
+            LexError::InvalidInt(s) => write!(f, "invalid integer literal '{}'", s),
+            LexError::InvalidFloat(s) => write!(f, "invalid float literal '{}'", s),
+        }
+    }
+}
+
 impl Display for TokenKind {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         todo!()
