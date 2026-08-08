@@ -250,7 +250,7 @@ impl<'a> Lexer<'a> {
         let program = &self.program[self.offset..];
         let mut first_non_letter = program.len();
         for (index, char) in program.char_indices() {
-            if !char.is_alphabetic() {
+            if !(char.is_alphanumeric() || char == '_') {
                 first_non_letter = index;
                 break;
             }
