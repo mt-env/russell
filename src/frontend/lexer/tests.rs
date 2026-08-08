@@ -1,37 +1,27 @@
 use super::lex;
-use super::token::{LexError, Token, TokenKind};
+use super::token::{LexError, Token};
 
-/// helper: lex a string and return just the Token variants (no offsets), excluding EoF
+/// Helper: lex a string and return every Token variant, including EoF.
 fn tokens(input: &str) -> Vec<Token<'_>> {
     lex(input)
         .expect("expected input to lex successfully")
         .into_iter()
-        .filter(|st| !matches!(st.node, Token::EoF))
         .map(|st| st.node)
         .collect()
 }
 
-/// helper: lex a string and return (Token, offset) pairs, excluding EoF
+/// Helper: lex a string and return every (Token, offset) pair, including EoF.
 fn tokens_with_offsets(input: &str) -> Vec<(Token<'_>, usize)> {
     lex(input)
         .expect("expected input to lex successfully")
         .into_iter()
-        .filter(|st| !matches!(st.node, Token::EoF))
         .map(|st| (st.node, st.offset))
         .collect()
 }
 
-/// helper: assert that a single-token input produces the expected token kind
-fn assert_single(input: &str, expected: TokenKind) {
-    let toks = tokens(input);
-    assert_eq!(
-        toks.len(),
-        1,
-        "expected 1 token for {:?}, got {:?}",
-        input,
-        toks
-    );
-    assert_eq!(toks[0].kind(), expected);
+/// helper: assert that a single-token input produces the expected token
+fn assert_single(input: &str, expected: Token<'_>) {
+    assert_eq!(tokens(input), vec![expected, Token::EoF]);
 }
 
 // empty/EoF
@@ -40,7 +30,7 @@ fn assert_single(input: &str, expected: TokenKind) {
 fn empty_input() {
     let result = lex("").unwrap();
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].kind(), TokenKind::EoF);
+    assert_eq!(result[0].node, Token::EoF);
     assert_eq!(result[0].offset, 0);
 }
 
@@ -48,72 +38,56 @@ fn empty_input() {
 fn whitespace_only() {
     let result = lex("   \t\n  ").unwrap();
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].kind(), TokenKind::EoF);
+    assert_eq!(result[0].node, Token::EoF);
 }
 
 // integer literals
 
 #[test]
 fn single_digit_int() {
-    let toks = tokens("5");
-    assert!(matches!(toks[0], Token::Int(5)));
+    assert_eq!(tokens("5"), vec![Token::Int(5), Token::EoF]);
 }
 
 #[test]
 fn multi_digit_int() {
-    let toks = tokens("12345");
-    assert!(matches!(toks[0], Token::Int(12345)));
+    assert_eq!(tokens("12345"), vec![Token::Int(12345), Token::EoF]);
 }
 
 #[test]
 fn zero() {
-    let toks = tokens("0");
-    assert!(matches!(toks[0], Token::Int(0)));
+    assert_eq!(tokens("0"), vec![Token::Int(0), Token::EoF]);
 }
 
 // float literals
 
 #[test]
 fn simple_float() {
-    let toks = tokens("3.14");
-    match &toks[0] {
-        Token::Float(f) => assert!((*f - 3.14).abs() < 1e-10),
-        other => panic!("expected Float, got {:?}", other),
-    }
+    assert_eq!(tokens("3.14"), vec![Token::Float(3.14), Token::EoF]);
 }
 
 #[test]
 fn float_leading_zero() {
-    let toks = tokens("0.5");
-    match &toks[0] {
-        Token::Float(f) => assert!((*f - 0.5).abs() < 1e-10),
-        other => panic!("expected Float, got {:?}", other),
-    }
+    assert_eq!(tokens("0.5"), vec![Token::Float(0.5), Token::EoF]);
 }
 
 #[test]
 fn float_trailing_dot() {
-    let toks = tokens("1.");
-    assert_eq!(toks.len(), 1);
-    assert!(matches!(toks[0], Token::Float(f) if f == 1.0));
+    assert_eq!(tokens("1."), vec![Token::Float(1.0), Token::EoF]);
 }
 
 #[test]
 fn float_trailing_dot_before_identifier() {
-    let toks = tokens("1.foo");
-    assert_eq!(toks.len(), 2);
-    assert!(matches!(toks[0], Token::Float(f) if f == 1.0));
-    assert!(matches!(toks[1], Token::Id("foo")));
+    assert_eq!(
+        tokens("1.foo"),
+        vec![Token::Float(1.0), Token::Id("foo"), Token::EoF]
+    );
 }
 
 #[test]
 fn number_with_two_dots() {
     let errors = lex("1.2.3").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(
-        errors[0].node,
-        LexError::InvalidFloat("1.2.3")
-    ));
+    assert_eq!(errors[0].node, LexError::InvalidFloat("1.2.3"));
     assert_eq!(errors[0].offset, 0);
 }
 
@@ -121,14 +95,12 @@ fn number_with_two_dots() {
 
 #[test]
 fn true_literal() {
-    let toks = tokens("true");
-    assert!(matches!(toks[0], Token::Bool(true)));
+    assert_eq!(tokens("true"), vec![Token::Bool(true), Token::EoF]);
 }
 
 #[test]
 fn false_literal() {
-    let toks = tokens("false");
-    assert!(matches!(toks[0], Token::Bool(false)));
+    assert_eq!(tokens("false"), vec![Token::Bool(false), Token::EoF]);
 }
 
 // keywords
@@ -136,16 +108,16 @@ fn false_literal() {
 #[test]
 fn all_keywords() {
     let cases = [
-        ("echo", TokenKind::Echo),
-        ("else", TokenKind::Else),
-        ("fn", TokenKind::Fn),
-        ("if", TokenKind::If),
-        ("let", TokenKind::Let),
-        ("match", TokenKind::Match),
-        ("read", TokenKind::Read),
-        ("return", TokenKind::Return),
-        ("then", TokenKind::Then),
-        ("typedef", TokenKind::Typedef),
+        ("echo", Token::Echo),
+        ("else", Token::Else),
+        ("fn", Token::Fn),
+        ("if", Token::If),
+        ("let", Token::Let),
+        ("match", Token::Match),
+        ("read", Token::Read),
+        ("return", Token::Return),
+        ("then", Token::Then),
+        ("typedef", Token::Typedef),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -155,104 +127,78 @@ fn all_keywords() {
 #[test]
 fn keyword_prefix_is_identifier() {
     // "letters" starts with "let" but should not be a keyword
-    let toks = tokens("letters");
-    assert_eq!(toks[0].kind(), TokenKind::Id);
-    match &toks[0] {
-        Token::Id(s) => assert_eq!(*s, "letters"),
-        other => panic!("expected Id, got {:?}", other),
-    }
+    assert_eq!(tokens("letters"), vec![Token::Id("letters"), Token::EoF]);
 }
 
 #[test]
 fn keyword_with_suffix_is_identifier() {
-    let toks = tokens("iffoo");
-    assert_eq!(toks[0].kind(), TokenKind::Id);
-
-    let toks = tokens("return_value");
-    assert_eq!(toks[0].kind(), TokenKind::Id);
+    assert_eq!(tokens("iffoo"), vec![Token::Id("iffoo"), Token::EoF]);
+    assert_eq!(
+        tokens("return_value"),
+        vec![Token::Id("return_value"), Token::EoF]
+    );
 }
 
 // identifiers
 
 #[test]
 fn simple_identifier() {
-    let toks = tokens("foo");
-    match &toks[0] {
-        Token::Id(s) => assert_eq!(*s, "foo"),
-        other => panic!("expected Id, got {:?}", other),
-    }
+    assert_eq!(tokens("foo"), vec![Token::Id("foo"), Token::EoF]);
 }
 
 #[test]
 fn identifier_with_underscores() {
-    let toks = tokens("my_var_name");
-    match &toks[0] {
-        Token::Id(s) => assert_eq!(*s, "my_var_name"),
-        other => panic!("expected Id, got {:?}", other),
-    }
+    assert_eq!(
+        tokens("my_var_name"),
+        vec![Token::Id("my_var_name"), Token::EoF]
+    );
 }
 
 #[test]
 fn identifier_with_digits() {
-    let toks = tokens("x2");
-    match &toks[0] {
-        Token::Id(s) => assert_eq!(*s, "x2"),
-        other => panic!("expected Id, got {:?}", other),
-    }
+    assert_eq!(tokens("x2"), vec![Token::Id("x2"), Token::EoF]);
 }
 
 // type identifiers
 
 #[test]
 fn builtin_type_keywords() {
-    assert_single("Int", TokenKind::IntType);
-    assert_single("Float", TokenKind::FloatType);
-    assert_single("Bool", TokenKind::BoolType);
+    assert_single("Int", Token::IntType);
+    assert_single("Float", Token::FloatType);
+    assert_single("Bool", Token::BoolType);
 }
 
 #[test]
 fn custom_type_identifier() {
-    let toks = tokens("MyType");
-    match &toks[0] {
-        Token::TypeId(s) => assert_eq!(*s, "MyType"),
-        other => panic!("expected TypeId, got {:?}", other),
-    }
+    assert_eq!(tokens("MyType"), vec![Token::TypeId("MyType"), Token::EoF]);
 }
 
 #[test]
 fn type_id_allows_digits_and_underscores() {
-    let toks = tokens("Vec2_Type");
-    assert_eq!(toks.len(), 1);
-    match &toks[0] {
-        Token::TypeId(s) => assert_eq!(*s, "Vec2_Type"),
-        other => panic!("expected TypeId, got {:?}", other),
-    }
+    assert_eq!(
+        tokens("Vec2_Type"),
+        vec![Token::TypeId("Vec2_Type"), Token::EoF]
+    );
 }
 
 #[test]
 fn type_param_single_letter() {
-    let toks = tokens("'a");
-    match &toks[0] {
-        Token::TypeParam(s) => assert_eq!(*s, "'a"),
-        other => panic!("expected TypeParam, got {:?}", other),
-    }
+    assert_eq!(tokens("'a"), vec![Token::TypeParam("'a"), Token::EoF]);
 }
 
 #[test]
 fn type_param_stops_at_non_alpha() {
-    let toks = tokens("'abc1");
-    match &toks[0] {
-        Token::TypeParam(s) => assert_eq!(*s, "'abc"),
-        other => panic!("expected TypeParam, got {:?}", other),
-    }
-    assert!(matches!(toks[1], Token::Int(1)));
+    assert_eq!(
+        tokens("'abc1"),
+        vec![Token::TypeParam("'abc"), Token::Int(1), Token::EoF]
+    );
 }
 
 #[test]
 fn invalid_type_param_without_name() {
     let errors = lex("'").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('\'')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('\''));
     assert_eq!(errors[0].offset, 0);
 }
 
@@ -260,7 +206,7 @@ fn invalid_type_param_without_name() {
 fn invalid_type_param_with_uppercase() {
     let errors = lex("'Abc").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('\'')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('\''));
     assert_eq!(errors[0].offset, 0);
 }
 
@@ -268,8 +214,8 @@ fn invalid_type_param_with_uppercase() {
 fn invalid_type_param_without_lowercase() {
     let errors = lex("'_x").unwrap_err();
     assert_eq!(errors.len(), 2);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('\'')));
-    assert!(matches!(errors[1].node, LexError::InvalidChar('_')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('\''));
+    assert_eq!(errors[1].node, LexError::InvalidChar('_'));
     assert_eq!(errors[0].offset, 0);
     assert_eq!(errors[1].offset, 1);
 }
@@ -279,21 +225,21 @@ fn invalid_type_param_without_lowercase() {
 #[test]
 fn single_char_operators() {
     let cases = [
-        ("=", TokenKind::Assign),
-        ("!", TokenKind::Not),
-        ("(", TokenKind::LParen),
-        (")", TokenKind::RParen),
-        ("*", TokenKind::Times),
-        ("+", TokenKind::Plus),
-        (",", TokenKind::Comma),
-        ("-", TokenKind::Minus),
-        ("/", TokenKind::Divide),
-        (":", TokenKind::Colon),
-        (";", TokenKind::Semicolon),
-        ("<", TokenKind::LessThan),
-        (">", TokenKind::GreaterThan),
-        ("{", TokenKind::LBrace),
-        ("}", TokenKind::RBrace),
+        ("=", Token::Assign),
+        ("!", Token::Not),
+        ("(", Token::LParen),
+        (")", Token::RParen),
+        ("*", Token::Times),
+        ("+", Token::Plus),
+        (",", Token::Comma),
+        ("-", Token::Minus),
+        ("/", Token::Divide),
+        (":", Token::Colon),
+        (";", Token::Semicolon),
+        ("<", Token::LessThan),
+        (">", Token::GreaterThan),
+        ("{", Token::LBrace),
+        ("}", Token::RBrace),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -305,22 +251,22 @@ fn single_char_operators() {
 #[test]
 fn two_char_operators() {
     let cases = [
-        ("!=", TokenKind::NotEq),
-        ("&&", TokenKind::And),
-        ("->", TokenKind::Arrow),
-        ("<=", TokenKind::LessThanOrEq),
-        ("==", TokenKind::Eq),
-        (">=", TokenKind::GreaterThanOrEq),
-        ("|>", TokenKind::Pipe),
-        ("||", TokenKind::Or),
-        ("+.", TokenKind::FPlus),
-        ("-.", TokenKind::FMinus),
-        ("*.", TokenKind::FTimes),
-        ("/.", TokenKind::FDivide),
-        ("<.", TokenKind::FLessThan),
-        (">.", TokenKind::FGreaterThan),
-        ("<=.", TokenKind::FLessThanOrEq),
-        (">=.", TokenKind::FGreaterThanOrEq),
+        ("!=", Token::NotEq),
+        ("&&", Token::And),
+        ("->", Token::Arrow),
+        ("<=", Token::LessThanOrEq),
+        ("==", Token::Eq),
+        (">=", Token::GreaterThanOrEq),
+        ("|>", Token::Pipe),
+        ("||", Token::Or),
+        ("+.", Token::FPlus),
+        ("-.", Token::FMinus),
+        ("*.", Token::FTimes),
+        ("/.", Token::FDivide),
+        ("<.", Token::FLessThan),
+        (">.", Token::FGreaterThan),
+        ("<=.", Token::FLessThanOrEq),
+        (">=.", Token::FGreaterThanOrEq),
     ];
     for (input, expected) in cases {
         assert_single(input, expected);
@@ -330,94 +276,89 @@ fn two_char_operators() {
 #[test]
 fn two_char_op_preferred_over_one_char() {
     // "!=" should be NotEq, not Not followed by Assign
-    let toks = tokens("!=");
-    assert_eq!(toks.len(), 1);
-    assert_eq!(toks[0].kind(), TokenKind::NotEq);
+    assert_eq!(tokens("!="), vec![Token::NotEq, Token::EoF]);
 
     // "<=" should be LessThanOrEq, not LessThan followed by Assign
-    let toks = tokens("<=");
-    assert_eq!(toks.len(), 1);
-    assert_eq!(toks[0].kind(), TokenKind::LessThanOrEq);
+    assert_eq!(tokens("<="), vec![Token::LessThanOrEq, Token::EoF]);
 }
 
 #[test]
 fn three_char_op_preferred_over_shorter_prefixes() {
-    let toks = tokens("<=.");
-    assert_eq!(toks.len(), 1);
-    assert_eq!(toks[0].kind(), TokenKind::FLessThanOrEq);
-
-    let toks = tokens(">=.");
-    assert_eq!(toks.len(), 1);
-    assert_eq!(toks[0].kind(), TokenKind::FGreaterThanOrEq);
+    assert_eq!(tokens("<=."), vec![Token::FLessThanOrEq, Token::EoF]);
+    assert_eq!(tokens(">=."), vec![Token::FGreaterThanOrEq, Token::EoF]);
 }
 
 // whitespace handling
 
 #[test]
 fn spaces_between_tokens() {
-    let toks = tokens("1 + 2");
-    assert_eq!(toks.len(), 3);
-    assert!(matches!(toks[0], Token::Int(1)));
-    assert_eq!(toks[1].kind(), TokenKind::Plus);
-    assert!(matches!(toks[2], Token::Int(2)));
+    assert_eq!(
+        tokens("1 + 2"),
+        vec![Token::Int(1), Token::Plus, Token::Int(2), Token::EoF]
+    );
 }
 
 #[test]
 fn tabs_and_newlines() {
-    let toks = tokens("let\n\tx\t=\n5");
-    assert_eq!(toks.len(), 4);
-    assert_eq!(toks[0].kind(), TokenKind::Let);
-    assert_eq!(toks[1].kind(), TokenKind::Id);
-    assert_eq!(toks[2].kind(), TokenKind::Assign);
-    assert!(matches!(toks[3], Token::Int(5)));
+    assert_eq!(
+        tokens("let\n\tx\t=\n5"),
+        vec![
+            Token::Let,
+            Token::Id("x"),
+            Token::Assign,
+            Token::Int(5),
+            Token::EoF
+        ]
+    );
 }
 
 #[test]
 fn no_whitespace_between_tokens() {
-    let toks = tokens("1+2");
-    assert_eq!(toks.len(), 3);
-    assert!(matches!(toks[0], Token::Int(1)));
-    assert_eq!(toks[1].kind(), TokenKind::Plus);
-    assert!(matches!(toks[2], Token::Int(2)));
+    assert_eq!(
+        tokens("1+2"),
+        vec![Token::Int(1), Token::Plus, Token::Int(2), Token::EoF]
+    );
 }
 
 // comments
 
 #[test]
 fn line_comment_skipped() {
-    let toks = tokens("// this is a comment\n42");
-    assert_eq!(toks.len(), 1);
-    assert!(matches!(toks[0], Token::Int(42)));
+    assert_eq!(
+        tokens("// this is a comment\n42"),
+        vec![Token::Int(42), Token::EoF]
+    );
 }
 
 #[test]
 fn comment_at_end_of_line() {
-    let toks = tokens("42 // trailing comment");
-    assert_eq!(toks.len(), 1);
-    assert!(matches!(toks[0], Token::Int(42)));
+    assert_eq!(
+        tokens("42 // trailing comment"),
+        vec![Token::Int(42), Token::EoF]
+    );
 }
 
 #[test]
 fn multiple_comment_lines() {
-    let toks = tokens("// first\n// second\n// third\n7");
-    assert_eq!(toks.len(), 1);
-    assert!(matches!(toks[0], Token::Int(7)));
+    assert_eq!(
+        tokens("// first\n// second\n// third\n7"),
+        vec![Token::Int(7), Token::EoF]
+    );
 }
 
 #[test]
 fn comment_only_no_newline() {
     let result = lex("// just a comment").unwrap();
     assert_eq!(result.len(), 1);
-    assert_eq!(result[0].kind(), TokenKind::EoF);
+    assert_eq!(result[0].node, Token::EoF);
 }
 
 #[test]
 fn comment_between_tokens() {
-    let toks = tokens("1 // add\n+ 2");
-    assert_eq!(toks.len(), 3);
-    assert!(matches!(toks[0], Token::Int(1)));
-    assert_eq!(toks[1].kind(), TokenKind::Plus);
-    assert!(matches!(toks[2], Token::Int(2)));
+    assert_eq!(
+        tokens("1 // add\n+ 2"),
+        vec![Token::Int(1), Token::Plus, Token::Int(2), Token::EoF]
+    );
 }
 
 // invalid tokens
@@ -426,7 +367,7 @@ fn comment_between_tokens() {
 fn invalid_character() {
     let errors = lex("@").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('@')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('@'));
     assert_eq!(errors[0].offset, 0);
 }
 
@@ -434,7 +375,7 @@ fn invalid_character() {
 fn invalid_among_valid() {
     let errors = lex("1 @ 2").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('@')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('@'));
     assert_eq!(errors[0].offset, 2);
 }
 
@@ -442,9 +383,9 @@ fn invalid_among_valid() {
 fn multiple_invalid_chars() {
     let errors = lex("~#$").unwrap_err();
     assert_eq!(errors.len(), 3);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('~')));
-    assert!(matches!(errors[1].node, LexError::InvalidChar('#')));
-    assert!(matches!(errors[2].node, LexError::InvalidChar('$')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('~'));
+    assert_eq!(errors[1].node, LexError::InvalidChar('#'));
+    assert_eq!(errors[2].node, LexError::InvalidChar('$'));
     assert_eq!(errors[0].offset, 0);
     assert_eq!(errors[1].offset, 1);
     assert_eq!(errors[2].offset, 2);
@@ -454,43 +395,57 @@ fn multiple_invalid_chars() {
 
 #[test]
 fn offsets_no_whitespace() {
-    // "1+2" — offsets: 0, 1, 2
-    let toks = tokens_with_offsets("1+2");
-    assert_eq!(toks[0].1, 0);
-    assert_eq!(toks[1].1, 1);
-    assert_eq!(toks[2].1, 2);
+    assert_eq!(
+        tokens_with_offsets("1+2"),
+        vec![
+            (Token::Int(1), 0),
+            (Token::Plus, 1),
+            (Token::Int(2), 2),
+            (Token::EoF, 3),
+        ]
+    );
 }
 
 #[test]
 fn offsets_with_spaces() {
-    // "let x = 5" — offsets: 0, 4, 6, 8
-    let toks = tokens_with_offsets("let x = 5");
-    assert_eq!(toks[0].1, 0); // "let"
-    assert_eq!(toks[1].1, 4); // "x"
-    assert_eq!(toks[2].1, 6); // "="
-    assert_eq!(toks[3].1, 8); // "5"
+    assert_eq!(
+        tokens_with_offsets("let x = 5"),
+        vec![
+            (Token::Let, 0),
+            (Token::Id("x"), 4),
+            (Token::Assign, 6),
+            (Token::Int(5), 8),
+            (Token::EoF, 9),
+        ]
+    );
 }
 
 #[test]
 fn offsets_with_newlines() {
-    let toks = tokens_with_offsets("1\n+\n2");
-    assert_eq!(toks[0].1, 0); // "1"
-    assert_eq!(toks[1].1, 2); // "+"
-    assert_eq!(toks[2].1, 4); // "2"
+    assert_eq!(
+        tokens_with_offsets("1\n+\n2"),
+        vec![
+            (Token::Int(1), 0),
+            (Token::Plus, 2),
+            (Token::Int(2), 4),
+            (Token::EoF, 5),
+        ]
+    );
 }
 
 #[test]
 fn offset_after_comment() {
-    let input = "// comment\n42";
-    let toks = tokens_with_offsets(input);
-    assert_eq!(toks[0].1, 11); // "42" starts after "// comment\n"
+    assert_eq!(
+        tokens_with_offsets("// comment\n42"),
+        vec![(Token::Int(42), 11), (Token::EoF, 13)]
+    );
 }
 
 #[test]
 fn eof_offset() {
     let result = lex("hi").unwrap();
     let eof = result.last().unwrap();
-    assert_eq!(eof.kind(), TokenKind::EoF);
+    assert_eq!(eof.node, Token::EoF);
     assert_eq!(eof.offset, 2);
 }
 
@@ -498,42 +453,46 @@ fn eof_offset() {
 
 #[test]
 fn let_binding() {
-    let toks = tokens("let x = 42;");
-    assert_eq!(toks.len(), 5);
-    assert_eq!(toks[0].kind(), TokenKind::Let);
-    assert_eq!(toks[1].kind(), TokenKind::Id);
-    assert_eq!(toks[2].kind(), TokenKind::Assign);
-    assert!(matches!(toks[3], Token::Int(42)));
-    assert_eq!(toks[4].kind(), TokenKind::Semicolon);
+    assert_eq!(
+        tokens("let x = 42;"),
+        vec![
+            Token::Let,
+            Token::Id("x"),
+            Token::Assign,
+            Token::Int(42),
+            Token::Semicolon,
+            Token::EoF,
+        ]
+    );
 }
 
 #[test]
 fn function_definition() {
     let toks = tokens("fn add(a: Int, b: Int) -> Int { return a + b; }");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        toks,
         vec![
-            TokenKind::Fn,
-            TokenKind::Id, // add
-            TokenKind::LParen,
-            TokenKind::Id, // a
-            TokenKind::Colon,
-            TokenKind::IntType,
-            TokenKind::Comma,
-            TokenKind::Id, // b
-            TokenKind::Colon,
-            TokenKind::IntType,
-            TokenKind::RParen,
-            TokenKind::Arrow,
-            TokenKind::IntType,
-            TokenKind::LBrace,
-            TokenKind::Return,
-            TokenKind::Id, // a
-            TokenKind::Plus,
-            TokenKind::Id, // b
-            TokenKind::Semicolon,
-            TokenKind::RBrace,
+            Token::Fn,
+            Token::Id("add"),
+            Token::LParen,
+            Token::Id("a"),
+            Token::Colon,
+            Token::IntType,
+            Token::Comma,
+            Token::Id("b"),
+            Token::Colon,
+            Token::IntType,
+            Token::RParen,
+            Token::Arrow,
+            Token::IntType,
+            Token::LBrace,
+            Token::Return,
+            Token::Id("a"),
+            Token::Plus,
+            Token::Id("b"),
+            Token::Semicolon,
+            Token::RBrace,
+            Token::EoF,
         ]
     );
 }
@@ -541,18 +500,18 @@ fn function_definition() {
 #[test]
 fn if_then_else() {
     let toks = tokens("if x == 0 then 1 else 2");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        toks,
         vec![
-            TokenKind::If,
-            TokenKind::Id,
-            TokenKind::Eq,
-            TokenKind::Int,
-            TokenKind::Then,
-            TokenKind::Int,
-            TokenKind::Else,
-            TokenKind::Int,
+            Token::If,
+            Token::Id("x"),
+            Token::Eq,
+            Token::Int(0),
+            Token::Then,
+            Token::Int(1),
+            Token::Else,
+            Token::Int(2),
+            Token::EoF,
         ]
     );
 }
@@ -560,50 +519,48 @@ fn if_then_else() {
 #[test]
 fn match_expression() {
     let toks = tokens("match x { 1 -> true };");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        toks,
         vec![
-            TokenKind::Match,
-            TokenKind::Id,
-            TokenKind::LBrace,
-            TokenKind::Int,
-            TokenKind::Arrow,
-            TokenKind::Bool,
-            TokenKind::RBrace,
-            TokenKind::Semicolon,
+            Token::Match,
+            Token::Id("x"),
+            Token::LBrace,
+            Token::Int(1),
+            Token::Arrow,
+            Token::Bool(true),
+            Token::RBrace,
+            Token::Semicolon,
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn pipe_operator_chain() {
-    let toks = tokens("x |> f |> g");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("x |> f |> g"),
         vec![
-            TokenKind::Id,
-            TokenKind::Pipe,
-            TokenKind::Id,
-            TokenKind::Pipe,
-            TokenKind::Id,
+            Token::Id("x"),
+            Token::Pipe,
+            Token::Id("f"),
+            Token::Pipe,
+            Token::Id("g"),
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn typedef_statement() {
-    let toks = tokens("typedef MyList = Int;");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("typedef MyList = Int;"),
         vec![
-            TokenKind::Typedef,
-            TokenKind::TypeId,
-            TokenKind::Assign,
-            TokenKind::IntType,
-            TokenKind::Semicolon,
+            Token::Typedef,
+            Token::TypeId("MyList"),
+            Token::Assign,
+            Token::IntType,
+            Token::Semicolon,
+            Token::EoF,
         ]
     );
 }
@@ -611,146 +568,140 @@ fn typedef_statement() {
 #[test]
 fn generic_typedef_statement() {
     let toks = tokens("typedef Option('a) { some(x: 'a), none() }");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        toks,
         vec![
-            TokenKind::Typedef,
-            TokenKind::TypeId,
-            TokenKind::LParen,
-            TokenKind::TypeParam,
-            TokenKind::RParen,
-            TokenKind::LBrace,
-            TokenKind::Id,
-            TokenKind::LParen,
-            TokenKind::Id,
-            TokenKind::Colon,
-            TokenKind::TypeParam,
-            TokenKind::RParen,
-            TokenKind::Comma,
-            TokenKind::Id,
-            TokenKind::LParen,
-            TokenKind::RParen,
-            TokenKind::RBrace,
+            Token::Typedef,
+            Token::TypeId("Option"),
+            Token::LParen,
+            Token::TypeParam("'a"),
+            Token::RParen,
+            Token::LBrace,
+            Token::Id("some"),
+            Token::LParen,
+            Token::Id("x"),
+            Token::Colon,
+            Token::TypeParam("'a"),
+            Token::RParen,
+            Token::Comma,
+            Token::Id("none"),
+            Token::LParen,
+            Token::RParen,
+            Token::RBrace,
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn boolean_expression() {
-    let toks = tokens("!a && b || c != d");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("!a && b || c != d"),
         vec![
-            TokenKind::Not,
-            TokenKind::Id,
-            TokenKind::And,
-            TokenKind::Id,
-            TokenKind::Or,
-            TokenKind::Id,
-            TokenKind::NotEq,
-            TokenKind::Id,
+            Token::Not,
+            Token::Id("a"),
+            Token::And,
+            Token::Id("b"),
+            Token::Or,
+            Token::Id("c"),
+            Token::NotEq,
+            Token::Id("d"),
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn comparison_operators() {
-    let toks = tokens("a < b <= c > d >= e");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("a < b <= c > d >= e"),
         vec![
-            TokenKind::Id,
-            TokenKind::LessThan,
-            TokenKind::Id,
-            TokenKind::LessThanOrEq,
-            TokenKind::Id,
-            TokenKind::GreaterThan,
-            TokenKind::Id,
-            TokenKind::GreaterThanOrEq,
-            TokenKind::Id,
+            Token::Id("a"),
+            Token::LessThan,
+            Token::Id("b"),
+            Token::LessThanOrEq,
+            Token::Id("c"),
+            Token::GreaterThan,
+            Token::Id("d"),
+            Token::GreaterThanOrEq,
+            Token::Id("e"),
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn float_comparison_operators() {
-    let toks = tokens("a <. b <=. c >. d >=. e");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("a <. b <=. c >. d >=. e"),
         vec![
-            TokenKind::Id,
-            TokenKind::FLessThan,
-            TokenKind::Id,
-            TokenKind::FLessThanOrEq,
-            TokenKind::Id,
-            TokenKind::FGreaterThan,
-            TokenKind::Id,
-            TokenKind::FGreaterThanOrEq,
-            TokenKind::Id,
+            Token::Id("a"),
+            Token::FLessThan,
+            Token::Id("b"),
+            Token::FLessThanOrEq,
+            Token::Id("c"),
+            Token::FGreaterThan,
+            Token::Id("d"),
+            Token::FGreaterThanOrEq,
+            Token::Id("e"),
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn arithmetic_expression() {
-    let toks = tokens("a * b + c - d / e");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("a * b + c - d / e"),
         vec![
-            TokenKind::Id,
-            TokenKind::Times,
-            TokenKind::Id,
-            TokenKind::Plus,
-            TokenKind::Id,
-            TokenKind::Minus,
-            TokenKind::Id,
-            TokenKind::Divide,
-            TokenKind::Id,
+            Token::Id("a"),
+            Token::Times,
+            Token::Id("b"),
+            Token::Plus,
+            Token::Id("c"),
+            Token::Minus,
+            Token::Id("d"),
+            Token::Divide,
+            Token::Id("e"),
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn float_arithmetic_expression() {
-    let toks = tokens("a +. b -. c *. d /. e");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("a +. b -. c *. d /. e"),
         vec![
-            TokenKind::Id,
-            TokenKind::FPlus,
-            TokenKind::Id,
-            TokenKind::FMinus,
-            TokenKind::Id,
-            TokenKind::FTimes,
-            TokenKind::Id,
-            TokenKind::FDivide,
-            TokenKind::Id,
+            Token::Id("a"),
+            Token::FPlus,
+            Token::Id("b"),
+            Token::FMinus,
+            Token::Id("c"),
+            Token::FTimes,
+            Token::Id("d"),
+            Token::FDivide,
+            Token::Id("e"),
+            Token::EoF,
         ]
     );
 }
 
 #[test]
 fn mixed_int_and_float_operators() {
-    let toks = tokens("x + y +. z - a -. b");
-    let kinds: Vec<TokenKind> = toks.iter().map(|t| t.kind()).collect();
     assert_eq!(
-        kinds,
+        tokens("x + y +. z - a -. b"),
         vec![
-            TokenKind::Id,
-            TokenKind::Plus,
-            TokenKind::Id,
-            TokenKind::FPlus,
-            TokenKind::Id,
-            TokenKind::Minus,
-            TokenKind::Id,
-            TokenKind::FMinus,
-            TokenKind::Id,
+            Token::Id("x"),
+            Token::Plus,
+            Token::Id("y"),
+            Token::FPlus,
+            Token::Id("z"),
+            Token::Minus,
+            Token::Id("a"),
+            Token::FMinus,
+            Token::Id("b"),
+            Token::EoF,
         ]
     );
 }
@@ -760,19 +711,13 @@ fn mixed_int_and_float_operators() {
 #[test]
 fn adjacent_operators() {
     // "!=" is NotEq, but "! =" is Not then Assign
-    let toks = tokens("! =");
-    assert_eq!(toks.len(), 2);
-    assert_eq!(toks[0].kind(), TokenKind::Not);
-    assert_eq!(toks[1].kind(), TokenKind::Assign);
+    assert_eq!(tokens("! ="), vec![Token::Not, Token::Assign, Token::EoF]);
 }
 
 #[test]
 fn negative_number_is_minus_then_int() {
     // the lexer doesn't produce negative literals; "-5" is minus then int(5)
-    let toks = tokens("-5");
-    assert_eq!(toks.len(), 2);
-    assert_eq!(toks[0].kind(), TokenKind::Minus);
-    assert!(matches!(toks[1], Token::Int(5)));
+    assert_eq!(tokens("-5"), vec![Token::Minus, Token::Int(5), Token::EoF]);
 }
 
 #[test]
@@ -781,23 +726,25 @@ fn underscore_only_identifier() {
     // it's not lowercase either, so it should be invalid
     let errors = lex("_").unwrap_err();
     assert_eq!(errors.len(), 1);
-    assert!(matches!(errors[0].node, LexError::InvalidChar('_')));
+    assert_eq!(errors[0].node, LexError::InvalidChar('_'));
     assert_eq!(errors[0].offset, 0);
 }
 
 #[test]
 fn echo_and_read_keywords() {
-    let toks = tokens("echo read");
-    assert_eq!(toks[0].kind(), TokenKind::Echo);
-    assert_eq!(toks[1].kind(), TokenKind::Read);
+    assert_eq!(
+        tokens("echo read"),
+        vec![Token::Echo, Token::Read, Token::EoF]
+    );
 }
 
 #[test]
 fn divide_not_confused_with_comment() {
     // "/" alone is Divide, "//" starts a comment
-    let toks = tokens("a / b");
-    assert_eq!(toks.len(), 3);
-    assert_eq!(toks[1].kind(), TokenKind::Divide);
+    assert_eq!(
+        tokens("a / b"),
+        vec![Token::Id("a"), Token::Divide, Token::Id("b"), Token::EoF]
+    );
 }
 
 #[test]
@@ -808,16 +755,40 @@ fn main() -> Int {
     let y = 20;
     return x + y;
 }";
-    let toks = tokens(program);
-    // fn main ( ) -> Int { let x = 10 ; let y = 20 ; return x + y ; }
-    assert_eq!(toks.len(), 23);
-    assert_eq!(toks[0].kind(), TokenKind::Fn);
-    assert_eq!(toks.last().unwrap().kind(), TokenKind::RBrace);
+    assert_eq!(
+        tokens(program),
+        vec![
+            Token::Fn,
+            Token::Id("main"),
+            Token::LParen,
+            Token::RParen,
+            Token::Arrow,
+            Token::IntType,
+            Token::LBrace,
+            Token::Let,
+            Token::Id("x"),
+            Token::Assign,
+            Token::Int(10),
+            Token::Semicolon,
+            Token::Let,
+            Token::Id("y"),
+            Token::Assign,
+            Token::Int(20),
+            Token::Semicolon,
+            Token::Return,
+            Token::Id("x"),
+            Token::Plus,
+            Token::Id("y"),
+            Token::Semicolon,
+            Token::RBrace,
+            Token::EoF,
+        ]
+    );
 }
 
 #[test]
-fn spanned_token_kind_method() {
+fn lex_includes_eof() {
     let result = lex("42").unwrap();
-    assert_eq!(result[0].kind(), TokenKind::Int);
-    assert_eq!(result[1].kind(), TokenKind::EoF);
+    assert_eq!(result[0].node, Token::Int(42));
+    assert_eq!(result[1].node, Token::EoF);
 }
