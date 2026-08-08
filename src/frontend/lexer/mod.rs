@@ -176,27 +176,19 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_num(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
-        // greedily grab all characters that form a number, allowing at most one '.'
+        // greedily grab all characters that form a number (numbers and dots)
         let mut seen_dot = false;
         let program = &self.program[self.offset..];
         let mut first_non_digit = program.len();
         for (index, char) in program.char_indices() {
-            if char == '.' && !seen_dot {
-                if program[index + 1..]
-                    .chars()
-                    .next()
-                    .is_some_and(|next| next.is_ascii_digit())
-                {
-                    seen_dot = true;
-                } else {
-                    first_non_digit = index;
-                    break;
-                }
-            } else if !char.is_ascii_digit() {
+            if char == '.' {
+                seen_dot = true;
+            } else if !(char.is_numeric()) {
                 first_non_digit = index;
                 break;
             }
         }
+
         let digits = &program[..first_non_digit];
         let loc = self.offset;
         self.offset += first_non_digit;
@@ -204,16 +196,11 @@ impl<'a> Lexer<'a> {
         if seen_dot {
             match digits.parse::<f64>() {
                 Ok(f) => Ok(SpannedToken::new(Token::Float(f), loc)),
-
-                // this might not be reachable; i wonder if it'd be better not to check for "only
-                // one dot" and just parse until we hit a non-digit, and let the parse fail if there
-                // are multiple dots
                 Err(_) => Err(SpannedLexError::new(LexError::InvalidFloat(digits), loc)),
             }
         } else {
             match digits.parse::<i64>() {
                 Ok(i) => Ok(SpannedToken::new(Token::Int(i), loc)),
-                // i think this is just for overflow?
                 Err(_) => Err(SpannedLexError::new(LexError::InvalidInt(digits), loc)),
             }
         }
@@ -266,7 +253,6 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        // (Token::TypeId(ident), rest)
         SpannedToken::new(Token::TypeId(ident), loc)
     }
 
