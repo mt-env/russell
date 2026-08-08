@@ -65,8 +65,6 @@ pub enum Token<'a> {
     Or,               // ||
 
     // miscellaneous
-    Invalid(char),
-    Overflow(&'a str),
     EoF,
 }
 
@@ -133,8 +131,6 @@ pub enum TokenKind {
     Or,
 
     // miscellaneous
-    Invalid,
-    Overflow,
     EoF,
 }
 
@@ -235,8 +231,6 @@ impl Token<'_> {
             Token::Eq => TokenKind::Eq,
             Token::Pipe => TokenKind::Pipe,
             Token::Or => TokenKind::Or,
-            Token::Invalid(_) => TokenKind::Invalid,
-            Token::Overflow(_) => TokenKind::Overflow,
             Token::EoF => TokenKind::EoF,
         }
     }
