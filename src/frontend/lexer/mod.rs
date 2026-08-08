@@ -5,8 +5,8 @@ mod tests;
 
 use crate::frontend::lexer::token::{LexError, SpannedLexError, SpannedToken, Token, TokenKind};
 
-// reserved keywords
-const KEYWORDS: [(&str, Token); 12] = [
+const KEYWORDS: [(&str, Token); 15] = [
+    // reserved keywords
     ("echo", Token::Echo),
     ("else", Token::Else),
     ("false", Token::Bool(false)),
@@ -19,10 +19,7 @@ const KEYWORDS: [(&str, Token); 12] = [
     ("then", Token::Then),
     ("true", Token::Bool(true)),
     ("typedef", Token::Typedef),
-];
-
-// type keywords
-const TYPES: [(&str, Token); 3] = [
+    // type keywords
     ("Int", Token::IntType),
     ("Float", Token::FloatType),
     ("Bool", Token::BoolType),
@@ -127,12 +124,12 @@ impl<'a> Lexer<'a> {
 
         // determine if the token is a keyword or variable
         if first_char.is_lowercase() {
-            return Ok(self.read_ident());
+            return Ok(self.read_ident(Token::Id));
         }
 
         // determine if the token is a type identifier
         if first_char.is_uppercase() {
-            return Ok(self.read_type_ident());
+            return Ok(self.read_ident(Token::TypeId));
         }
 
         // determine if the token is a type parameter
@@ -192,19 +189,14 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_ident(&mut self) -> SpannedToken<'a> {
+    fn read_ident(&mut self, make: impl Fn(&'a str) -> Token) -> SpannedToken<'a> {
         let program = &self.program[self.offset..];
 
         // greedily grab all characters until we see something that's not a letter
-        let mut first_non_letter = program.len();
-        for (index, char) in program.char_indices() {
-            if !(char.is_alphanumeric() || char == '_') {
-                first_non_letter = index;
-                break;
-            }
-        }
+        let is_end = |char: char| !(char.is_alphanumeric() || char == '_');
+        let end = program.find(is_end).unwrap_or(program.len());
 
-        let ident = &program[..first_non_letter];
+        let ident = &program[..end];
         let loc = self.offset;
         self.offset += ident.len();
 
@@ -215,31 +207,7 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        SpannedToken::new(Token::Id(ident), loc)
-    }
-
-    fn read_type_ident(&mut self) -> SpannedToken<'a> {
-        // greedily grab all characters until we see something that's not a letter
-        let program = &self.program[self.offset..];
-        let mut first_non_letter = program.len();
-        for (index, char) in program.char_indices() {
-            if !(char.is_alphanumeric() || char == '_') {
-                first_non_letter = index;
-                break;
-            }
-        }
-        let loc = self.offset;
-        let ident = &program[..first_non_letter];
-        self.offset += first_non_letter;
-
-        // check against keywords, fallback to identifier (variable) if no match
-        for (type_str, type_token) in TYPES {
-            if ident == type_str {
-                return SpannedToken::new(type_token, loc);
-            }
-        }
-
-        SpannedToken::new(Token::TypeId(ident), loc)
+        SpannedToken::new(make(ident), loc)
     }
 
     fn read_type_param(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
