@@ -1,9 +1,10 @@
 use super::lex;
-use super::token::{Token, TokenKind};
+use super::token::{LexError, Token, TokenKind};
 
 /// helper: lex a string and return just the Token variants (no offsets), excluding EoF
 fn tokens(input: &str) -> Vec<Token<'_>> {
     lex(input)
+        .expect("expected input to lex successfully")
         .into_iter()
         .filter(|st| !matches!(st.node, Token::EoF))
         .map(|st| st.node)
@@ -13,6 +14,7 @@ fn tokens(input: &str) -> Vec<Token<'_>> {
 /// helper: lex a string and return (Token, offset) pairs, excluding EoF
 fn tokens_with_offsets(input: &str) -> Vec<(Token<'_>, usize)> {
     lex(input)
+        .expect("expected input to lex successfully")
         .into_iter()
         .filter(|st| !matches!(st.node, Token::EoF))
         .map(|st| (st.node, st.offset))
@@ -36,7 +38,7 @@ fn assert_single(input: &str, expected: TokenKind) {
 
 #[test]
 fn empty_input() {
-    let result = lex("");
+    let result = lex("").unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].kind(), TokenKind::EoF);
     assert_eq!(result[0].offset, 0);
@@ -44,7 +46,7 @@ fn empty_input() {
 
 #[test]
 fn whitespace_only() {
-    let result = lex("   \t\n  ");
+    let result = lex("   \t\n  ").unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].kind(), TokenKind::EoF);
 }
@@ -91,27 +93,26 @@ fn float_leading_zero() {
 
 #[test]
 fn float_trailing_dot() {
-    let toks = tokens("1.");
-    assert_eq!(toks[0].kind(), TokenKind::Int);
-    assert_eq!(toks[1].kind(), TokenKind::Invalid);
+    let errors = lex("1.").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('.')));
+    assert_eq!(errors[0].offset, 1);
 }
 
 #[test]
 fn float_dot_requires_following_digit() {
-    let toks = tokens("1.foo");
-    assert_eq!(toks[0].kind(), TokenKind::Int);
-    assert_eq!(toks[1].kind(), TokenKind::Invalid);
-    assert_eq!(toks[2].kind(), TokenKind::Id);
+    let errors = lex("1.foo").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('.')));
+    assert_eq!(errors[0].offset, 1);
 }
 
 #[test]
 fn number_with_two_dots() {
-    // "1.2.3" — first dot is consumed, second dot is not a digit so it stops
-    // should produce Float(1.2) then Invalid('.') then Int(3)
-    let toks = tokens("1.2.3");
-    assert_eq!(toks[0].kind(), TokenKind::Float);
-    assert_eq!(toks[1].kind(), TokenKind::Invalid);
-    assert_eq!(toks[2].kind(), TokenKind::Int);
+    let errors = lex("1.2.3").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('.')));
+    assert_eq!(errors[0].offset, 3);
 }
 
 // boolean literals
@@ -248,24 +249,28 @@ fn type_param_stops_at_non_alpha() {
 
 #[test]
 fn invalid_type_param_without_name() {
-    let toks = tokens("'");
-    assert_eq!(toks.len(), 1);
-    assert!(matches!(toks[0], Token::Invalid('\'')));
+    let errors = lex("'").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('\'')));
+    assert_eq!(errors[0].offset, 0);
 }
 
 #[test]
 fn invalid_type_param_with_uppercase() {
-    let toks = tokens("'Abc");
-    assert_eq!(toks[0].kind(), TokenKind::Invalid);
-    assert_eq!(toks[1].kind(), TokenKind::TypeId);
+    let errors = lex("'Abc").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('\'')));
+    assert_eq!(errors[0].offset, 0);
 }
 
 #[test]
 fn invalid_type_param_without_lowercase() {
-    let toks = tokens("'_x");
-    assert_eq!(toks[0].kind(), TokenKind::Invalid);
-    assert_eq!(toks[1].kind(), TokenKind::Invalid);
-    assert_eq!(toks[2].kind(), TokenKind::Id);
+    let errors = lex("'_x").unwrap_err();
+    assert_eq!(errors.len(), 2);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('\'')));
+    assert!(matches!(errors[1].node, LexError::InvalidChar('_')));
+    assert_eq!(errors[0].offset, 0);
+    assert_eq!(errors[1].offset, 1);
 }
 
 // ─── One-character operators / punctuation ──────────────────────────────────
@@ -400,7 +405,7 @@ fn multiple_comment_lines() {
 
 #[test]
 fn comment_only_no_newline() {
-    let result = lex("// just a comment");
+    let result = lex("// just a comment").unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result[0].kind(), TokenKind::EoF);
 }
@@ -418,30 +423,30 @@ fn comment_between_tokens() {
 
 #[test]
 fn invalid_character() {
-    let toks = tokens("@");
-    assert_eq!(toks.len(), 1);
-    match &toks[0] {
-        Token::Invalid(c) => assert_eq!(*c, '@'),
-        other => panic!("expected Invalid('@'), got {:?}", other),
-    }
+    let errors = lex("@").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('@')));
+    assert_eq!(errors[0].offset, 0);
 }
 
 #[test]
 fn invalid_among_valid() {
-    let toks = tokens("1 @ 2");
-    assert_eq!(toks.len(), 3);
-    assert!(matches!(toks[0], Token::Int(1)));
-    assert!(matches!(toks[1], Token::Invalid('@')));
-    assert!(matches!(toks[2], Token::Int(2)));
+    let errors = lex("1 @ 2").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('@')));
+    assert_eq!(errors[0].offset, 2);
 }
 
 #[test]
 fn multiple_invalid_chars() {
-    let toks = tokens("~#$");
-    assert_eq!(toks.len(), 3);
-    assert!(matches!(toks[0], Token::Invalid('~')));
-    assert!(matches!(toks[1], Token::Invalid('#')));
-    assert!(matches!(toks[2], Token::Invalid('$')));
+    let errors = lex("~#$").unwrap_err();
+    assert_eq!(errors.len(), 3);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('~')));
+    assert!(matches!(errors[1].node, LexError::InvalidChar('#')));
+    assert!(matches!(errors[2].node, LexError::InvalidChar('$')));
+    assert_eq!(errors[0].offset, 0);
+    assert_eq!(errors[1].offset, 1);
+    assert_eq!(errors[2].offset, 2);
 }
 
 // offset tracking
@@ -482,7 +487,7 @@ fn offset_after_comment() {
 
 #[test]
 fn eof_offset() {
-    let result = lex("hi");
+    let result = lex("hi").unwrap();
     let eof = result.last().unwrap();
     assert_eq!(eof.kind(), TokenKind::EoF);
     assert_eq!(eof.offset, 2);
@@ -773,8 +778,10 @@ fn negative_number_is_minus_then_int() {
 fn underscore_only_identifier() {
     // a lone underscore starts with non-uppercase, non-digit, non-operator
     // it's not lowercase either, so it should be invalid
-    let toks = tokens("_");
-    assert_eq!(toks[0].kind(), TokenKind::Invalid);
+    let errors = lex("_").unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0].node, LexError::InvalidChar('_')));
+    assert_eq!(errors[0].offset, 0);
 }
 
 #[test]
@@ -809,7 +816,7 @@ fn main() -> Int {
 
 #[test]
 fn spanned_token_kind_method() {
-    let result = lex("42");
+    let result = lex("42").unwrap();
     assert_eq!(result[0].kind(), TokenKind::Int);
     assert_eq!(result[1].kind(), TokenKind::EoF);
 }
