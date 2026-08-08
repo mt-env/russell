@@ -7,7 +7,7 @@ use crate::frontend::{
 };
 
 fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedExpr {
-    let mut parser = Parser::new(lex(input));
+    let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_expr(&mut parser).unwrap();
     super::resolve_expr(ctx, parsed)
 }
