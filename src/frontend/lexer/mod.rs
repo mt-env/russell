@@ -147,31 +147,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn eat_whitespace(&mut self) {
-        loop {
-            // skip whitespace
-            while let Some(c) = self.program[self.offset..].chars().next() {
-                if c.is_whitespace() {
-                    self.offset += c.len_utf8();
-                } else {
-                    break;
-                }
-            }
+        let remainder = &self.program[self.offset..];
+        self.offset += remainder.len() - remainder.trim_start().len();
 
-            // skip line comments
+        while self.program[self.offset..].starts_with("//") {
             let remainder = &self.program[self.offset..];
-            if remainder.starts_with("//") {
-                while let Some(c) = self.program[self.offset..].chars().next() {
-                    self.offset += c.len_utf8();
-                    if c == '\n' {
-                        break;
-                    }
-                }
+            self.offset += remainder
+                .find('\n')
+                .map_or(remainder.len(), |index| index + 1);
 
-                // there may be more whitespace/comments afterwards
-                continue;
-            }
-
-            break;
+            let remainder = &self.program[self.offset..];
+            self.offset += remainder.len() - remainder.trim_start().len();
         }
     }
 
