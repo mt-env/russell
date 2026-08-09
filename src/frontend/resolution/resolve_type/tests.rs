@@ -9,7 +9,7 @@ use crate::frontend::{
 };
 
 fn resolve_type<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedType {
-    let mut parser = Parser::new(lex(input));
+    let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_type(&mut parser).unwrap();
     super::add_type(ctx, parsed)
 }
@@ -19,7 +19,7 @@ fn resolve_binding<'a>(
     name: &'a str,
     type_source: &'a str,
 ) -> ResolvedBinding {
-    let mut parser = Parser::new(lex(type_source));
+    let mut parser = Parser::new(lex(type_source).expect("test input should lex successfully"));
     let parsed = ParsedBinding::new(0, name, parse_type(&mut parser).unwrap());
     super::add_binding(ctx, parsed)
 }

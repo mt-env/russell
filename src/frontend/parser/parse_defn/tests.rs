@@ -3,7 +3,7 @@ use crate::frontend::parser::Parser;
 use crate::frontend::parser::ast::*;
 
 fn parser_from(input: &str) -> Parser<'_> {
-    Parser::new(lex(input))
+    Parser::new(lex(input).expect("test input should lex successfully"))
 }
 
 fn parse(input: &str) -> ParsedDefn<'_> {

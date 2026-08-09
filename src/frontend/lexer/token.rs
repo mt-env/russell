@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::frontend::types::Spanned;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Token<'a> {
     // primitive values
     Id(&'a str),
@@ -65,8 +65,6 @@ pub enum Token<'a> {
     Or,               // ||
 
     // miscellaneous
-    Invalid(char),
-    Overflow(&'a str),
     EoF,
 }
 
@@ -133,9 +131,35 @@ pub enum TokenKind {
     Or,
 
     // miscellaneous
-    Invalid,
-    Overflow,
     EoF,
+}
+
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum LexError<'a> {
+    InvalidChar(char),
+    InvalidInt(&'a str),
+    InvalidFloat(&'a str),
+}
+
+pub type SpannedLexError<'a> = Spanned<LexError<'a>>;
+
+impl<'a> SpannedLexError<'a> {
+    pub fn new(error: LexError<'a>, offset: usize) -> Self {
+        Spanned {
+            node: error,
+            offset,
+        }
+    }
+}
+
+impl Display for LexError<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LexError::InvalidChar(c) => write!(f, "invalid character '{}'", c),
+            LexError::InvalidInt(s) => write!(f, "invalid integer literal '{}'", s),
+            LexError::InvalidFloat(s) => write!(f, "invalid float literal '{}'", s),
+        }
+    }
 }
 
 impl Display for TokenKind {
@@ -145,6 +169,7 @@ impl Display for TokenKind {
 }
 
 pub type SpannedToken<'a> = Spanned<Token<'a>>;
+impl Copy for SpannedToken<'_> {}
 
 impl<'a> SpannedToken<'a> {
     pub fn new(token: Token<'a>, offset: usize) -> Self {
@@ -216,8 +241,6 @@ impl Token<'_> {
             Token::Eq => TokenKind::Eq,
             Token::Pipe => TokenKind::Pipe,
             Token::Or => TokenKind::Or,
-            Token::Invalid(_) => TokenKind::Invalid,
-            Token::Overflow(_) => TokenKind::Overflow,
             Token::EoF => TokenKind::EoF,
         }
     }

@@ -7,7 +7,9 @@ use crate::frontend::{
 };
 
 fn resolve(input: &str) -> Vec<ResolvedDefn> {
-    super::resolve(parse(lex(input)))
+    super::resolve(parse(
+        lex(input).expect("test input should lex successfully"),
+    ))
 }
 
 #[test]
