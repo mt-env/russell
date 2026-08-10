@@ -14,6 +14,9 @@ pub struct TypeParamId(usize);
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ValueId(usize);
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct ExprId(usize);
+
 #[derive(Copy, Clone, Eq, Hash, PartialEq, Debug)]
 pub enum Identifier {
     TypeId(TypeId),
@@ -155,14 +158,14 @@ pub enum ResolvedExprKind {
 
 #[derive(PartialEq, Debug)]
 pub struct ResolvedExprData {
-    id: usize,
+    id: ExprId,
     kind: ResolvedExprKind,
 }
 
 pub type ResolvedExpr = Spanned<ResolvedExprData>;
 
 impl ResolvedExpr {
-    pub fn new(offset: usize, id: usize, kind: ResolvedExprKind) -> Self {
+    pub fn new(offset: usize, id: ExprId, kind: ResolvedExprKind) -> Self {
         Spanned {
             offset,
             node: ResolvedExprData { id, kind },
@@ -265,8 +268,8 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(super) fn next_exprid(&mut self) -> usize {
-        let id = self.num_exprs;
+    pub(super) fn next_exprid(&mut self) -> ExprId {
+        let id = ExprId(self.num_exprs);
         self.num_exprs += 1;
         id
     }
