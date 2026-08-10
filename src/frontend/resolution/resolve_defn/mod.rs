@@ -2,31 +2,33 @@ use crate::frontend::{
     parser::ast::{Defn, ParsedBinding, ParsedDefn, ParsedStmt, Type},
     resolution::{
         resolve_stmt, resolve_type,
-        types::{ResolvedDefnKind, ResolverCtx},
+        types::{ResolvedDefn, ResolverCtx},
     },
 };
 
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefnKind {
+pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefn {
+    let loc = defn.offset;
     match defn.node {
-        Defn::Typedef { id, ty_vars, arms } => resolve_typedef(ctx, id, ty_vars, arms),
+        Defn::Typedef { id, ty_vars, arms } => resolve_typedef(loc, ctx, id, ty_vars, arms),
         Defn::Fn {
             name,
             bindings,
             ret_ty,
             body,
-        } => resolve_fn(ctx, name, bindings, ret_ty, body),
+        } => resolve_fn(loc, ctx, name, bindings, ret_ty, body),
     }
 }
 
 fn resolve_typedef<'a>(
+    offset: usize,
     ctx: &mut ResolverCtx<'a>,
     id: &'a str,
     ty_vars: Vec<&'a str>,
     arms: Vec<(&'a str, Vec<ParsedBinding<'a>>)>,
-) -> ResolvedDefnKind {
+) -> ResolvedDefn {
     // fetch type ID from global scope (should have been added in init_global_scope)
     let Some(type_id) = ctx.lookup_type(id) else {
         panic!("Type {} not found in scope", id);
@@ -64,20 +66,17 @@ fn resolve_typedef<'a>(
 
     ctx.pop_scope();
 
-    ResolvedDefnKind::Typedef {
-        id: type_id,
-        params: resolved_type_params,
-        arms: resolved_arms,
-    }
+    ResolvedDefn::mk_typedef(offset, type_id, resolved_type_params, resolved_arms)
 }
 
 fn resolve_fn<'a>(
+    offset: usize,
     ctx: &mut ResolverCtx<'a>,
     name: &'a str,
     bindings: Vec<ParsedBinding<'a>>,
     ret_ty: Type<'a>,
     body: Vec<ParsedStmt<'a>>,
-) -> ResolvedDefnKind {
+) -> ResolvedDefn {
     ctx.push_scope();
 
     // find function name ID and return type
@@ -85,7 +84,7 @@ fn resolve_fn<'a>(
         panic!("Function {} not found in scope", name);
     };
 
-    let ret_ty_id = resolve_type::add_type(ctx, ret_ty);
+    let resolved_ret_ty = resolve_type::add_type(ctx, ret_ty);
 
     // add all bindings to scope
     let mut resolved_bindings = Vec::new();
@@ -101,10 +100,11 @@ fn resolve_fn<'a>(
 
     ctx.pop_scope();
 
-    ResolvedDefnKind::Fn {
-        id: fn_id,
-        params: resolved_bindings,
-        ret_ty: ret_ty_id,
-        body: resolved_body,
-    }
+    ResolvedDefn::mk_fn(
+        offset,
+        fn_id,
+        resolved_bindings,
+        resolved_ret_ty,
+        resolved_body,
+    )
 }
