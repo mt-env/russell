@@ -1,6 +1,6 @@
 use crate::frontend::{
     parser::ast::{ParsedBinding, Type},
-    resolution::types::{ResolvedBindingData, ResolvedType, ResolverCtx, TypeId, TypeParamId},
+    resolution::types::{ResolvedBinding, ResolvedType, ResolverCtx, TypeId, TypeParamId},
 };
 
 #[cfg(test)]
@@ -94,19 +94,19 @@ fn lookup_fn<'a>(
 pub(super) fn add_binding<'a>(
     ctx: &mut ResolverCtx<'a>,
     binding: ParsedBinding<'a>,
-) -> ResolvedBindingData {
+) -> ResolvedBinding {
     let value_id = ctx.add_value(binding.node.id);
     let resolved_type = add_type(ctx, binding.node.typ);
-    ResolvedBindingData::new(value_id, resolved_type)
+    ResolvedBinding::new(binding.offset, value_id, resolved_type)
 }
 
 pub(super) fn add_binding_no_shadowing<'a>(
     ctx: &mut ResolverCtx<'a>,
     binding: ParsedBinding<'a>,
-) -> ResolvedBindingData {
+) -> ResolvedBinding {
     let value_id = ctx.add_value_nodup(binding.node.id);
     let resolved_type = add_type(ctx, binding.node.typ);
-    ResolvedBindingData::new(value_id, resolved_type)
+    ResolvedBinding::new(binding.offset, value_id, resolved_type)
 }
 
 // adds a binding but won't automatically create a new typeparam
@@ -114,8 +114,12 @@ pub(super) fn add_binding_no_shadowing<'a>(
 pub(super) fn add_binding_existing_typaram<'a>(
     ctx: &mut ResolverCtx<'a>,
     binding: ParsedBinding<'a>,
-) -> Option<ResolvedBindingData> {
+) -> Option<ResolvedBinding> {
     let value_id = ctx.add_value(binding.node.id);
     let resolved_type = lookup_type(ctx, binding.node.typ)?;
-    Some(ResolvedBindingData::new(value_id, resolved_type))
+    Some(ResolvedBinding::new(
+        binding.offset,
+        value_id,
+        resolved_type,
+    ))
 }
