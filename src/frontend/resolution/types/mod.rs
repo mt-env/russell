@@ -119,7 +119,7 @@ pub enum ResolvedExprKind {
 
     Id(ValueId),
 
-    Fn(ResolvedBindingData, Box<ResolvedExpr>),
+    Fn(ResolvedBinding, Box<ResolvedExpr>),
 
     Neg(Box<ResolvedExpr>),
     FNeg(Box<ResolvedExpr>),
@@ -161,6 +161,15 @@ pub struct ResolvedExprData {
 
 pub type ResolvedExpr = Spanned<ResolvedExprData>;
 
+impl ResolvedExpr {
+    pub fn new(offset: usize, id: usize, kind: ResolvedExprKind) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedExprData { id, kind },
+        }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum ResolvedType {
     Int,
@@ -201,13 +210,13 @@ impl ResolvedBindingData {
 pub struct ResolvedMatchArmData {
     id: ValueId,
     bindings: Vec<ValueId>,
-    expr: ResolvedExprKind,
+    expr: ResolvedExpr,
 }
 
 pub type ResolvedMatchArm = Spanned<ResolvedMatchArmData>;
 
 impl ResolvedMatchArm {
-    pub fn new(offset: usize, id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExprKind) -> Self {
+    pub fn new(offset: usize, id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExpr) -> Self {
         Self {
             offset,
             node: ResolvedMatchArmData { id, bindings, expr },
@@ -219,6 +228,7 @@ pub struct ResolverCtx<'a> {
     num_typeids: usize,
     num_typeparamids: usize,
     num_valueids: usize,
+    num_exprs: usize,
 
     ids: HashMap<Identifier, &'a str>,
 
@@ -231,6 +241,7 @@ impl<'a> ResolverCtx<'a> {
             num_typeids: 0,
             num_typeparamids: 0,
             num_valueids: 0,
+            num_exprs: 0,
             ids: HashMap::new(),
             env: vec![Env::new()],
         }
@@ -251,6 +262,12 @@ impl<'a> ResolverCtx<'a> {
     pub(super) fn next_valueid(&mut self) -> ValueId {
         let id = ValueId(self.num_valueids);
         self.num_valueids += 1;
+        id
+    }
+
+    pub(super) fn next_exprid(&mut self) -> usize {
+        let id = self.num_exprs;
+        self.num_exprs += 1;
         id
     }
 
