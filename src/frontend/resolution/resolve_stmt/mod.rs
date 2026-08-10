@@ -2,14 +2,14 @@ use crate::frontend::{
     parser::ast::{ParsedExpr, ParsedStmt, Stmt, Type},
     resolution::{
         resolve_expr, resolve_type,
-        types::{ResolvedStmt, ResolverCtx},
+        types::{ResolvedStmtKind, ResolverCtx},
     },
 };
 
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_stmt<'a>(ctx: &mut ResolverCtx<'a>, stmt: ParsedStmt<'a>) -> ResolvedStmt {
+pub fn resolve_stmt<'a>(ctx: &mut ResolverCtx<'a>, stmt: ParsedStmt<'a>) -> ResolvedStmtKind {
     // TODO - retain source location information for error reporting
     match stmt.node {
         Stmt::Let(id, expr) => resolve_let(ctx, id, expr),
@@ -19,24 +19,32 @@ pub fn resolve_stmt<'a>(ctx: &mut ResolverCtx<'a>, stmt: ParsedStmt<'a>) -> Reso
     }
 }
 
-fn resolve_let<'a>(ctx: &mut ResolverCtx<'a>, id: &'a str, expr: ParsedExpr<'a>) -> ResolvedStmt {
+fn resolve_let<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    id: &'a str,
+    expr: ParsedExpr<'a>,
+) -> ResolvedStmtKind {
     let resolved_expr = resolve_expr::resolve_expr(ctx, expr);
     let value_id = ctx.add_value(id);
-    ResolvedStmt::Let(value_id, resolved_expr)
+    ResolvedStmtKind::Let(value_id, resolved_expr)
 }
 
-fn resolve_read<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>, id: &'a str) -> ResolvedStmt {
+fn resolve_read<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>, id: &'a str) -> ResolvedStmtKind {
     let value_id = ctx.add_value(id);
-    ResolvedStmt::Read(value_id, resolve_type::add_type(ctx, ty))
+    ResolvedStmtKind::Read(value_id, resolve_type::add_type(ctx, ty))
 }
 
-fn resolve_echo<'a>(ctx: &mut ResolverCtx<'a>, ty: Type<'a>, expr: ParsedExpr<'a>) -> ResolvedStmt {
-    ResolvedStmt::Echo(
+fn resolve_echo<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    ty: Type<'a>,
+    expr: ParsedExpr<'a>,
+) -> ResolvedStmtKind {
+    ResolvedStmtKind::Echo(
         resolve_type::add_type(ctx, ty),
         resolve_expr::resolve_expr(ctx, expr),
     )
 }
 
-fn resolve_return<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> ResolvedStmt {
-    ResolvedStmt::Return(resolve_expr::resolve_expr(ctx, expr))
+fn resolve_return<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> ResolvedStmtKind {
+    ResolvedStmtKind::Return(resolve_expr::resolve_expr(ctx, expr))
 }

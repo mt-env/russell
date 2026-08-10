@@ -2,11 +2,12 @@ use crate::frontend::{
     lexer::lex,
     parser::{Parser, parse_defn::parse_defn},
     resolution::types::{
-        ResolvedBinding, ResolvedDefn, ResolvedExpr, ResolvedStmt, ResolvedType, ResolverCtx,
+        ResolvedBindingData, ResolvedDefnKind, ResolvedExprKind, ResolvedStmtKind, ResolvedType,
+        ResolverCtx,
     },
 };
 
-fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedDefn {
+fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedDefnKind {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_defn(&mut parser).unwrap();
     super::resolve_defn(ctx, parsed)
@@ -19,11 +20,11 @@ fn resolves_simple_function_definition() {
 
     assert_eq!(
         resolve(&mut ctx, "fn main() -> Int { return 0; }"),
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: main,
             params: vec![],
             ret_ty: ResolvedType::Int,
-            body: vec![ResolvedStmt::Return(ResolvedExpr::Int(0))],
+            body: vec![ResolvedStmtKind::Return(ResolvedExprKind::Int(0))],
         }
     );
 }
@@ -45,22 +46,22 @@ fn resolves_function_parameters_and_body_bindings() {
             &mut ctx,
             "fn add(x: Int, y: Int) -> Int { let sum = x + y; return sum; }",
         ),
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: add,
             params: vec![
-                ResolvedBinding::new(x, ResolvedType::Int),
-                ResolvedBinding::new(y, ResolvedType::Int),
+                ResolvedBindingData::new(x, ResolvedType::Int),
+                ResolvedBindingData::new(y, ResolvedType::Int),
             ],
             ret_ty: ResolvedType::Int,
             body: vec![
-                ResolvedStmt::Let(
+                ResolvedStmtKind::Let(
                     sum,
-                    ResolvedExpr::Plus(
-                        Box::new(ResolvedExpr::Id(x)),
-                        Box::new(ResolvedExpr::Id(y)),
+                    ResolvedExprKind::Plus(
+                        Box::new(ResolvedExprKind::Id(x)),
+                        Box::new(ResolvedExprKind::Id(y)),
                     ),
                 ),
-                ResolvedStmt::Return(ResolvedExpr::Id(sum)),
+                ResolvedStmtKind::Return(ResolvedExprKind::Id(sum)),
             ],
         }
     );
@@ -91,19 +92,19 @@ fn closure_parameter_shadows_function_parameter_only_inside_closure() {
                 return x; \
             }",
         ),
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: shadow,
-            params: vec![ResolvedBinding::new(outer_x, ResolvedType::Int)],
+            params: vec![ResolvedBindingData::new(outer_x, ResolvedType::Int)],
             ret_ty: ResolvedType::Int,
             body: vec![
-                ResolvedStmt::Let(
+                ResolvedStmtKind::Let(
                     closure,
-                    ResolvedExpr::Fn(
-                        ResolvedBinding::new(inner_x, ResolvedType::Float),
-                        Box::new(ResolvedExpr::Id(inner_x)),
+                    ResolvedExprKind::Fn(
+                        ResolvedBindingData::new(inner_x, ResolvedType::Float),
+                        Box::new(ResolvedExprKind::Id(inner_x)),
                     ),
                 ),
-                ResolvedStmt::Return(ResolvedExpr::Id(outer_x)),
+                ResolvedStmtKind::Return(ResolvedExprKind::Id(outer_x)),
             ],
         }
     );
@@ -132,13 +133,13 @@ fn resolves_typedef_definition() {
 
     assert_eq!(
         resolve(&mut ctx, "typedef Option('a) { some(value: 'a), none() }"),
-        ResolvedDefn::Typedef {
+        ResolvedDefnKind::Typedef {
             id: option,
             params: vec![parameter],
             arms: vec![
                 (
                     some,
-                    vec![ResolvedBinding::new(
+                    vec![ResolvedBindingData::new(
                         value,
                         ResolvedType::TypeParam(parameter),
                     )],
@@ -178,17 +179,23 @@ fn resolves_typedef_with_multiple_parameters_and_arms() {
             &mut ctx,
             "typedef Result('ok, 'err) { ok(good: 'ok), err(bad: 'err) }",
         ),
-        ResolvedDefn::Typedef {
+        ResolvedDefnKind::Typedef {
             id: result,
             params: vec![ok_type, err_type],
             arms: vec![
                 (
                     ok,
-                    vec![ResolvedBinding::new(good, ResolvedType::TypeParam(ok_type))],
+                    vec![ResolvedBindingData::new(
+                        good,
+                        ResolvedType::TypeParam(ok_type)
+                    )],
                 ),
                 (
                     err,
-                    vec![ResolvedBinding::new(bad, ResolvedType::TypeParam(err_type))],
+                    vec![ResolvedBindingData::new(
+                        bad,
+                        ResolvedType::TypeParam(err_type)
+                    )],
                 ),
             ],
         }
@@ -212,17 +219,17 @@ fn repeated_generic_function_type_parameter_resolves_to_one_id() {
             &mut ctx,
             "fn choose(x: 'a, y: 'a) -> 'a { return if true then x else y; }",
         ),
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: choose,
             params: vec![
-                ResolvedBinding::new(x, ResolvedType::TypeParam(parameter)),
-                ResolvedBinding::new(y, ResolvedType::TypeParam(parameter)),
+                ResolvedBindingData::new(x, ResolvedType::TypeParam(parameter)),
+                ResolvedBindingData::new(y, ResolvedType::TypeParam(parameter)),
             ],
             ret_ty: ResolvedType::TypeParam(parameter),
-            body: vec![ResolvedStmt::Return(ResolvedExpr::If(
-                Box::new(ResolvedExpr::Bool(true)),
-                Box::new(ResolvedExpr::Id(x)),
-                Box::new(ResolvedExpr::Id(y)),
+            body: vec![ResolvedStmtKind::Return(ResolvedExprKind::If(
+                Box::new(ResolvedExprKind::Bool(true)),
+                Box::new(ResolvedExprKind::Id(x)),
+                Box::new(ResolvedExprKind::Id(y)),
             ))],
         }
     );
@@ -244,16 +251,16 @@ fn distinct_generic_function_type_parameters_resolve_to_distinct_ids() {
 
     assert_eq!(
         resolve(&mut ctx, "fn convert(x: 'a, y: 'b) -> 'c { return x + y; }"),
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: convert,
             params: vec![
-                ResolvedBinding::new(x, ResolvedType::TypeParam(x_type)),
-                ResolvedBinding::new(y, ResolvedType::TypeParam(y_type)),
+                ResolvedBindingData::new(x, ResolvedType::TypeParam(x_type)),
+                ResolvedBindingData::new(y, ResolvedType::TypeParam(y_type)),
             ],
             ret_ty: ResolvedType::TypeParam(return_type),
-            body: vec![ResolvedStmt::Return(ResolvedExpr::Plus(
-                Box::new(ResolvedExpr::Id(x)),
-                Box::new(ResolvedExpr::Id(y)),
+            body: vec![ResolvedStmtKind::Return(ResolvedExprKind::Plus(
+                Box::new(ResolvedExprKind::Id(x)),
+                Box::new(ResolvedExprKind::Id(y)),
             ))],
         }
     );
@@ -276,19 +283,19 @@ fn resolves_recursive_function_reference_to_global_id() {
 
     assert!(matches!(
         resolved,
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id,
             body,
             ..
         } if id == fib && matches!(
             &body[0],
-            ResolvedStmt::Return(ResolvedExpr::If(_, _, else_branch))
+            ResolvedStmtKind::Return(ResolvedExprKind::If(_, _, else_branch))
                 if matches!(
                     &**else_branch,
-                    ResolvedExpr::Call(function, arguments)
-                        if **function == ResolvedExpr::Id(fib)
-                            && matches!(&arguments[0], ResolvedExpr::Minus(left, _)
-                                if **left == ResolvedExpr::Id(n))
+                    ResolvedExprKind::Call(function, arguments)
+                        if **function == ResolvedExprKind::Id(fib)
+                            && matches!(&arguments[0], ResolvedExprKind::Minus(left, _)
+                                if **left == ResolvedExprKind::Id(n))
                 )
         )
     ));

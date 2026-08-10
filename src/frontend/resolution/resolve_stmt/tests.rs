@@ -3,11 +3,11 @@ use crate::frontend::{
     parser::{Parser, parse_stmt::parse_stmt},
     resolution::{
         resolve_stmt,
-        types::{ResolvedExpr, ResolvedStmt, ResolvedType, ResolverCtx},
+        types::{ResolvedExprKind, ResolvedStmtKind, ResolvedType, ResolverCtx},
     },
 };
 
-fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedStmt {
+fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedStmtKind {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_stmt(&mut parser).unwrap();
     resolve_stmt::resolve_stmt(ctx, parsed)
@@ -19,7 +19,7 @@ fn resolves_let_statement_and_binds_name() {
     let resolved = resolve(&mut ctx, "let x = 7;");
     let x = ctx.lookup_value("x").expect("x should be bound");
 
-    assert_eq!(resolved, ResolvedStmt::Let(x, ResolvedExpr::Int(7)));
+    assert_eq!(resolved, ResolvedStmtKind::Let(x, ResolvedExprKind::Int(7)));
 }
 
 #[test]
@@ -29,7 +29,7 @@ fn resolves_let_statement_with_identifier_rhs() {
     let resolved = resolve(&mut ctx, "let x = y;");
     let x = ctx.lookup_value("x").expect("x should be bound");
 
-    assert_eq!(resolved, ResolvedStmt::Let(x, ResolvedExpr::Id(y)));
+    assert_eq!(resolved, ResolvedStmtKind::Let(x, ResolvedExprKind::Id(y)));
 }
 
 #[test]
@@ -40,7 +40,10 @@ fn resolves_let_statement_with_shadowing() {
     let new = ctx.lookup_value("x").expect("x should be rebound");
 
     assert_ne!(new, old);
-    assert_eq!(resolved, ResolvedStmt::Let(new, ResolvedExpr::Int(10)));
+    assert_eq!(
+        resolved,
+        ResolvedStmtKind::Let(new, ResolvedExprKind::Int(10))
+    );
 }
 
 #[test]
@@ -48,13 +51,19 @@ fn resolves_return_identifier_using_existing_binding() {
     let mut ctx = ResolverCtx::new();
     let expected = ctx.add_value("x");
     let resolved = resolve(&mut ctx, "return x;");
-    assert_eq!(resolved, ResolvedStmt::Return(ResolvedExpr::Id(expected)));
+    assert_eq!(
+        resolved,
+        ResolvedStmtKind::Return(ResolvedExprKind::Id(expected))
+    );
 }
 
 #[test]
 fn resolves_return_literal_expression() {
     let resolved = resolve(&mut ResolverCtx::new(), "return 99;");
-    assert_eq!(resolved, ResolvedStmt::Return(ResolvedExpr::Int(99)));
+    assert_eq!(
+        resolved,
+        ResolvedStmtKind::Return(ResolvedExprKind::Int(99))
+    );
 }
 
 #[test]
@@ -62,9 +71,9 @@ fn resolves_return_binary_expression() {
     let resolved = resolve(&mut ResolverCtx::new(), "return 1 + 2;");
     assert_eq!(
         resolved,
-        ResolvedStmt::Return(ResolvedExpr::Plus(
-            Box::new(ResolvedExpr::Int(1)),
-            Box::new(ResolvedExpr::Int(2))
+        ResolvedStmtKind::Return(ResolvedExprKind::Plus(
+            Box::new(ResolvedExprKind::Int(1)),
+            Box::new(ResolvedExprKind::Int(2))
         ))
     );
 }
@@ -75,7 +84,7 @@ fn resolves_read_statement() {
     let resolved = resolve(&mut ctx, "read Int x;");
     let x = ctx.lookup_value("x").expect("x should be bound");
 
-    assert_eq!(resolved, ResolvedStmt::Read(x, ResolvedType::Int));
+    assert_eq!(resolved, ResolvedStmtKind::Read(x, ResolvedType::Int));
 }
 
 #[test]
@@ -84,7 +93,7 @@ fn resolves_echo_statement() {
     let resolved = resolve(ctx, "echo Int 42;");
     assert_eq!(
         resolved,
-        ResolvedStmt::Echo(ResolvedType::Int, ResolvedExpr::Int(42))
+        ResolvedStmtKind::Echo(ResolvedType::Int, ResolvedExprKind::Int(42))
     );
 }
 

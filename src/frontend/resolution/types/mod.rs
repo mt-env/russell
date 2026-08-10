@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::frontend::types::Spanned;
+
 #[cfg(test)]
 mod tests;
 
@@ -20,69 +22,139 @@ pub enum Identifier {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum ResolvedDefn {
+pub enum ResolvedDefnKind {
     Typedef {
         id: TypeId,
         params: Vec<TypeParamId>,
-        arms: Vec<(ValueId, Vec<ResolvedBinding>)>,
+        arms: Vec<(ValueId, Vec<ResolvedBindingData>)>,
     },
 
     Fn {
         id: ValueId,
-        params: Vec<ResolvedBinding>,
+        params: Vec<ResolvedBindingData>,
         ret_ty: ResolvedType,
-        body: Vec<ResolvedStmt>,
+        body: Vec<ResolvedStmtKind>,
     },
 }
 
-#[derive(PartialEq, Debug)]
-pub enum ResolvedStmt {
-    Let(ValueId, ResolvedExpr),
-    Read(ValueId, ResolvedType),
-    Echo(ResolvedType, ResolvedExpr),
-    Return(ResolvedExpr),
+pub type ResolvedDefn = Spanned<ResolvedDefnKind>;
+
+impl ResolvedDefn {
+    pub fn mk_typedef(
+        offset: usize,
+        id: TypeId,
+        params: Vec<TypeParamId>,
+        arms: Vec<(ValueId, Vec<ResolvedBindingData>)>,
+    ) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedDefnKind::Typedef { id, params, arms },
+        }
+    }
+
+    pub fn mk_fn(
+        offset: usize,
+        id: ValueId,
+        params: Vec<ResolvedBindingData>,
+        ret_ty: ResolvedType,
+        body: Vec<ResolvedStmtKind>,
+    ) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedDefnKind::Fn {
+                id,
+                params,
+                ret_ty,
+                body,
+            },
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
-pub enum ResolvedExpr {
+pub enum ResolvedStmtKind {
+    Let(ValueId, ResolvedExprKind),
+    Read(ValueId, ResolvedType),
+    Echo(ResolvedType, ResolvedExprKind),
+    Return(ResolvedExprKind),
+}
+
+pub type ResolvedStmt = Spanned<ResolvedStmtKind>;
+
+impl ResolvedStmt {
+    pub fn mk_let(offset: usize, id: ValueId, expr: ResolvedExprKind) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedStmtKind::Let(id, expr),
+        }
+    }
+
+    pub fn mk_read(offset: usize, id: ValueId, typ: ResolvedType) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedStmtKind::Read(id, typ),
+        }
+    }
+
+    pub fn mk_echo(offset: usize, typ: ResolvedType, expr: ResolvedExprKind) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedStmtKind::Echo(typ, expr),
+        }
+    }
+
+    pub fn mk_return(offset: usize, expr: ResolvedExprKind) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedStmtKind::Return(expr),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ResolvedExprKind {
     Int(i64),
     Bool(bool),
     Float(f64),
 
     Id(ValueId),
 
-    Fn(ResolvedBinding, Box<ResolvedExpr>),
+    Fn(ResolvedBindingData, Box<ResolvedExprKind>),
 
-    Neg(Box<ResolvedExpr>),
-    FNeg(Box<ResolvedExpr>),
-    Bang(Box<ResolvedExpr>),
+    Neg(Box<ResolvedExprKind>),
+    FNeg(Box<ResolvedExprKind>),
+    Bang(Box<ResolvedExprKind>),
 
-    Call(Box<ResolvedExpr>, Vec<ResolvedExpr>),
+    Call(Box<ResolvedExprKind>, Vec<ResolvedExprKind>),
 
-    Plus(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Minus(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FPlus(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FMinus(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Mult(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FMult(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Div(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FDiv(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Pipe(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Lt(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Gt(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    LtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    GtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FLt(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FGt(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FLtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    FGtEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Eq(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    NotEq(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Or(Box<ResolvedExpr>, Box<ResolvedExpr>),
-    And(Box<ResolvedExpr>, Box<ResolvedExpr>),
+    Plus(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Minus(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FPlus(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FMinus(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Mult(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FMult(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Div(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FDiv(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Pipe(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Lt(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Gt(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    LtEq(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    GtEq(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FLt(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FGt(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FLtEq(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    FGtEq(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Eq(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    NotEq(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    Or(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
+    And(Box<ResolvedExprKind>, Box<ResolvedExprKind>),
 
-    If(Box<ResolvedExpr>, Box<ResolvedExpr>, Box<ResolvedExpr>),
-    Match(Box<ResolvedExpr>, Vec<ResolvedMatchArm>),
+    If(
+        Box<ResolvedExprKind>,
+        Box<ResolvedExprKind>,
+        Box<ResolvedExprKind>,
+    ),
+    Match(Box<ResolvedExprKind>, Vec<ResolvedMatchArm>),
 }
 
 #[derive(PartialEq, Debug)]
@@ -99,12 +171,23 @@ pub enum ResolvedType {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct ResolvedBinding {
+pub struct ResolvedBindingData {
     id: ValueId,
     typ: ResolvedType,
 }
 
+pub type ResolvedBinding = Spanned<ResolvedBindingData>;
+
 impl ResolvedBinding {
+    pub fn new(offset: usize, id: ValueId, typ: ResolvedType) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedBindingData { id, typ },
+        }
+    }
+}
+
+impl ResolvedBindingData {
     pub fn new(id: ValueId, typ: ResolvedType) -> Self {
         Self { id, typ }
     }
@@ -114,11 +197,11 @@ impl ResolvedBinding {
 pub struct ResolvedMatchArm {
     id: ValueId,
     bindings: Vec<ValueId>,
-    expr: ResolvedExpr,
+    expr: ResolvedExprKind,
 }
 
 impl ResolvedMatchArm {
-    pub fn new(id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExpr) -> Self {
+    pub fn new(id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExprKind) -> Self {
         Self { id, bindings, expr }
     }
 }

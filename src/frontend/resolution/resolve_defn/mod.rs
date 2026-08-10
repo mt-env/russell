@@ -2,14 +2,14 @@ use crate::frontend::{
     parser::ast::{Defn, ParsedBinding, ParsedDefn, ParsedStmt, Type},
     resolution::{
         resolve_stmt, resolve_type,
-        types::{ResolvedDefn, ResolverCtx},
+        types::{ResolvedDefnKind, ResolverCtx},
     },
 };
 
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefn {
+pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefnKind {
     match defn.node {
         Defn::Typedef { id, ty_vars, arms } => resolve_typedef(ctx, id, ty_vars, arms),
         Defn::Fn {
@@ -26,7 +26,7 @@ fn resolve_typedef<'a>(
     id: &'a str,
     ty_vars: Vec<&'a str>,
     arms: Vec<(&'a str, Vec<ParsedBinding<'a>>)>,
-) -> ResolvedDefn {
+) -> ResolvedDefnKind {
     // fetch type ID from global scope (should have been added in init_global_scope)
     let Some(type_id) = ctx.lookup_type(id) else {
         panic!("Type {} not found in scope", id);
@@ -64,7 +64,7 @@ fn resolve_typedef<'a>(
 
     ctx.pop_scope();
 
-    ResolvedDefn::Typedef {
+    ResolvedDefnKind::Typedef {
         id: type_id,
         params: resolved_type_params,
         arms: resolved_arms,
@@ -77,7 +77,7 @@ fn resolve_fn<'a>(
     bindings: Vec<ParsedBinding<'a>>,
     ret_ty: Type<'a>,
     body: Vec<ParsedStmt<'a>>,
-) -> ResolvedDefn {
+) -> ResolvedDefnKind {
     ctx.push_scope();
 
     // find function name ID and return type
@@ -101,7 +101,7 @@ fn resolve_fn<'a>(
 
     ctx.pop_scope();
 
-    ResolvedDefn::Fn {
+    ResolvedDefnKind::Fn {
         id: fn_id,
         params: resolved_bindings,
         ret_ty: ret_ty_id,

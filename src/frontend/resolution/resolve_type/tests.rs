@@ -5,7 +5,7 @@ use crate::frontend::{
         ast::{ParsedBinding, Type},
         parse_type::parse_type,
     },
-    resolution::types::{ResolvedBinding, ResolvedType, ResolverCtx},
+    resolution::types::{ResolvedBindingData, ResolvedType, ResolverCtx},
 };
 
 fn resolve_type<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedType {
@@ -18,7 +18,7 @@ fn resolve_binding<'a>(
     ctx: &mut ResolverCtx<'a>,
     name: &'a str,
     type_source: &'a str,
-) -> ResolvedBinding {
+) -> ResolvedBindingData {
     let mut parser = Parser::new(lex(type_source).expect("test input should lex successfully"));
     let parsed = ParsedBinding::new(0, name, parse_type(&mut parser).unwrap());
     super::add_binding(ctx, parsed)
@@ -134,7 +134,7 @@ fn resolves_binding_and_registers_its_name() {
 
     assert_eq!(
         resolve_binding(&mut ctx, "x", "Int"),
-        ResolvedBinding::new(expected, ResolvedType::Int)
+        ResolvedBindingData::new(expected, ResolvedType::Int)
     );
     assert_eq!(ctx.lookup_value("x"), Some(expected));
 }
@@ -147,7 +147,7 @@ fn resolves_binding_with_function_type() {
 
     assert_eq!(
         resolve_binding(&mut ctx, "f", "Int -> Float"),
-        ResolvedBinding::new(
+        ResolvedBindingData::new(
             expected,
             ResolvedType::Fn(Box::new(ResolvedType::Int), Box::new(ResolvedType::Float),),
         )
@@ -164,7 +164,7 @@ fn resolves_binding_with_type_application() {
 
     assert_eq!(
         resolve_binding(&mut ctx, "value", "Result(Int, Bool)"),
-        ResolvedBinding::new(
+        ResolvedBindingData::new(
             value,
             ResolvedType::TypeApp(result, vec![ResolvedType::Int, ResolvedType::Bool]),
         )
@@ -182,7 +182,7 @@ fn existing_type_parameter_binding_reuses_parameter() {
 
     assert_eq!(
         resolved,
-        ResolvedBinding::new(value, ResolvedType::TypeParam(parameter))
+        ResolvedBindingData::new(value, ResolvedType::TypeParam(parameter))
     );
 }
 
@@ -202,21 +202,21 @@ fn existing_type_parameter_binding_resolves_primitive_types() {
     let integer = super::add_binding_existing_typaram(&mut ctx, int_binding).unwrap();
     assert_eq!(
         integer,
-        ResolvedBinding::new(ctx.lookup_value("integer").unwrap(), ResolvedType::Int)
+        ResolvedBindingData::new(ctx.lookup_value("integer").unwrap(), ResolvedType::Int)
     );
 
     let float_binding = ParsedBinding::new(0, "float", Type::Float);
     let float = super::add_binding_existing_typaram(&mut ctx, float_binding).unwrap();
     assert_eq!(
         float,
-        ResolvedBinding::new(ctx.lookup_value("float").unwrap(), ResolvedType::Float)
+        ResolvedBindingData::new(ctx.lookup_value("float").unwrap(), ResolvedType::Float)
     );
 
     let bool_binding = ParsedBinding::new(0, "boolean", Type::Bool);
     let boolean = super::add_binding_existing_typaram(&mut ctx, bool_binding).unwrap();
     assert_eq!(
         boolean,
-        ResolvedBinding::new(ctx.lookup_value("boolean").unwrap(), ResolvedType::Bool)
+        ResolvedBindingData::new(ctx.lookup_value("boolean").unwrap(), ResolvedType::Bool)
     );
 }
 
@@ -230,7 +230,7 @@ fn existing_type_parameter_binding_resolves_named_type() {
 
     assert_eq!(
         resolved,
-        ResolvedBinding::new(
+        ResolvedBindingData::new(
             ctx.lookup_value("value").unwrap(),
             ResolvedType::TypeId(option),
         )
@@ -247,7 +247,7 @@ fn existing_type_parameter_binding_resolves_type_application() {
 
     assert_eq!(
         resolved,
-        ResolvedBinding::new(
+        ResolvedBindingData::new(
             ctx.lookup_value("value").unwrap(),
             ResolvedType::TypeApp(option, vec![ResolvedType::Int]),
         )
@@ -267,7 +267,7 @@ fn existing_type_parameter_binding_resolves_function_type() {
 
     assert_eq!(
         resolved,
-        ResolvedBinding::new(
+        ResolvedBindingData::new(
             ctx.lookup_value("function").unwrap(),
             ResolvedType::Fn(Box::new(ResolvedType::Int), Box::new(ResolvedType::Bool)),
         )

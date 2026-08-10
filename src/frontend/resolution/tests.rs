@@ -2,11 +2,12 @@ use crate::frontend::{
     lexer::lex,
     parser::parse,
     resolution::types::{
-        ResolvedBinding, ResolvedDefn, ResolvedExpr, ResolvedStmt, ResolvedType, ResolverCtx,
+        ResolvedBindingData, ResolvedDefnKind, ResolvedExprKind, ResolvedStmtKind, ResolvedType,
+        ResolverCtx,
     },
 };
 
-fn resolve(input: &str) -> Vec<ResolvedDefn> {
+fn resolve(input: &str) -> Vec<ResolvedDefnKind> {
     super::resolve(parse(
         lex(input).expect("test input should lex successfully"),
     ))
@@ -16,13 +17,13 @@ fn resolve(input: &str) -> Vec<ResolvedDefn> {
 fn resolves_single_function_program() {
     assert!(matches!(
         resolve("fn main() -> Int { return 0; }").as_slice(),
-        [ResolvedDefn::Fn {
+        [ResolvedDefnKind::Fn {
             params,
             ret_ty: ResolvedType::Int,
             body,
             ..
         }] if params.is_empty()
-            && body == &[ResolvedStmt::Return(ResolvedExpr::Int(0))]
+            && body == &[ResolvedStmtKind::Return(ResolvedExprKind::Int(0))]
     ));
 }
 
@@ -36,8 +37,8 @@ fn resolves_typedef_and_function_program() {
     assert!(matches!(
         resolved.as_slice(),
         [
-            ResolvedDefn::Typedef { params, arms, .. },
-            ResolvedDefn::Fn {
+            ResolvedDefnKind::Typedef { params, arms, .. },
+            ResolvedDefnKind::Fn {
                 ret_ty: ResolvedType::Int,
                 body,
                 ..
@@ -46,7 +47,7 @@ fn resolves_typedef_and_function_program() {
             && arms.len() == 2
             && arms[0].1.len() == 1
             && arms[1].1.is_empty()
-            && body == &[ResolvedStmt::Return(ResolvedExpr::Int(0))]
+            && body == &[ResolvedStmtKind::Return(ResolvedExprKind::Int(0))]
     ));
 }
 
@@ -58,10 +59,10 @@ fn resolves_reference_to_later_global_function() {
     );
 
     let [
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             body: main_body, ..
         },
-        ResolvedDefn::Fn { id: later, .. },
+        ResolvedDefnKind::Fn { id: later, .. },
     ] = resolved.as_slice()
     else {
         panic!("expected two function definitions");
@@ -69,9 +70,9 @@ fn resolves_reference_to_later_global_function() {
 
     assert!(matches!(
         &main_body[0],
-        ResolvedStmt::Return(ResolvedExpr::Call(function, arguments))
-            if **function == ResolvedExpr::Id(*later)
-                && arguments == &[ResolvedExpr::Int(41)]
+        ResolvedStmtKind::Return(ResolvedExprKind::Call(function, arguments))
+            if **function == ResolvedExprKind::Id(*later)
+                && arguments == &[ResolvedExprKind::Int(41)]
     ));
 }
 
@@ -84,17 +85,17 @@ fn resolves_mutually_recursive_functions() {
     );
 
     let [
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: even,
             body: even_body,
             ..
         },
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             id: odd,
             body: odd_body,
             ..
         },
-        ResolvedDefn::Fn { .. },
+        ResolvedDefnKind::Fn { .. },
     ] = resolved.as_slice()
     else {
         panic!("expected three function definitions");
@@ -104,14 +105,14 @@ fn resolves_mutually_recursive_functions() {
     assert!(branch_calls(&odd_body[0], *even));
 }
 
-fn branch_calls(stmt: &ResolvedStmt, expected: super::types::ValueId) -> bool {
+fn branch_calls(stmt: &ResolvedStmtKind, expected: super::types::ValueId) -> bool {
     matches!(
         stmt,
-        ResolvedStmt::Return(ResolvedExpr::If(_, _, branch))
+        ResolvedStmtKind::Return(ResolvedExprKind::If(_, _, branch))
             if matches!(
                 &**branch,
-                ResolvedExpr::Call(function, _)
-                    if **function == ResolvedExpr::Id(expected)
+                ResolvedExprKind::Call(function, _)
+                    if **function == ResolvedExprKind::Id(expected)
             )
     )
 }
@@ -163,20 +164,20 @@ fn resolves_mutually_recursive_types() {
     assert_eq!(
         resolved,
         vec![
-            ResolvedDefn::Typedef {
+            ResolvedDefnKind::Typedef {
                 id: recursive_a,
                 params: vec![a_type],
                 arms: vec![
                     (
                         a,
-                        vec![ResolvedBinding::new(
+                        vec![ResolvedBindingData::new(
                             a_value,
                             ResolvedType::TypeParam(a_type),
                         )],
                     ),
                     (
                         b,
-                        vec![ResolvedBinding::new(
+                        vec![ResolvedBindingData::new(
                             b_next,
                             ResolvedType::TypeApp(
                                 recursive_b,
@@ -186,20 +187,20 @@ fn resolves_mutually_recursive_types() {
                     ),
                 ],
             },
-            ResolvedDefn::Typedef {
+            ResolvedDefnKind::Typedef {
                 id: recursive_b,
                 params: vec![b_type],
                 arms: vec![
                     (
                         c,
-                        vec![ResolvedBinding::new(
+                        vec![ResolvedBindingData::new(
                             b_value,
                             ResolvedType::TypeParam(b_type),
                         )],
                     ),
                     (
                         d,
-                        vec![ResolvedBinding::new(
+                        vec![ResolvedBindingData::new(
                             a_next,
                             ResolvedType::TypeApp(
                                 recursive_a,
@@ -209,11 +210,11 @@ fn resolves_mutually_recursive_types() {
                     ),
                 ],
             },
-            ResolvedDefn::Fn {
+            ResolvedDefnKind::Fn {
                 id: main,
                 params: vec![],
                 ret_ty: ResolvedType::Int,
-                body: vec![ResolvedStmt::Return(ResolvedExpr::Int(0))],
+                body: vec![ResolvedStmtKind::Return(ResolvedExprKind::Int(0))],
             },
         ]
     );
@@ -326,14 +327,14 @@ fn same_generic_name_in_separate_functions_gets_distinct_ids() {
     );
 
     let [
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             ret_ty: first_type, ..
         },
-        ResolvedDefn::Fn {
+        ResolvedDefnKind::Fn {
             ret_ty: second_type,
             ..
         },
-        ResolvedDefn::Fn { .. },
+        ResolvedDefnKind::Fn { .. },
     ] = resolved.as_slice()
     else {
         panic!("expected three function definitions");
