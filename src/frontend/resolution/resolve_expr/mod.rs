@@ -74,7 +74,7 @@ fn resolve_id<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -> Re
         Some(value_id) => value_id,
         None => {
             ctx.add_unbound_error(name, offset);
-            ctx.add_value(name) // add a placeholder to avoid panics later
+            ctx.add_value(name) // add a placeholder to continue
         }
     };
 
@@ -153,9 +153,12 @@ fn resolve_match<'a>(
     for arm in arms {
         let arm_data = arm.node;
 
-        // find the variant
-        let Some(variant) = ctx.lookup_value(arm_data.id) else {
-            panic!("cannot find variant {}", arm_data.id);
+        let variant = match ctx.lookup_value(arm_data.id) {
+            Some(variant) => variant,
+            None => {
+                ctx.add_unbound_error(arm_data.id, arm.offset);
+                ctx.add_value(arm_data.id) // add a placeholder to continue
+            }
         };
 
         // bind the pattern variables in a new scope and resolve the body
