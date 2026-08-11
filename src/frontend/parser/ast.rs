@@ -13,6 +13,7 @@ pub type ParsedStmt<'a> = SpannedStmt<'a, ()>;
 pub type ParsedDefn<'a> = SpannedDefn<'a, ()>;
 pub type ParsedBinding<'a> = SpannedBinding<'a>;
 pub type ParsedMatchArm<'a> = SpannedMatchArm<'a, ()>;
+pub type ParsedType<'a> = Spanned<Type<'a>>;
 
 #[derive(Debug, PartialEq)]
 pub enum Defn<'a, A> {
@@ -27,7 +28,7 @@ pub enum Defn<'a, A> {
     Fn {
         name: &'a str,
         bindings: Vec<SpannedBinding<'a>>,
-        ret_ty: Type<'a>,
+        ret_ty: ParsedType<'a>,
         body: Vec<SpannedStmt<'a, A>>,
     },
 }
@@ -37,7 +38,7 @@ impl<'a> ParsedDefn<'a> {
         offset: usize,
         id: &'a str,
         bindings: Vec<ParsedBinding<'a>>,
-        ret: Type<'a>,
+        ret: ParsedType<'a>,
         stmts: Vec<ParsedStmt<'a>>,
     ) -> Self {
         Spanned {
@@ -66,10 +67,10 @@ impl<'a> ParsedDefn<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt<'a, A> {
-    Let(&'a str, SpannedExpr<'a, A>),   // let <id> = <expr>;
-    Read(Type<'a>, &'a str),            // read <type> <id>;
-    Echo(Type<'a>, SpannedExpr<'a, A>), // echo <type> <expr>;
-    Return(SpannedExpr<'a, A>),         // return <expr>;
+    Let(&'a str, SpannedExpr<'a, A>),         // let <id> = <expr>;
+    Read(ParsedType<'a>, &'a str),            // read <type> <id>;
+    Echo(ParsedType<'a>, SpannedExpr<'a, A>), // echo <type> <expr>;
+    Return(SpannedExpr<'a, A>),               // return <expr>;
 }
 
 impl<'a> ParsedStmt<'a> {
@@ -80,14 +81,14 @@ impl<'a> ParsedStmt<'a> {
         }
     }
 
-    pub fn make_read(offset: usize, typ: Type<'a>, id: &'a str) -> Self {
+    pub fn make_read(offset: usize, typ: ParsedType<'a>, id: &'a str) -> Self {
         Spanned {
             offset,
             node: Stmt::Read(typ, id),
         }
     }
 
-    pub fn make_echo(offset: usize, typ: Type<'a>, expr: ParsedExpr<'a>) -> Self {
+    pub fn make_echo(offset: usize, typ: ParsedType<'a>, expr: ParsedExpr<'a>) -> Self {
         Spanned {
             offset,
             node: Stmt::Echo(typ, expr),
@@ -278,8 +279,14 @@ pub enum Type<'a> {
     Bool,
     TypeId(&'a str),
     TypeParam(&'a str),
-    TypeApp(&'a str, Vec<Type<'a>>),
-    Fn(Box<Type<'a>>, Box<Type<'a>>),
+    TypeApp(&'a str, Vec<ParsedType<'a>>),
+    Fn(Box<ParsedType<'a>>, Box<ParsedType<'a>>),
+}
+
+impl<'a> ParsedType<'a> {
+    pub fn new(offset: usize, typ: Type<'a>) -> Self {
+        Spanned { offset, node: typ }
+    }
 }
 
 impl Display for Type<'_> {
@@ -306,7 +313,7 @@ impl Display for Type<'_> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Binding<'a> {
     pub id: &'a str,
-    pub typ: Type<'a>,
+    pub typ: ParsedType<'a>,
 }
 
 impl Display for Binding<'_> {
@@ -316,7 +323,7 @@ impl Display for Binding<'_> {
 }
 
 impl<'a> ParsedBinding<'a> {
-    pub fn new(offset: usize, id: &'a str, typ: Type<'a>) -> Self {
+    pub fn new(offset: usize, id: &'a str, typ: ParsedType<'a>) -> Self {
         Spanned {
             offset,
             node: Binding { id, typ },
