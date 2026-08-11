@@ -73,7 +73,7 @@ fn resolve_id<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -> Re
     let value_id = match ctx.lookup_value(name) {
         Some(value_id) => value_id,
         None => {
-            ctx.add_unbound_error(name, offset);
+            ctx.add_unbound_val_error(name, offset);
             ctx.add_value(name) // add a placeholder to continue
         }
     };
@@ -156,7 +156,7 @@ fn resolve_match<'a>(
         let variant = match ctx.lookup_value(arm_data.id) {
             Some(variant) => variant,
             None => {
-                ctx.add_unbound_error(arm_data.id, arm.offset);
+                ctx.add_unbound_val_error(arm_data.id, arm.offset);
                 ctx.add_value(arm_data.id) // add a placeholder to continue
             }
         };

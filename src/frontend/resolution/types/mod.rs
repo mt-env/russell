@@ -174,7 +174,7 @@ impl ResolvedExpr {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum ResolvedType {
+pub enum ResolvedTypeKind {
     Int,
     Float,
     Bool,
@@ -184,6 +184,59 @@ pub enum ResolvedType {
     TypeApp(TypeId, Vec<ResolvedType>),
 
     Fn(Box<ResolvedType>, Box<ResolvedType>),
+}
+
+pub type ResolvedType = Spanned<ResolvedTypeKind>;
+
+impl ResolvedType {
+    pub(super) fn mk_int(offset: usize) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::Int,
+        }
+    }
+
+    pub(super) fn mk_float(offset: usize) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::Float,
+        }
+    }
+
+    pub(super) fn mk_bool(offset: usize) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::Bool,
+        }
+    }
+
+    pub(super) fn mk_typeid(offset: usize, id: TypeId) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::TypeId(id),
+        }
+    }
+
+    pub(super) fn mk_typeparam(offset: usize, id: TypeParamId) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::TypeParam(id),
+        }
+    }
+
+    pub(super) fn mk_typeapp(offset: usize, id: TypeId, args: Vec<ResolvedType>) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::TypeApp(id, args),
+        }
+    }
+
+    pub(super) fn mk_fn(offset: usize, domain: ResolvedType, codomain: ResolvedType) -> Self {
+        Spanned {
+            offset,
+            node: ResolvedTypeKind::Fn(Box::new(domain), Box::new(codomain)),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -229,8 +282,8 @@ impl ResolvedMatchArm {
 
 pub enum ResolutionErrorKind<'a> {
     DuplicateName { name: &'a str },
-    UnknownName { name: &'a str },
-    Other { message: &'a str },
+    UnknownValue { name: &'a str },
+    UnknownType { name: &'a str },
 }
 
 pub type ResolutionError<'a> = Spanned<ResolutionErrorKind<'a>>;
@@ -371,10 +424,17 @@ impl<'a> ResolverCtx<'a> {
         }
     }
 
-    pub(super) fn add_unbound_error(&mut self, name: &'a str, at: usize) {
+    pub(super) fn add_unbound_val_error(&mut self, name: &'a str, at: usize) {
         self.errors.push(Spanned {
             offset: at,
-            node: ResolutionErrorKind::UnknownName { name },
+            node: ResolutionErrorKind::UnknownValue { name },
+        });
+    }
+
+    pub(super) fn add_unbound_type_error(&mut self, name: &'a str, at: usize) {
+        self.errors.push(Spanned {
+            offset: at,
+            node: ResolutionErrorKind::UnknownType { name },
         });
     }
 }
