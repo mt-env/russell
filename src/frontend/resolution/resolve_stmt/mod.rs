@@ -1,5 +1,5 @@
 use crate::frontend::{
-    parser::ast::{ParsedExpr, ParsedStmt, Stmt, Type},
+    parser::ast::{ParsedExpr, ParsedStmt, ParsedType, Stmt},
     resolution::{
         resolve_expr, resolve_type,
         types::{ResolvedStmt, ResolverCtx},
@@ -33,7 +33,7 @@ fn resolve_let<'a>(
 fn resolve_read<'a>(
     offset: usize,
     ctx: &mut ResolverCtx<'a>,
-    ty: Type<'a>,
+    ty: ParsedType<'a>,
     id: &'a str,
 ) -> ResolvedStmt {
     let value_id = ctx.add_value(id);
@@ -43,9 +43,10 @@ fn resolve_read<'a>(
 fn resolve_echo<'a>(
     offset: usize,
     ctx: &mut ResolverCtx<'a>,
-    ty: Type<'a>,
+    ty: ParsedType<'a>,
     expr: ParsedExpr<'a>,
 ) -> ResolvedStmt {
+    // todo should this use add_type or not?
     ResolvedStmt::mk_echo(
         offset,
         resolve_type::add_type(ctx, ty),
