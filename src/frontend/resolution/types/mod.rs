@@ -227,6 +227,14 @@ impl ResolvedMatchArm {
     }
 }
 
+pub enum ResolutionErrorKind<'a> {
+    DuplicateName { name: &'a str },
+    UnknownName { name: &'a str },
+    Other { message: &'a str },
+}
+
+pub type ResolutionError<'a> = Spanned<ResolutionErrorKind<'a>>;
+
 pub struct ResolverCtx<'a> {
     num_typeids: usize,
     num_typeparamids: usize,
@@ -236,6 +244,8 @@ pub struct ResolverCtx<'a> {
     ids: HashMap<Identifier, &'a str>,
 
     env: Vec<Env<'a>>,
+
+    errors: Vec<ResolutionError<'a>>,
 }
 
 impl<'a> ResolverCtx<'a> {
@@ -247,6 +257,7 @@ impl<'a> ResolverCtx<'a> {
             num_exprs: 0,
             ids: HashMap::new(),
             env: vec![Env::new()],
+            errors: Vec::new(),
         }
     }
 
@@ -358,6 +369,13 @@ impl<'a> ResolverCtx<'a> {
             Some(Identifier::TypeParamId(id)) => Some(id),
             _ => None,
         }
+    }
+
+    pub(super) fn add_unbound_error(&mut self, name: &'a str, at: usize) {
+        self.errors.push(Spanned {
+            offset: at,
+            node: ResolutionErrorKind::UnknownName { name },
+        });
     }
 }
 

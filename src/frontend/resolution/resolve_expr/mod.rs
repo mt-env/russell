@@ -69,11 +69,15 @@ fn resolve_unop<'a>(
 }
 
 fn resolve_id<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -> ResolvedExpr {
-    let Some(value_id) = ctx.lookup_value(name) else {
-        // TODO - don't panic, allow for error recovery
-        panic!("{}: unbound or not a value", name);
-    };
     let id = ctx.next_exprid();
+    let value_id = match ctx.lookup_value(name) {
+        Some(value_id) => value_id,
+        None => {
+            ctx.add_unbound_error(name, offset);
+            ctx.add_value(name) // add a placeholder to avoid panics later
+        }
+    };
+
     ResolvedExpr::new(offset, id, ResolvedExprKind::Id(value_id))
 }
 
