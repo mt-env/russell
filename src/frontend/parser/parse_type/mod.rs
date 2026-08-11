@@ -1,13 +1,14 @@
 use crate::frontend::error::parse_error::ParseResult;
 use crate::frontend::lexer::token::{Token, TokenKind};
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ParsedBinding, Type};
+use crate::frontend::parser::ast::{ParsedBinding, ParsedType, Type};
 
 #[cfg(test)]
 mod tests;
 
-pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a>> {
-    // parse an atomic type
+pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedType<'a>> {
+    let loc = parser.peek().offset;
+
     let l_type = match parser.expect_many(&[
         TokenKind::IntType,
         TokenKind::FloatType,
@@ -16,9 +17,9 @@ pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a
         TokenKind::TypeParam,
         TokenKind::LParen,
     ])? {
-        Token::IntType => Type::Int,
-        Token::FloatType => Type::Float,
-        Token::BoolType => Type::Bool,
+        Token::IntType => ParsedType::new(loc, Type::Int),
+        Token::FloatType => ParsedType::new(loc, Type::Float),
+        Token::BoolType => ParsedType::new(loc, Type::Bool),
         Token::TypeId(id) => {
             if parser.peek().kind() == TokenKind::LParen {
                 parser.advance();
@@ -29,12 +30,12 @@ pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a
                     type_args.push(parse_type(parser)?);
                 }
                 parser.expect(TokenKind::RParen)?;
-                Type::TypeApp(id, type_args)
+                ParsedType::new(loc, Type::TypeApp(id, type_args))
             } else {
-                Type::TypeId(id)
+                ParsedType::new(loc, Type::TypeId(id))
             }
         }
-        Token::TypeParam(id) => Type::TypeParam(id),
+        Token::TypeParam(id) => ParsedType::new(loc, Type::TypeParam(id)),
         Token::LParen => {
             let typ = parse_type(parser)?;
             parser.expect(TokenKind::RParen)?;
@@ -47,7 +48,10 @@ pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Type<'a
     if parser.peek().kind() == TokenKind::Arrow {
         parser.advance();
         let r_type = parse_type(parser)?;
-        return Ok(Type::Fn(Box::new(l_type), Box::new(r_type)));
+        return Ok(ParsedType::new(
+            loc,
+            Type::Fn(Box::new(l_type), Box::new(r_type)),
+        ));
     }
 
     // otherwise, there's no right-hand side
