@@ -1,7 +1,7 @@
 use crate::frontend::error::parse_error::{ParseError, ParseResult};
 use crate::frontend::lexer::token::TokenKind;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ParsedDefn, SpannedBinding};
+use crate::frontend::parser::ast::{ParsedConstructorArm, ParsedDefn, SpannedBinding};
 use crate::frontend::parser::parse_stmt::parse_stmt;
 use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
 
@@ -42,10 +42,10 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
     // parse all product types in the ADT
     let mut signatures = Vec::new();
     if parser.peek().kind() != TokenKind::RBrace {
-        signatures.push(parse_fn_sig(parser)?);
+        signatures.push(parse_constructor(parser)?);
         while parser.peek().kind() == TokenKind::Comma {
             parser.advance();
-            signatures.push(parse_fn_sig(parser)?);
+            signatures.push(parse_constructor(parser)?);
         }
     }
 
@@ -99,4 +99,11 @@ fn parse_fn_sig<'a>(
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))
+}
+
+fn parse_constructor<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedConstructorArm<'a>> {
+    let loc = parser.peek().offset;
+    let id = parser.expect_id()?;
+    let bindings = parse_binding_list(parser)?;
+    Ok(ParsedConstructorArm::new(loc, id, bindings))
 }

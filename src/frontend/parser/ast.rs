@@ -14,6 +14,7 @@ pub type ParsedDefn<'a> = SpannedDefn<'a, ()>;
 pub type ParsedBinding<'a> = SpannedBinding<'a>;
 pub type ParsedMatchArm<'a> = SpannedMatchArm<'a, ()>;
 pub type ParsedType<'a> = Spanned<Type<'a>>;
+pub type ParsedConstructorArm<'a> = Spanned<ConstructorArm<'a>>;
 
 #[derive(Debug, PartialEq)]
 pub enum Defn<'a, A> {
@@ -21,7 +22,7 @@ pub enum Defn<'a, A> {
     Typedef {
         id: &'a str,
         ty_vars: Vec<&'a str>,
-        arms: Vec<(&'a str, Vec<SpannedBinding<'a>>)>,
+        arms: Vec<ParsedConstructorArm<'a>>,
     },
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
@@ -56,7 +57,7 @@ impl<'a> ParsedDefn<'a> {
         offset: usize,
         id: &'a str,
         ty_vars: Vec<&'a str>,
-        arms: Vec<(&'a str, Vec<Spanned<Binding<'a>>>)>,
+        arms: Vec<ParsedConstructorArm<'a>>,
     ) -> Self {
         Spanned {
             offset,
@@ -355,6 +356,21 @@ impl<'a> ParsedMatchArm<'a> {
         Spanned {
             offset,
             node: MatchArm { id, bindings, expr },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ConstructorArm<'a> {
+    pub id: &'a str,
+    pub bindings: Vec<ParsedBinding<'a>>,
+}
+
+impl<'a> ParsedConstructorArm<'a> {
+    pub fn new(offset: usize, id: &'a str, bindings: Vec<ParsedBinding<'a>>) -> Self {
+        Spanned {
+            offset,
+            node: ConstructorArm { id, bindings },
         }
     }
 }
