@@ -29,7 +29,9 @@ fn process_global_env(defns: Vec<ParsedDefn>) -> Rc<Env> {
                 ty_vars: _,
                 arms,
             } => {
-                for (name, bindings) in arms {
+                for arm in arms {
+                    let name = arm.node.id;
+                    let bindings = arm.node.bindings;
                     if map.contains_key(name) {
                         panic!("FATAL ERROR: {} already bound", name);
                     }

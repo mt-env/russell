@@ -14,7 +14,9 @@ pub(super) fn interp_fn<'a>(
     for stmt in stmts {
         match &stmt.node {
             Stmt::Let(id, expr) => local_env = interp_let(id, expr, local_env),
-            Stmt::Read(type_of_expr, id) => local_env = interp_read(type_of_expr, id, local_env),
+            Stmt::Read(type_of_expr, id) => {
+                local_env = interp_read(&type_of_expr.node, id, local_env)
+            }
             Stmt::Echo(_, expr) => interp_echo(expr, Rc::clone(&local_env)),
             Stmt::Return(expr) => return interp_expr::interp_expr(expr, Rc::clone(&local_env)),
         }
