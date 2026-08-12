@@ -297,6 +297,7 @@ impl ResolvedConstructorArm {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum ResolutionErrorKind<'a> {
     DuplicateValue { name: &'a str },
     DuplicateType { name: &'a str },
@@ -364,7 +365,10 @@ impl<'a> ResolverCtx<'a> {
         if let Some(env) = self.env.last_mut() {
             env.values.insert(name, Identifier::ValueId(id));
         } else {
-            panic!("No current scope to add value to");
+            unreachable!(
+                "COMPILER BUG: improper management of scopes when adding value {}. please report this error",
+                name
+            );
         }
         id
     }
@@ -385,7 +389,10 @@ impl<'a> ResolverCtx<'a> {
         if let Some(env) = self.env.last_mut() {
             env.values.insert(name, Identifier::TypeId(id));
         } else {
-            panic!("No current scope to add type to");
+            unreachable!(
+                "COMPILER BUG: improper management of scopes when adding type {}. please report this error",
+                name
+            );
         }
         id
     }
@@ -406,7 +413,10 @@ impl<'a> ResolverCtx<'a> {
         if let Some(env) = self.env.last_mut() {
             env.values.insert(name, Identifier::TypeParamId(id));
         } else {
-            panic!("No current scope to add type parameter to");
+            unreachable!(
+                "COMPILER BUG: improper management of scopes when adding type param {}. please report this error",
+                name
+            );
         }
         id
     }
