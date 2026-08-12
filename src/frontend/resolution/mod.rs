@@ -29,8 +29,7 @@ pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]
             Defn::Typedef { id, arms, .. } => {
                 ctx.add_type_nodup(id, defn.offset);
                 for arm in arms {
-                    ctx.add_value_nodup(arm.0, defn.offset); // TODO - track source data of
-                    // constructors
+                    ctx.add_value_nodup(arm.node.id, arm.offset);
                 }
             }
             Defn::Fn { name, .. } => {

@@ -1,8 +1,8 @@
 use crate::frontend::{
-    parser::ast::{Defn, ParsedBinding, ParsedDefn, ParsedStmt, ParsedType},
+    parser::ast::{Defn, ParsedBinding, ParsedConstructorArm, ParsedDefn, ParsedStmt, ParsedType},
     resolution::{
         resolve_stmt, resolve_type,
-        types::{ResolvedDefn, ResolverCtx},
+        types::{ResolvedConstructorArm, ResolvedDefn, ResolverCtx},
     },
 };
 
@@ -27,7 +27,7 @@ fn resolve_typedef<'a>(
     ctx: &mut ResolverCtx<'a>,
     id: &'a str,
     ty_vars: Vec<&'a str>,
-    arms: Vec<(&'a str, Vec<ParsedBinding<'a>>)>,
+    arms: Vec<ParsedConstructorArm<'a>>,
 ) -> ResolvedDefn {
     // fetch type ID from global scope (should have been added in init_global_scope)
     let Some(type_id) = ctx.lookup_type(id) else {
@@ -48,32 +48,37 @@ fn resolve_typedef<'a>(
     // validate each arm
     let mut resolved_arms = Vec::new();
     for arm in arms {
-        let Some(constructor_id) = ctx.lookup_value(arm.0) else {
+        let Some(constructor_id) = ctx.lookup_value(arm.node.id) else {
             unreachable!(
                 "COMPILER BUG: cannot find constructor {}. please report this error",
-                arm.0
+                arm.node.id
             );
         };
 
         ctx.push_scope();
         let mut resolved_bindings = Vec::new();
-        for binding in arm.1 {
+        for binding in arm.node.bindings {
             let loc = binding.offset;
             let name = binding.node.id;
             ctx.add_value(name);
-            let resolved_binding = match resolve_type::add_binding_existing_typaram(ctx, binding) {
-                Some(val) => val,
-                None => {
-                    ctx.add_unbound_type_error(name, loc);
-                    resolve_type::add_binding_no_shadowing(ctx, binding) // placeholder binding
-                    // TODO fix this?
-                }
-            };
+            let resolved_binding =
+            // TODO - nuke the clone if possible
+                match resolve_type::add_binding_existing_typaram(ctx, binding.clone()) {
+                    Some(val) => val,
+                    None => {
+                        ctx.add_unbound_type_error(name, loc);
+                        resolve_type::add_binding_no_shadowing(ctx, binding) // placeholder binding
+                    }
+                };
             resolved_bindings.push(resolved_binding);
         }
         ctx.pop_scope();
 
-        resolved_arms.push((constructor_id, resolved_bindings));
+        resolved_arms.push(ResolvedConstructorArm::new(
+            arm.offset,
+            constructor_id,
+            resolved_bindings,
+        ));
     }
 
     ctx.pop_scope();
