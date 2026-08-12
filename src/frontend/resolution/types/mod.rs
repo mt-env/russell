@@ -314,11 +314,11 @@ pub struct ResolverCtx<'a> {
     num_valueids: usize,
     num_exprs: usize,
 
-    ids: HashMap<Identifier, &'a str>,
+    pub(super) ids: HashMap<Identifier, &'a str>,
 
     env: Vec<Env<'a>>,
 
-    errors: Vec<ResolutionError<'a>>,
+    pub(super) errors: Vec<ResolutionError<'a>>,
 }
 
 impl<'a> ResolverCtx<'a> {
@@ -493,10 +493,6 @@ impl<'a> ResolverCtx<'a> {
             node: ResolutionErrorKind::MissingMainFn,
         });
     }
-
-    pub(super) fn errors(&self) -> &[ResolutionError<'a>] {
-        &self.errors
-    }
 }
 
 pub struct Env<'a> {
@@ -515,4 +511,15 @@ impl<'a> Env<'a> {
             values: HashMap::new(),
         }
     }
+}
+
+pub struct ResolutionSuccess<'a> {
+    pub resolved_defns: Vec<ResolvedDefn>,
+    pub main_id: ValueId,
+    pub id_to_name: HashMap<Identifier, &'a str>,
+}
+
+pub struct ResolutionFailure<'a> {
+    pub errors: Vec<ResolutionError<'a>>,
+    pub id_to_name: HashMap<Identifier, &'a str>,
 }

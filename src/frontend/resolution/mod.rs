@@ -1,6 +1,6 @@
 use crate::frontend::{
     parser::ast::{Defn, ParsedDefn},
-    resolution::types::{ResolvedDefn, ResolverCtx},
+    resolution::types::{ResolutionFailure, ResolutionSuccess, ResolverCtx},
 };
 
 pub mod resolve_defn;
@@ -12,17 +12,34 @@ pub mod types;
 #[cfg(test)]
 mod tests;
 
-pub fn resolve(defns: Vec<ParsedDefn>) -> Vec<ResolvedDefn> {
+pub fn resolve(defns: Vec<ParsedDefn>) -> Result<ResolutionSuccess, ResolutionFailure> {
     let mut ctx = ResolverCtx::new();
     init_global_scope(&mut ctx, &defns);
     let mut resolved_defns = Vec::new();
     for defn in defns {
         resolved_defns.push(resolve_defn::resolve_defn(&mut ctx, defn));
     }
-    resolved_defns
+
+    if ctx.errors.len() > 0 {
+        Err(ResolutionFailure {
+            errors: ctx.errors,
+            id_to_name: ctx.ids,
+        })
+    } else {
+        let Some(main_id) = ctx.lookup_value("main") else {
+            unreachable!(
+                "COMPILER BUG: failed to report missing main function. please report this error"
+            );
+        };
+        Ok(ResolutionSuccess {
+            resolved_defns,
+            main_id,
+            id_to_name: ctx.ids,
+        })
+    }
 }
 
-pub fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]) {
+fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]) {
     let mut has_main = false;
     for defn in defns {
         match &defn.node {
