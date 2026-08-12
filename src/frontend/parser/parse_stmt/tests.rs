@@ -1,6 +1,6 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ExprKind, ParsedExpr, ParsedStmt, Type};
+use crate::frontend::parser::ast::{ExprKind, ParsedExpr, ParsedStmt, ParsedType, Type};
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input).expect("test input should lex successfully"))
@@ -9,6 +9,10 @@ fn parser_from(input: &str) -> Parser<'_> {
 fn parse(input: &str) -> ParsedStmt<'_> {
     let mut p = parser_from(input);
     super::parse_stmt(&mut p).unwrap()
+}
+
+fn ty(offset: usize, node: Type<'_>) -> ParsedType<'_> {
+    ParsedType::new(offset, node)
 }
 
 // ─── let ────────────────────────────────────────────────────────────
@@ -73,7 +77,7 @@ fn let_error_missing_assign() {
 fn read_int() {
     assert_eq!(
         parse("read Int x;"),
-        ParsedStmt::make_read(0, Type::Int, "x".into())
+        ParsedStmt::make_read(0, ty(5, Type::Int), "x".into())
     );
 }
 
@@ -81,7 +85,7 @@ fn read_int() {
 fn read_float() {
     assert_eq!(
         parse("read Float y;"),
-        ParsedStmt::make_read(0, Type::Float, "y".into())
+        ParsedStmt::make_read(0, ty(5, Type::Float), "y".into())
     );
 }
 
@@ -89,7 +93,7 @@ fn read_float() {
 fn read_bool() {
     assert_eq!(
         parse("read Bool z;"),
-        ParsedStmt::make_read(0, Type::Bool, "z".into())
+        ParsedStmt::make_read(0, ty(5, Type::Bool), "z".into())
     );
 }
 
@@ -111,7 +115,7 @@ fn read_error_missing_type() {
 fn echo_int_literal() {
     assert_eq!(
         parse("echo Int 42;"),
-        ParsedStmt::make_echo(0, Type::Int, ParsedExpr::new(9, ExprKind::Int(42)))
+        ParsedStmt::make_echo(0, ty(5, Type::Int), ParsedExpr::new(9, ExprKind::Int(42)))
     );
 }
 
@@ -119,7 +123,11 @@ fn echo_int_literal() {
 fn echo_float_literal() {
     assert_eq!(
         parse("echo Float 3.14;"),
-        ParsedStmt::make_echo(0, Type::Float, ParsedExpr::new(11, ExprKind::Float(3.14)))
+        ParsedStmt::make_echo(
+            0,
+            ty(5, Type::Float),
+            ParsedExpr::new(11, ExprKind::Float(3.14))
+        )
     );
 }
 
@@ -127,7 +135,11 @@ fn echo_float_literal() {
 fn echo_bool_literal() {
     assert_eq!(
         parse("echo Bool true;"),
-        ParsedStmt::make_echo(0, Type::Bool, ParsedExpr::new(10, ExprKind::Bool(true)))
+        ParsedStmt::make_echo(
+            0,
+            ty(5, Type::Bool),
+            ParsedExpr::new(10, ExprKind::Bool(true))
+        )
     );
 }
 
@@ -137,7 +149,7 @@ fn echo_with_expression() {
         parse("echo Int x + 1;"),
         ParsedStmt::make_echo(
             0,
-            Type::Int,
+            ty(5, Type::Int),
             ParsedExpr::new(
                 9,
                 ExprKind::Plus(

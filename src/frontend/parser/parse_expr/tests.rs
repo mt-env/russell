@@ -1,6 +1,8 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm, Type};
+use crate::frontend::parser::ast::{
+    ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm, ParsedType, Type,
+};
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input).expect("test input should lex successfully"))
@@ -9,6 +11,10 @@ fn parser_from(input: &str) -> Parser<'_> {
 fn parse(input: &str) -> ParsedExpr<'_> {
     let mut p = parser_from(input);
     super::parse_expr(&mut p).unwrap()
+}
+
+fn ty(offset: usize, node: Type<'_>) -> ParsedType<'_> {
+    ParsedType::new(offset, node)
 }
 
 // ─── atoms ──────────────────────────────────────────────────────────
@@ -1101,7 +1107,7 @@ fn simple_closure() {
         ParsedExpr::new(
             0,
             ExprKind::Fn(
-                ParsedBinding::new(4, "x".into(), Type::Int),
+                ParsedBinding::new(4, "x".into(), ty(7, Type::Int)),
                 Box::new(ParsedExpr::new(15, ExprKind::Id("x".into())))
             )
         )
@@ -1115,7 +1121,7 @@ fn closure_with_body_expr() {
         ParsedExpr::new(
             0,
             ExprKind::Fn(
-                ParsedBinding::new(4, "x".into(), Type::Int),
+                ParsedBinding::new(4, "x".into(), ty(7, Type::Int)),
                 Box::new(ParsedExpr::new(
                     15,
                     ExprKind::Plus(
@@ -1135,11 +1141,11 @@ fn nested_closures() {
         ParsedExpr::new(
             0,
             ExprKind::Fn(
-                ParsedBinding::new(4, "x".into(), Type::Int),
+                ParsedBinding::new(4, "x".into(), ty(7, Type::Int)),
                 Box::new(ParsedExpr::new(
                     15,
                     ExprKind::Fn(
-                        ParsedBinding::new(19, "y".into(), Type::Int),
+                        ParsedBinding::new(19, "y".into(), ty(22, Type::Int)),
                         Box::new(ParsedExpr::new(
                             30,
                             ExprKind::Plus(
@@ -1161,7 +1167,7 @@ fn closure_with_bool_param() {
         ParsedExpr::new(
             0,
             ExprKind::Fn(
-                ParsedBinding::new(4, "b".into(), Type::Bool),
+                ParsedBinding::new(4, "b".into(), ty(7, Type::Bool)),
                 Box::new(ParsedExpr::new(
                     16,
                     ExprKind::Bang(Box::new(ParsedExpr::new(17, ExprKind::Id("b".into()))))

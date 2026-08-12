@@ -1,36 +1,40 @@
 use crate::frontend::lexer::lex;
 use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ParsedBinding, Type};
+use crate::frontend::parser::ast::{ParsedBinding, ParsedType, Type};
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input).expect("test input should lex successfully"))
 }
 
-fn parse(input: &str) -> Type<'_> {
+fn parse(input: &str) -> ParsedType<'_> {
     let mut p = parser_from(input);
     super::parse_type(&mut p).unwrap()
+}
+
+fn ty(offset: usize, node: Type<'_>) -> ParsedType<'_> {
+    ParsedType::new(offset, node)
 }
 
 // ─── parse_type ─────────────────────────────────────────────────────
 
 #[test]
 fn int_type() {
-    assert_eq!(parse("Int"), Type::Int);
+    assert_eq!(parse("Int"), ty(0, Type::Int));
 }
 
 #[test]
 fn float_type() {
-    assert_eq!(parse("Float"), Type::Float);
+    assert_eq!(parse("Float"), ty(0, Type::Float));
 }
 
 #[test]
 fn bool_type() {
-    assert_eq!(parse("Bool"), Type::Bool);
+    assert_eq!(parse("Bool"), ty(0, Type::Bool));
 }
 
 #[test]
 fn typeid() {
-    assert_eq!(parse("MyType"), Type::TypeId("MyType".into()));
+    assert_eq!(parse("MyType"), ty(0, Type::TypeId("MyType".into())));
 }
 
 #[test]
@@ -43,7 +47,7 @@ fn typeapp_error_no_args() {
 fn typeapp_single_arg() {
     assert_eq!(
         parse("List(Int)"),
-        Type::TypeApp("List".into(), vec![Type::Int])
+        ty(0, Type::TypeApp("List".into(), vec![ty(5, Type::Int)]))
     );
 }
 
@@ -51,7 +55,10 @@ fn typeapp_single_arg() {
 fn typeapp_multiple_args() {
     assert_eq!(
         parse("Result(Int, Bool)"),
-        Type::TypeApp("Result".into(), vec![Type::Int, Type::Bool])
+        ty(
+            0,
+            Type::TypeApp("Result".into(), vec![ty(7, Type::Int), ty(12, Type::Bool)])
+        )
     );
 }
 
@@ -59,25 +66,34 @@ fn typeapp_multiple_args() {
 fn typeapp_nested_args() {
     assert_eq!(
         parse("Map(Int, List(Bool))"),
-        Type::TypeApp(
-            "Map".into(),
-            vec![Type::Int, Type::TypeApp("List".into(), vec![Type::Bool]),]
+        ty(
+            0,
+            Type::TypeApp(
+                "Map".into(),
+                vec![
+                    ty(4, Type::Int),
+                    ty(9, Type::TypeApp("List".into(), vec![ty(14, Type::Bool)])),
+                ]
+            )
         )
     );
 }
 
 #[test]
 fn typeparam() {
-    assert_eq!(parse("'abc"), Type::TypeParam("'abc".into()));
+    assert_eq!(parse("'abc"), ty(0, Type::TypeParam("'abc".into())));
 }
 
 #[test]
 fn fn_type_with_typeparams() {
     assert_eq!(
         parse("'a -> 'b"),
-        Type::Fn(
-            Box::new(Type::TypeParam("'a".into())),
-            Box::new(Type::TypeParam("'b".into()))
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(0, Type::TypeParam("'a".into()))),
+                Box::new(ty(6, Type::TypeParam("'b".into())))
+            )
         )
     );
 }
@@ -86,7 +102,10 @@ fn fn_type_with_typeparams() {
 fn fn_type_simple() {
     assert_eq!(
         parse("Int -> Float"),
-        Type::Fn(Box::new(Type::Int), Box::new(Type::Float))
+        ty(
+            0,
+            Type::Fn(Box::new(ty(0, Type::Int)), Box::new(ty(7, Type::Float)))
+        )
     );
 }
 
@@ -95,9 +114,15 @@ fn fn_type_right_associative() {
     // Int -> Float -> Bool = Int -> (Float -> Bool)
     assert_eq!(
         parse("Int -> Float -> Bool"),
-        Type::Fn(
-            Box::new(Type::Int),
-            Box::new(Type::Fn(Box::new(Type::Float), Box::new(Type::Bool)))
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(0, Type::Int)),
+                Box::new(ty(
+                    7,
+                    Type::Fn(Box::new(ty(7, Type::Float)), Box::new(ty(16, Type::Bool)))
+                ))
+            )
         )
     );
 }
@@ -107,12 +132,21 @@ fn fn_type_three_deep() {
     // Int -> Float -> Bool -> Int = Int -> (Float -> (Bool -> Int))
     assert_eq!(
         parse("Int -> Float -> Bool -> Int"),
-        Type::Fn(
-            Box::new(Type::Int),
-            Box::new(Type::Fn(
-                Box::new(Type::Float),
-                Box::new(Type::Fn(Box::new(Type::Bool), Box::new(Type::Int)))
-            ))
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(0, Type::Int)),
+                Box::new(ty(
+                    7,
+                    Type::Fn(
+                        Box::new(ty(7, Type::Float)),
+                        Box::new(ty(
+                            16,
+                            Type::Fn(Box::new(ty(16, Type::Bool)), Box::new(ty(24, Type::Int)))
+                        ))
+                    )
+                ))
+            )
         )
     );
 }
@@ -121,7 +155,13 @@ fn fn_type_three_deep() {
 fn fn_type_with_typeid() {
     assert_eq!(
         parse("MyType -> Int"),
-        Type::Fn(Box::new(Type::TypeId("MyType".into())), Box::new(Type::Int))
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(0, Type::TypeId("MyType".into()))),
+                Box::new(ty(10, Type::Int))
+            )
+        )
     );
 }
 
@@ -129,25 +169,37 @@ fn fn_type_with_typeid() {
 fn fn_type_with_typeapp() {
     assert_eq!(
         parse("List(Int) -> Result(Int, Bool)"),
-        Type::Fn(
-            Box::new(Type::TypeApp("List".into(), vec![Type::Int])),
-            Box::new(Type::TypeApp("Result".into(), vec![Type::Int, Type::Bool])),
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(0, Type::TypeApp("List".into(), vec![ty(5, Type::Int)]))),
+                Box::new(ty(
+                    13,
+                    Type::TypeApp("Result".into(), vec![ty(20, Type::Int), ty(25, Type::Bool)])
+                )),
+            )
         )
     );
 }
 
 #[test]
 fn parenthesized_type() {
-    assert_eq!(parse("(Int)"), Type::Int);
+    assert_eq!(parse("(Int)"), ty(1, Type::Int));
 }
 
 #[test]
 fn parenthesized_fn_type_grouping() {
     assert_eq!(
         parse("(Int -> Bool) -> Int"),
-        Type::Fn(
-            Box::new(Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
-            Box::new(Type::Int)
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(
+                    1,
+                    Type::Fn(Box::new(ty(1, Type::Int)), Box::new(ty(8, Type::Bool)))
+                )),
+                Box::new(ty(17, Type::Int))
+            )
         )
     );
 }
@@ -156,18 +208,36 @@ fn parenthesized_fn_type_grouping() {
 fn nested_parentheses() {
     assert_eq!(
         parse("Int -> (Bool -> (Int -> Bool) -> Int) -> Bool"),
-        Type::Fn(
-            Box::new(Type::Int),
-            Box::new(Type::Fn(
-                Box::new(Type::Fn(
-                    Box::new(Type::Bool),
-                    Box::new(Type::Fn(
-                        Box::new(Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))),
-                        Box::new(Type::Int),
-                    ))
-                )),
-                Box::new(Type::Bool),
-            ))
+        ty(
+            0,
+            Type::Fn(
+                Box::new(ty(0, Type::Int)),
+                Box::new(ty(
+                    7,
+                    Type::Fn(
+                        Box::new(ty(
+                            8,
+                            Type::Fn(
+                                Box::new(ty(8, Type::Bool)),
+                                Box::new(ty(
+                                    16,
+                                    Type::Fn(
+                                        Box::new(ty(
+                                            17,
+                                            Type::Fn(
+                                                Box::new(ty(17, Type::Int)),
+                                                Box::new(ty(24, Type::Bool))
+                                            )
+                                        )),
+                                        Box::new(ty(33, Type::Int))
+                                    )
+                                ))
+                            )
+                        )),
+                        Box::new(ty(41, Type::Bool))
+                    )
+                ))
+            )
         )
     )
 }
@@ -214,21 +284,21 @@ fn error_on_identifier() {
 fn simple_binding() {
     let mut p = parser_from("x : Int");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, ParsedBinding::new(0, "x".into(), Type::Int));
+    assert_eq!(b, ParsedBinding::new(0, "x".into(), ty(4, Type::Int)));
 }
 
 #[test]
 fn binding_with_float_type() {
     let mut p = parser_from("val : Float");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, ParsedBinding::new(0, "val".into(), Type::Float));
+    assert_eq!(b, ParsedBinding::new(0, "val".into(), ty(6, Type::Float)));
 }
 
 #[test]
 fn binding_with_bool_type() {
     let mut p = parser_from("flag : Bool");
     let b = super::parse_binding(&mut p).unwrap();
-    assert_eq!(b, ParsedBinding::new(0, "flag".into(), Type::Bool));
+    assert_eq!(b, ParsedBinding::new(0, "flag".into(), ty(7, Type::Bool)));
 }
 
 #[test]
@@ -240,7 +310,10 @@ fn binding_with_fn_type() {
         ParsedBinding::new(
             0,
             "f".into(),
-            Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))
+            ty(
+                4,
+                Type::Fn(Box::new(ty(4, Type::Int)), Box::new(ty(11, Type::Bool)))
+            )
         )
     );
 }
@@ -251,7 +324,7 @@ fn binding_with_typeid() {
     let b = super::parse_binding(&mut p).unwrap();
     assert_eq!(
         b,
-        ParsedBinding::new(0, "x".into(), Type::TypeId("MyType".into()))
+        ParsedBinding::new(0, "x".into(), ty(4, Type::TypeId("MyType".into())))
     );
 }
 
@@ -264,7 +337,7 @@ fn binding_with_typeapp() {
         ParsedBinding::new(
             0,
             "xs".into(),
-            Type::TypeApp("List".into(), vec![Type::Int])
+            ty(5, Type::TypeApp("List".into(), vec![ty(10, Type::Int)]))
         )
     );
 }
@@ -281,7 +354,7 @@ fn binding_with_typeparam() {
     let b = super::parse_binding(&mut p).unwrap();
     assert_eq!(
         b,
-        ParsedBinding::new(0, "x".into(), Type::TypeParam("'a".into()))
+        ParsedBinding::new(0, "x".into(), ty(4, Type::TypeParam("'a".into())))
     );
 }
 
@@ -316,7 +389,10 @@ fn empty_binding_list() {
 fn single_binding_list() {
     let mut p = parser_from("(x : Int)");
     let bindings = super::parse_binding_list(&mut p).unwrap();
-    assert_eq!(bindings, vec![ParsedBinding::new(1, "x".into(), Type::Int)]);
+    assert_eq!(
+        bindings,
+        vec![ParsedBinding::new(1, "x".into(), ty(5, Type::Int))]
+    );
 }
 
 #[test]
@@ -326,8 +402,8 @@ fn multiple_bindings() {
     assert_eq!(
         bindings,
         vec![
-            ParsedBinding::new(1, "x".into(), Type::Int),
-            ParsedBinding::new(10, "y".into(), Type::Float),
+            ParsedBinding::new(1, "x".into(), ty(5, Type::Int)),
+            ParsedBinding::new(10, "y".into(), ty(14, Type::Float)),
         ]
     );
 }
@@ -339,9 +415,9 @@ fn three_bindings() {
     assert_eq!(
         bindings,
         vec![
-            ParsedBinding::new(1, "a".into(), Type::Int),
-            ParsedBinding::new(10, "b".into(), Type::Float),
-            ParsedBinding::new(21, "c".into(), Type::Bool),
+            ParsedBinding::new(1, "a".into(), ty(5, Type::Int)),
+            ParsedBinding::new(10, "b".into(), ty(14, Type::Float)),
+            ParsedBinding::new(21, "c".into(), ty(25, Type::Bool)),
         ]
     );
 }
@@ -356,9 +432,12 @@ fn binding_list_with_fn_type() {
             ParsedBinding::new(
                 1,
                 "f".into(),
-                Type::Fn(Box::new(Type::Int), Box::new(Type::Bool))
+                ty(
+                    5,
+                    Type::Fn(Box::new(ty(5, Type::Int)), Box::new(ty(12, Type::Bool)))
+                )
             ),
-            ParsedBinding::new(18, "x".into(), Type::Int),
+            ParsedBinding::new(18, "x".into(), ty(22, Type::Int)),
         ]
     );
 }

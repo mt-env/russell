@@ -6,6 +6,10 @@ fn parser_from(input: &str) -> Parser<'_> {
     super::Parser::new(lex(input).expect("test input should lex successfully"))
 }
 
+fn ty(offset: usize, node: Type<'_>) -> ParsedType<'_> {
+    ParsedType::new(offset, node)
+}
+
 // ─── parse() ────────────────────────────────────────────────────────
 
 #[test]
@@ -26,7 +30,7 @@ fn parse_single_fn() {
             0,
             "main".into(),
             vec![],
-            Type::Int,
+            ty(13, Type::Int),
             vec![ParsedStmt::make_return(
                 19,
                 ParsedExpr::new(26, ExprKind::Int(0))
@@ -42,7 +46,12 @@ fn parse_single_typedef() {
     assert_eq!(defns.len(), 1);
     assert_eq!(
         defns[0],
-        ParsedDefn::make_typedef(0, "Unit".into(), vec![], vec![("unit".into(), vec![])])
+        ParsedDefn::make_typedef(
+            0,
+            "Unit".into(),
+            vec![],
+            vec![ParsedConstructorArm::new(15, "unit", vec![])]
+        )
     );
 }
 
