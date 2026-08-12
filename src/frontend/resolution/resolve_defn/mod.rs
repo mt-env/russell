@@ -1,5 +1,5 @@
 use crate::frontend::{
-    parser::ast::{Defn, ParsedBinding, ParsedDefn, ParsedStmt, Type},
+    parser::ast::{Defn, ParsedBinding, ParsedDefn, ParsedStmt, ParsedType},
     resolution::{
         resolve_stmt, resolve_type,
         types::{ResolvedDefn, ResolverCtx},
@@ -31,7 +31,10 @@ fn resolve_typedef<'a>(
 ) -> ResolvedDefn {
     // fetch type ID from global scope (should have been added in init_global_scope)
     let Some(type_id) = ctx.lookup_type(id) else {
-        panic!("Type {} not found in scope", id);
+        unreachable!(
+            "COMPILER BUG: cannot find type {}. please report this error",
+            id
+        );
     };
 
     // set up generic tyvars
@@ -46,16 +49,25 @@ fn resolve_typedef<'a>(
     let mut resolved_arms = Vec::new();
     for arm in arms {
         let Some(constructor_id) = ctx.lookup_value(arm.0) else {
-            panic!("Constructor {} not found in scope", arm.0);
+            unreachable!(
+                "COMPILER BUG: cannot find constructor {}. please report this error",
+                arm.0
+            );
         };
 
         ctx.push_scope();
         let mut resolved_bindings = Vec::new();
         for binding in arm.1 {
-            ctx.add_value(binding.node.id);
+            let loc = binding.offset;
+            let name = binding.node.id;
+            ctx.add_value(name);
             let resolved_binding = match resolve_type::add_binding_existing_typaram(ctx, binding) {
                 Some(val) => val,
-                None => panic!("type parameter not found"), // TODO proper error handling
+                None => {
+                    ctx.add_unbound_type_error(name, loc);
+                    resolve_type::add_binding_no_shadowing(ctx, binding) // placeholder binding
+                    // TODO fix this?
+                }
             };
             resolved_bindings.push(resolved_binding);
         }
@@ -74,14 +86,17 @@ fn resolve_fn<'a>(
     ctx: &mut ResolverCtx<'a>,
     name: &'a str,
     bindings: Vec<ParsedBinding<'a>>,
-    ret_ty: Type<'a>,
+    ret_ty: ParsedType<'a>,
     body: Vec<ParsedStmt<'a>>,
 ) -> ResolvedDefn {
     ctx.push_scope();
 
     // find function name ID and return type
     let Some(fn_id) = ctx.lookup_value(name) else {
-        panic!("Function {} not found in scope", name);
+        unreachable!(
+            "COMPILER BUG: cannot find function {}. please report this error",
+            name
+        );
     };
 
     let resolved_ret_ty = resolve_type::add_type(ctx, ret_ty);

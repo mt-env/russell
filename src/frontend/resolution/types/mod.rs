@@ -281,9 +281,11 @@ impl ResolvedMatchArm {
 }
 
 pub enum ResolutionErrorKind<'a> {
-    DuplicateName { name: &'a str },
+    DuplicateValue { name: &'a str },
+    DuplicateType { name: &'a str },
     UnknownValue { name: &'a str },
     UnknownType { name: &'a str },
+    MissingMainFn,
 }
 
 pub type ResolutionError<'a> = Spanned<ResolutionErrorKind<'a>>;
@@ -350,9 +352,12 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(super) fn add_value_nodup(&mut self, name: &'a str) -> ValueId {
+    pub(super) fn add_value_nodup(&mut self, name: &'a str, at: usize) -> ValueId {
         match self.lookup_value(name) {
-            Some(_) => panic!("Duplicate value name: {}", name),
+            Some(val) => {
+                self.add_duplicate_value_error(name, at);
+                val
+            }
             None => self.add_value(name),
         }
     }
@@ -368,9 +373,12 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(super) fn add_type_nodup(&mut self, name: &'a str) -> TypeId {
+    pub(super) fn add_type_nodup(&mut self, name: &'a str, at: usize) -> TypeId {
         match self.lookup_type(name) {
-            Some(_) => panic!("Duplicate type name: {}", name),
+            Some(val) => {
+                self.add_duplicate_type_error(name, at);
+                val
+            }
             None => self.add_type(name),
         }
     }
@@ -436,6 +444,31 @@ impl<'a> ResolverCtx<'a> {
             offset: at,
             node: ResolutionErrorKind::UnknownType { name },
         });
+    }
+
+    pub(super) fn add_duplicate_value_error(&mut self, name: &'a str, at: usize) {
+        self.errors.push(Spanned {
+            offset: at,
+            node: ResolutionErrorKind::DuplicateValue { name },
+        });
+    }
+
+    pub(super) fn add_duplicate_type_error(&mut self, name: &'a str, at: usize) {
+        self.errors.push(Spanned {
+            offset: at,
+            node: ResolutionErrorKind::DuplicateType { name },
+        });
+    }
+
+    pub(super) fn add_missing_main_fn_error(&mut self) {
+        self.errors.push(Spanned {
+            offset: 0, // placeholder value; nothing else makes sense except end?
+            node: ResolutionErrorKind::MissingMainFn,
+        });
+    }
+
+    pub(super) fn errors(&self) -> &[ResolutionError<'a>] {
+        &self.errors
     }
 }
 

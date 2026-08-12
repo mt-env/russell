@@ -124,7 +124,7 @@ pub(super) fn add_binding_no_shadowing<'a>(
     ctx: &mut ResolverCtx<'a>,
     binding: ParsedBinding<'a>,
 ) -> ResolvedBinding {
-    let value_id = ctx.add_value_nodup(binding.node.id);
+    let value_id = ctx.add_value_nodup(binding.node.id, binding.offset);
     let resolved_type = add_type(ctx, binding.node.typ);
     ResolvedBinding::new(binding.offset, value_id, resolved_type)
 }
