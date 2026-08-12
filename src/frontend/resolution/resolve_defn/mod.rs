@@ -1,9 +1,12 @@
 use crate::frontend::{
-    parser::ast::{Defn, ParsedBinding, ParsedConstructorArm, ParsedDefn, ParsedStmt, ParsedType},
+    parser::ast::{
+        Defn, ParsedBinding, ParsedConstructorArm, ParsedDefn, ParsedStmt, ParsedType, Type,
+    },
     resolution::{
         resolve_stmt, resolve_type,
         types::{ResolvedConstructorArm, ResolvedDefn, ResolverCtx},
     },
+    types::Spanned,
 };
 
 #[cfg(test)]
@@ -58,15 +61,18 @@ fn resolve_typedef<'a>(
         ctx.push_scope();
         let mut resolved_bindings = Vec::new();
         for binding in arm.node.bindings {
-            let loc = binding.offset;
-            let name = binding.node.id;
-            ctx.add_value(name);
             let resolved_binding =
             // TODO - nuke the clone if possible
                 match resolve_type::add_binding_existing_typaram(ctx, binding.clone()) {
                     Some(val) => val,
                     None => {
-                        ctx.add_unbound_type_error(name, loc);
+                        let Spanned { offset: type_loc, node: Type::TypeParam(type_name) } = binding.node.typ else {
+                            unreachable!(
+                                "COMPILER BUG: improperly resolved type param for binding {}. please report this error",
+                                binding.node.id
+                            );
+                        };
+                        ctx.add_unbound_type_error(type_name, type_loc);
                         resolve_type::add_binding_no_shadowing(ctx, binding) // placeholder binding
                     }
                 };
