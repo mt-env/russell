@@ -29,7 +29,7 @@ pub enum ResolvedDefnKind {
     Typedef {
         id: TypeId,
         params: Vec<TypeParamId>,
-        arms: Vec<(ValueId, Vec<ResolvedBinding>)>,
+        arms: Vec<ResolvedConstructorArm>,
     },
 
     Fn {
@@ -47,7 +47,7 @@ impl ResolvedDefn {
         offset: usize,
         id: TypeId,
         params: Vec<TypeParamId>,
-        arms: Vec<(ValueId, Vec<ResolvedBinding>)>,
+        arms: Vec<ResolvedConstructorArm>,
     ) -> Self {
         Spanned {
             offset,
@@ -276,6 +276,23 @@ impl ResolvedMatchArm {
         Self {
             offset,
             node: ResolvedMatchArmData { id, bindings, expr },
+        }
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ResolvedConstructorArmData {
+    id: ValueId,
+    bindings: Vec<ResolvedBinding>,
+}
+
+pub type ResolvedConstructorArm = Spanned<ResolvedConstructorArmData>;
+
+impl ResolvedConstructorArm {
+    pub fn new(offset: usize, id: ValueId, bindings: Vec<ResolvedBinding>) -> Self {
+        Self {
+            offset,
+            node: ResolvedConstructorArmData { id, bindings },
         }
     }
 }
