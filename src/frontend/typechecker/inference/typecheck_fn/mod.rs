@@ -22,8 +22,8 @@ pub fn typecheck_fn<'a>(
         let loc = stmt.offset;
         typed_stmts.push(match stmt.node {
             Stmt::Let(id, expr) => typecheck_let(loc, id, expr, ctx),
-            Stmt::Read(typ, id) => typecheck_read(loc, typ, id, ctx),
-            Stmt::Echo(typ, expr) => typecheck_echo(loc, typ, expr, ctx),
+            Stmt::Read(typ, id) => typecheck_read(loc, typ.node, id, ctx),
+            Stmt::Echo(typ, expr) => typecheck_echo(loc, typ.node, expr, ctx),
             Stmt::Return(expr) => typecheck_return(loc, ret_ty.clone(), expr, ctx),
         })
     }

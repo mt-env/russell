@@ -88,7 +88,7 @@ impl From<Type<'_>> for TypeValue {
             Type::TypeId(_) => todo!(),
             Type::TypeParam(_) => todo!(),
             Type::TypeApp(_, _) => todo!(),
-            Type::Fn(arg, body) => TypeValue::Fn(vec![(*arg).into()], Box::new((*body).into())),
+            Type::Fn(arg, body) => TypeValue::Fn(vec![arg.node.into()], Box::new(body.node.into())),
         }
     }
 }
