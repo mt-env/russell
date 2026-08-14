@@ -136,7 +136,7 @@ pub(super) fn add_binding_existing_typaram<'a>(
     binding: ParsedBinding<'a>,
 ) -> Option<ResolvedBinding> {
     let resolved_type = lookup_type(ctx, binding.node.typ)?;
-    let value_id = ctx.add_value(binding.node.id);
+    let value_id = ctx.add_value_nodup(binding.node.id, binding.offset);
     Some(ResolvedBinding::new(
         binding.offset,
         value_id,
