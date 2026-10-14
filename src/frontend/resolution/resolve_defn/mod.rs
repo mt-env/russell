@@ -66,11 +66,16 @@ fn resolve_typedef<'a>(
                 match resolve_type::add_binding_existing_typaram(ctx, binding.clone()) {
                     Some(val) => val,
                     None => {
-                        let Spanned { offset: type_loc, node: Type::TypeParam(type_name) } = binding.node.typ else {
-                            unreachable!(
-                                "COMPILER BUG: improperly resolved type param for binding {}. please report this error",
-                                binding.node.id
-                            );
+                        let type_loc = binding.node.typ.offset;
+                        let type_name = match binding.node.typ.node {
+                            Type::TypeParam(name) => name,
+                            Type::TypeId(name) => name,
+                            _ => {
+                                unreachable!(
+                                    "COMPILER BUG: improperly resolved type param for binding {}. please report this error",
+                                    binding.node.id
+                                );
+                            }
                         };
                         ctx.add_unbound_type_error(type_name, type_loc);
                         resolve_type::add_binding_no_shadowing(ctx, binding) // placeholder binding
