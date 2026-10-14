@@ -2,29 +2,40 @@ use crate::frontend::{
     lexer::lex,
     parser::{Parser, parse_expr::parse_expr},
     resolution::types::{
-        ResolvedBindingData, ResolvedExprKind, ResolvedMatchArm, ResolvedType, ResolverCtx,
+        ResolutionErrorKind, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchArm,
+        ResolvedType, ResolverCtx,
     },
+    types::Spanned,
 };
 
-fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedExprKind {
+fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedExpr {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_expr(&mut parser).unwrap();
     super::resolve_expr(ctx, parsed)
+}
+
+fn expr(offset: usize, id: usize, kind: ResolvedExprKind) -> ResolvedExpr {
+    let mut ctx = ResolverCtx::new();
+    let mut expr_id = ctx.next_exprid();
+    for _ in 0..id {
+        expr_id = ctx.next_exprid();
+    }
+    ResolvedExpr::new(offset, expr_id, kind)
 }
 
 #[test]
 fn resolves_literals() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "42"),
-        ResolvedExprKind::Int(42)
+        expr(0, 0, ResolvedExprKind::Int(42))
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "3.5"),
-        ResolvedExprKind::Float(3.5)
+        expr(0, 0, ResolvedExprKind::Float(3.5))
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "true"),
-        ResolvedExprKind::Bool(true)
+        expr(0, 0, ResolvedExprKind::Bool(true))
     );
 }
 
@@ -33,28 +44,47 @@ fn resolves_identifier_from_context() {
     let mut ctx = ResolverCtx::new();
     let x = ctx.add_value("x");
 
-    assert_eq!(resolve(&mut ctx, "x"), ResolvedExprKind::Id(x));
+    assert_eq!(resolve(&mut ctx, "x"), expr(0, 0, ResolvedExprKind::Id(x)));
 }
 
 #[test]
-#[should_panic(expected = "missing: unbound or not a value")]
 fn rejects_unbound_identifier() {
-    resolve(&mut ResolverCtx::new(), "missing");
+    let mut ctx = ResolverCtx::new();
+    resolve(&mut ctx, "missing");
+    assert_eq!(
+        ctx.errors,
+        vec![Spanned {
+            offset: 0,
+            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+        }]
+    );
 }
 
 #[test]
 fn resolves_unary_expressions() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "-7"),
-        ResolvedExprKind::Neg(Box::new(ResolvedExprKind::Int(7)))
+        expr(
+            0,
+            1,
+            ResolvedExprKind::Neg(Box::new(expr(1, 0, ResolvedExprKind::Int(7)))),
+        )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "-.2.0"),
-        ResolvedExprKind::FNeg(Box::new(ResolvedExprKind::Float(2.0)))
+        expr(
+            0,
+            1,
+            ResolvedExprKind::FNeg(Box::new(expr(2, 0, ResolvedExprKind::Float(2.0)))),
+        )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "!false"),
-        ResolvedExprKind::Bang(Box::new(ResolvedExprKind::Bool(false)))
+        expr(
+            0,
+            1,
+            ResolvedExprKind::Bang(Box::new(expr(1, 0, ResolvedExprKind::Bool(false)))),
+        )
     );
 }
 
@@ -62,30 +92,46 @@ fn resolves_unary_expressions() {
 fn resolves_integer_arithmetic_expressions() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 + 2"),
-        ResolvedExprKind::Plus(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Plus(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(4, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 - 2"),
-        ResolvedExprKind::Minus(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Minus(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(4, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 * 2"),
-        ResolvedExprKind::Mult(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Mult(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(4, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 / 2"),
-        ResolvedExprKind::Div(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Div(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(4, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
 }
@@ -94,30 +140,46 @@ fn resolves_integer_arithmetic_expressions() {
 fn resolves_float_arithmetic_expressions() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 +. 2.0"),
-        ResolvedExprKind::FPlus(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FPlus(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(7, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 -. 2.0"),
-        ResolvedExprKind::FMinus(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FMinus(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(7, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 *. 2.0"),
-        ResolvedExprKind::FMult(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FMult(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(7, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 /. 2.0"),
-        ResolvedExprKind::FDiv(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FDiv(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(7, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
 }
@@ -126,30 +188,46 @@ fn resolves_float_arithmetic_expressions() {
 fn resolves_integer_comparison_expressions() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 < 2"),
-        ResolvedExprKind::Lt(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Lt(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(4, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 <= 2"),
-        ResolvedExprKind::LtEq(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::LtEq(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(5, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 > 2"),
-        ResolvedExprKind::Gt(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Gt(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(4, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 >= 2"),
-        ResolvedExprKind::GtEq(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::GtEq(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(5, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
 }
@@ -158,30 +236,46 @@ fn resolves_integer_comparison_expressions() {
 fn resolves_float_comparison_expressions() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 <. 2.0"),
-        ResolvedExprKind::FLt(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FLt(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(7, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 <=. 2.0"),
-        ResolvedExprKind::FLtEq(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FLtEq(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(8, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 >. 2.0"),
-        ResolvedExprKind::FGt(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FGt(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(7, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1.0 >=. 2.0"),
-        ResolvedExprKind::FGtEq(
-            Box::new(ResolvedExprKind::Float(1.0)),
-            Box::new(ResolvedExprKind::Float(2.0)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::FGtEq(
+                Box::new(expr(0, 0, ResolvedExprKind::Float(1.0))),
+                Box::new(expr(8, 1, ResolvedExprKind::Float(2.0))),
+            )
         )
     );
 }
@@ -190,37 +284,57 @@ fn resolves_float_comparison_expressions() {
 fn resolves_equality_logical_and_pipe_expressions() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 == 2"),
-        ResolvedExprKind::Eq(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Eq(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(5, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 != 2"),
-        ResolvedExprKind::NotEq(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::NotEq(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(5, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "true || false"),
-        ResolvedExprKind::Or(
-            Box::new(ResolvedExprKind::Bool(true)),
-            Box::new(ResolvedExprKind::Bool(false)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Or(
+                Box::new(expr(0, 0, ResolvedExprKind::Bool(true))),
+                Box::new(expr(8, 1, ResolvedExprKind::Bool(false))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "true && false"),
-        ResolvedExprKind::And(
-            Box::new(ResolvedExprKind::Bool(true)),
-            Box::new(ResolvedExprKind::Bool(false)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::And(
+                Box::new(expr(0, 0, ResolvedExprKind::Bool(true))),
+                Box::new(expr(8, 1, ResolvedExprKind::Bool(false))),
+            )
         )
     );
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "1 |> 2"),
-        ResolvedExprKind::Pipe(
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(2)),
+        expr(
+            0,
+            2,
+            ResolvedExprKind::Pipe(
+                Box::new(expr(0, 0, ResolvedExprKind::Int(1))),
+                Box::new(expr(5, 1, ResolvedExprKind::Int(2))),
+            )
         )
     );
 }
@@ -233,13 +347,17 @@ fn resolves_call_expression() {
 
     assert_eq!(
         resolve(&mut ctx, "f(9, x, true)"),
-        ResolvedExprKind::Call(
-            Box::new(ResolvedExprKind::Id(f)),
-            vec![
-                ResolvedExprKind::Int(9),
-                ResolvedExprKind::Id(x),
-                ResolvedExprKind::Bool(true),
-            ],
+        expr(
+            0,
+            4,
+            ResolvedExprKind::Call(
+                Box::new(expr(0, 0, ResolvedExprKind::Id(f))),
+                vec![
+                    expr(2, 1, ResolvedExprKind::Int(9)),
+                    expr(5, 2, ResolvedExprKind::Id(x)),
+                    expr(8, 3, ResolvedExprKind::Bool(true)),
+                ],
+            )
         )
     );
 }
@@ -252,12 +370,17 @@ fn resolves_nested_and_zero_argument_calls() {
 
     assert_eq!(
         resolve(&mut ctx, "f()(g)"),
-        ResolvedExprKind::Call(
-            Box::new(ResolvedExprKind::Call(
-                Box::new(ResolvedExprKind::Id(f)),
-                vec![],
-            )),
-            vec![ResolvedExprKind::Id(g)],
+        expr(
+            0,
+            3,
+            ResolvedExprKind::Call(
+                Box::new(expr(
+                    0,
+                    1,
+                    ResolvedExprKind::Call(Box::new(expr(0, 0, ResolvedExprKind::Id(f))), vec![],)
+                )),
+                vec![expr(4, 2, ResolvedExprKind::Id(g))],
+            )
         )
     );
 }
@@ -266,10 +389,14 @@ fn resolves_nested_and_zero_argument_calls() {
 fn resolves_if_expression() {
     assert_eq!(
         resolve(&mut ResolverCtx::new(), "if true then 1 else 0"),
-        ResolvedExprKind::If(
-            Box::new(ResolvedExprKind::Bool(true)),
-            Box::new(ResolvedExprKind::Int(1)),
-            Box::new(ResolvedExprKind::Int(0)),
+        expr(
+            0,
+            3,
+            ResolvedExprKind::If(
+                Box::new(expr(3, 0, ResolvedExprKind::Bool(true))),
+                Box::new(expr(13, 1, ResolvedExprKind::Int(1))),
+                Box::new(expr(20, 2, ResolvedExprKind::Int(0))),
+            )
         )
     );
 }
@@ -286,9 +413,13 @@ fn resolves_closure_parameter_and_restores_outer_scope() {
 
     assert_eq!(
         resolve(&mut ctx, "fn(x: Int) -> x"),
-        ResolvedExprKind::Fn(
-            ResolvedBindingData::new(parameter, ResolvedType::Int),
-            Box::new(ResolvedExprKind::Id(parameter)),
+        expr(
+            0,
+            1,
+            ResolvedExprKind::Fn(
+                ResolvedBinding::new(3, parameter, ResolvedType::mk_int(6)),
+                Box::new(expr(14, 0, ResolvedExprKind::Id(parameter))),
+            )
         )
     );
     assert_eq!(ctx.lookup_value("x"), Some(outer_x));
@@ -315,36 +446,54 @@ fn resolves_match_variants_and_arm_bindings() {
             &mut ctx,
             "match option { some(value) -> value, none() -> 0 }",
         ),
-        ResolvedExprKind::Match(
-            Box::new(ResolvedExprKind::Id(scrutinee)),
-            vec![
-                ResolvedMatchArm::new(some, vec![value], ResolvedExprKind::Id(value)),
-                ResolvedMatchArm::new(none, vec![], ResolvedExprKind::Int(0)),
-            ],
+        expr(
+            0,
+            3,
+            ResolvedExprKind::Match(
+                Box::new(expr(6, 0, ResolvedExprKind::Id(scrutinee))),
+                vec![
+                    ResolvedMatchArm::new(
+                        15,
+                        some,
+                        vec![value],
+                        expr(30, 1, ResolvedExprKind::Id(value)),
+                    ),
+                    ResolvedMatchArm::new(37, none, vec![], expr(47, 2, ResolvedExprKind::Int(0)),),
+                ],
+            )
         )
     );
     assert_eq!(ctx.lookup_value("value"), None);
 }
 
 #[test]
-#[should_panic(expected = "cannot find variant missing")]
 fn rejects_match_with_unknown_variant() {
     let mut ctx = ResolverCtx::new();
     ctx.add_value("value");
 
     resolve(&mut ctx, "match value { missing() -> 0 }");
+    assert_eq!(
+        ctx.errors,
+        vec![Spanned {
+            offset: 14,
+            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+        }]
+    );
 }
 
-// TODO - this test is invalid right now
-// probably install an equivalent once i return Result rather than panicking
-// #[test]
-// fn panic_while_resolving_closure_does_not_leak_its_scope() {
-//     let mut ctx = ResolverCtx::new();
-//
-//     let result = catch_unwind(AssertUnwindSafe(|| {
-//         resolve(&mut ctx, "fn(parameter: Int) -> missing");
-//     }));
-//
-//     assert!(result.is_err());
-//     assert_eq!(ctx.lookup_value("parameter"), None);
-// }
+#[test]
+fn rejects_duplicate_match_binding_names() {
+    let mut ctx = ResolverCtx::new();
+    ctx.add_value("option");
+    ctx.add_value("some");
+
+    resolve(&mut ctx, "match option { some(x, x) -> x }");
+
+    assert_eq!(
+        ctx.errors,
+        vec![Spanned {
+            offset: 15,
+            node: ResolutionErrorKind::DuplicateValue { name: "x" },
+        }]
+    );
+}

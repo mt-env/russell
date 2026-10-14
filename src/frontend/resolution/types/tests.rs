@@ -99,7 +99,7 @@ fn default_environment_is_empty() {
 }
 
 #[test]
-#[should_panic(expected = "No current scope to add value to")]
+#[should_panic(expected = "COMPILER BUG: improper management of scopes when adding value value")]
 fn adding_value_without_scope_panics() {
     let mut ctx = ResolverCtx::new();
     ctx.pop_scope();
@@ -108,7 +108,7 @@ fn adding_value_without_scope_panics() {
 }
 
 #[test]
-#[should_panic(expected = "No current scope to add type to")]
+#[should_panic(expected = "COMPILER BUG: improper management of scopes when adding type Type")]
 fn adding_type_without_scope_panics() {
     let mut ctx = ResolverCtx::new();
     ctx.pop_scope();
@@ -117,7 +117,9 @@ fn adding_type_without_scope_panics() {
 }
 
 #[test]
-#[should_panic(expected = "No current scope to add type parameter to")]
+#[should_panic(
+    expected = "COMPILER BUG: improper management of scopes when adding type param 'parameter"
+)]
 fn adding_type_parameter_without_scope_panics() {
     let mut ctx = ResolverCtx::new();
     ctx.pop_scope();
