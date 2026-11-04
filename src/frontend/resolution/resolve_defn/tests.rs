@@ -409,7 +409,7 @@ fn rejects_undefined_typedef_type() {
 }
 
 #[test]
-fn eejects_duplicate_typedef_binding_names() {
+fn rejects_duplicate_typedef_binding_names() {
     let mut ctx = ResolverCtx::new();
     ctx.add_type("Pair");
     ctx.add_value("pair");
