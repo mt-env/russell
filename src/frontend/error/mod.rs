@@ -1,45 +1,22 @@
+pub mod lex_error;
 pub mod parse_error;
 
 use std::fmt;
 
-use parse_error::ParseError;
-
-use crate::frontend::lexer::token::SpannedLexError;
-
-#[derive(Debug)]
-pub enum CompilerError<'a> {
-    Lex(SpannedLexError<'a>),
-    Parse(ParseError<'a>),
+pub trait CompilerError<'src>: fmt::Display {
+    fn offset(&self) -> usize;
 }
 
-impl CompilerError<'_> {
-    fn offset(&self) -> usize {
-        match self {
-            CompilerError::Lex(e) => e.offset,
-            CompilerError::Parse(e) => e.offset,
-        }
-    }
-}
-
-impl fmt::Display for CompilerError<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CompilerError::Lex(e) => write!(f, "{}", e),
-            CompilerError::Parse(e) => write!(f, "{}", e),
-        }
-    }
-}
-
-impl<'a> From<SpannedLexError<'a>> for CompilerError<'a> {
-    fn from(e: SpannedLexError<'a>) -> Self {
-        CompilerError::Lex(e)
-    }
-}
-
-impl<'a> From<ParseError<'a>> for CompilerError<'a> {
-    fn from(e: ParseError<'a>) -> Self {
-        CompilerError::Parse(e)
-    }
+pub fn report_all<'src>(
+    errors: &[impl CompilerError<'src>],
+    source: &'src str,
+    filename: &'src str,
+) -> String {
+    errors
+        .iter()
+        .map(|error| report(error, source, filename))
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 /// Format a compiler error with source context for display.
@@ -52,7 +29,11 @@ impl<'a> From<ParseError<'a>> for CompilerError<'a> {
 /// 3 | let @x = 5;
 ///   |     ^
 /// ```
-pub fn report(error: &CompilerError, source: &str, filename: &str) -> String {
+pub fn report<'src>(
+    error: &impl CompilerError<'src>,
+    source: &'src str,
+    filename: &'src str,
+) -> String {
     let (line, col) = offset_to_location(source, error.offset());
     let src_line = source_line_at(source, error.offset());
     let gutter = line.to_string().len();
