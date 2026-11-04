@@ -1,10 +1,11 @@
-use std::env;
-use std::fs;
+use std::{env, fs, process::ExitCode};
 
-use russell::frontend::{error, lexer, parser};
-use russell::interpreter::treewalk;
+use crate::{
+    frontend::{lexer, parser},
+    interpreter::treewalk,
+};
 
-fn main() {
+pub fn run() -> ExitCode {
     // read the program
     let args: Vec<String> = env::args().collect();
     let filename = args.get(1).expect("FATAL ERROR: No file provided.");
@@ -19,6 +20,8 @@ fn main() {
     // parse the program
     let defns = parser::parse(tokens);
 
-    // interpret the program
-    treewalk::interp(defns)
+    // interpret the program TODO this might panic - should handle gracefully
+    treewalk::interp(defns);
+
+    return ExitCode::SUCCESS;
 }

@@ -1,5 +1,7 @@
 use std::process::ExitCode;
 
+use russell::driver;
+
 fn main() -> ExitCode {
-    unimplemented!()
+    driver::run()
 }
