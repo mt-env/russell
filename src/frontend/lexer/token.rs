@@ -134,42 +134,65 @@ pub enum TokenKind {
     EoF,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum LexError<'a> {
-    InvalidChar(char),
-    InvalidInt(&'a str),
-    InvalidFloat(&'a str),
-}
-
-pub type SpannedLexError<'a> = Spanned<LexError<'a>>;
-
-impl<'a> SpannedLexError<'a> {
-    pub fn new(error: LexError<'a>, offset: usize) -> Self {
-        Spanned {
-            node: error,
-            offset,
-        }
-    }
-}
-
-impl Display for LexError<'_> {
+impl Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LexError::InvalidChar(c) => write!(f, "invalid character '{}'", c),
-            LexError::InvalidInt(s) => write!(f, "invalid integer literal '{}'", s),
-            LexError::InvalidFloat(s) => write!(f, "invalid float literal '{}'", s),
+            TokenKind::Id => write!(f, "identifier"),
+            TokenKind::Int => write!(f, "integer literal"),
+            TokenKind::Float => write!(f, "float literal"),
+            TokenKind::Bool => write!(f, "boolean literal"),
+            TokenKind::Echo => write!(f, "'echo'"),
+            TokenKind::Else => write!(f, "'else'"),
+            TokenKind::Fn => write!(f, "'fn'"),
+            TokenKind::If => write!(f, "'if'"),
+            TokenKind::Let => write!(f, "'let'"),
+            TokenKind::Match => write!(f, "'match'"),
+            TokenKind::Read => write!(f, "'read'"),
+            TokenKind::Return => write!(f, "'return'"),
+            TokenKind::Then => write!(f, "'then'"),
+            TokenKind::Typedef => write!(f, "'typedef'"),
+            TokenKind::IntType => write!(f, "'Int'"),
+            TokenKind::FloatType => write!(f, "'Float'"),
+            TokenKind::BoolType => write!(f, "'Bool'"),
+            TokenKind::TypeId => write!(f, "type identifier"),
+            TokenKind::TypeParam => write!(f, "type parameter identifier"),
+            TokenKind::LParen => write!(f, "'('"),
+            TokenKind::RParen => write!(f, "')'"),
+            TokenKind::Comma => write!(f, "','"),
+            TokenKind::Arrow => write!(f, "'->'"),
+            TokenKind::Colon => write!(f, "':'"),
+            TokenKind::Semicolon => write!(f, "';'"),
+            TokenKind::LBrace => write!(f, "'{{'"),
+            TokenKind::RBrace => write!(f, "'}}'"),
+            TokenKind::Assign => write!(f, "'='"),
+            TokenKind::Not => write!(f, "'!'"),
+            TokenKind::NotEq => write!(f, "'!='"),
+            TokenKind::And => write!(f, "'&&'"),
+            TokenKind::Plus => write!(f, "'+'"),
+            TokenKind::Minus => write!(f, "'-'"),
+            TokenKind::Times => write!(f, "'*'"),
+            TokenKind::Divide => write!(f, "'/'"),
+            TokenKind::FPlus => write!(f, "'+.'"),
+            TokenKind::FMinus => write!(f, "'-.'"),
+            TokenKind::FTimes => write!(f, "'*.'"),
+            TokenKind::FDivide => write!(f, "'/.'"),
+            TokenKind::LessThan => write!(f, "'<'"),
+            TokenKind::LessThanOrEq => write!(f, "'<='"),
+            TokenKind::GreaterThan => write!(f, "'>'"),
+            TokenKind::GreaterThanOrEq => write!(f, "'>='"),
+            TokenKind::FLessThan => write!(f, "'<.'"),
+            TokenKind::FLessThanOrEq => write!(f, "'<=.'"),
+            TokenKind::FGreaterThan => write!(f, "'>.'"),
+            TokenKind::FGreaterThanOrEq => write!(f, "'>=.'"),
+            TokenKind::Eq => write!(f, "'=='"),
+            TokenKind::Pipe => write!(f, "'|>'"),
+            TokenKind::Or => write!(f, "'||'"),
+            TokenKind::EoF => write!(f, "end of file"),
         }
-    }
-}
-
-impl Display for TokenKind {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
     }
 }
 
 pub type SpannedToken<'a> = Spanned<Token<'a>>;
-impl Copy for SpannedToken<'_> {}
 
 impl<'a> SpannedToken<'a> {
     pub fn new(token: Token<'a>, offset: usize) -> Self {

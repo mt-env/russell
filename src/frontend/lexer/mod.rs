@@ -3,7 +3,10 @@ pub mod token;
 #[cfg(test)]
 mod tests;
 
-use crate::frontend::lexer::token::{LexError, SpannedLexError, SpannedToken, Token, TokenKind};
+use crate::frontend::{
+    error::lex_error::{LexError, LexErrorKind},
+    lexer::token::{SpannedToken, Token, TokenKind},
+};
 
 const KEYWORDS: [(&str, Token); 15] = [
     // reserved keywords
@@ -63,7 +66,7 @@ const OPERATORS: [(&str, Token); 31] = [
     ("}", Token::RBrace),
 ];
 
-pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<SpannedLexError<'_>>> {
+pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<LexError<'_>>> {
     let mut lexer = Lexer::new(program);
     // todo - should this be in lexer struct, maybe?
     let mut tokens = Vec::new();
@@ -99,7 +102,7 @@ impl<'a> Lexer<'a> {
         Self { program, offset: 0 }
     }
 
-    fn next_token(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
+    fn next_token(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
         self.eat_whitespace();
 
         let program = &self.program[self.offset..];
@@ -140,7 +143,7 @@ impl<'a> Lexer<'a> {
         // otherwise, the token is invalid
         let loc = self.offset;
         self.offset += first_char.len_utf8();
-        Err(SpannedLexError::new(LexError::InvalidChar(first_char), loc))
+        Err(LexError::new(LexErrorKind::InvalidChar(first_char), loc))
     }
 
     fn eat_whitespace(&mut self) {
@@ -158,7 +161,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_num(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
+    fn read_num(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
         // greedily grab all characters that form a number (numbers and dots)
         let program = &self.program[self.offset..];
         let end = program
@@ -172,12 +175,12 @@ impl<'a> Lexer<'a> {
         if digits.contains('.') {
             match digits.parse::<f64>() {
                 Ok(f) => Ok(SpannedToken::new(Token::Float(f), loc)),
-                Err(_) => Err(SpannedLexError::new(LexError::InvalidFloat(digits), loc)),
+                Err(_) => Err(LexError::new(LexErrorKind::InvalidFloat(digits), loc)),
             }
         } else {
             match digits.parse::<i64>() {
                 Ok(i) => Ok(SpannedToken::new(Token::Int(i), loc)),
-                Err(_) => Err(SpannedLexError::new(LexError::InvalidInt(digits), loc)),
+                Err(_) => Err(LexError::new(LexErrorKind::InvalidInt(digits), loc)),
             }
         }
     }
@@ -203,7 +206,7 @@ impl<'a> Lexer<'a> {
         SpannedToken::new(make(ident), loc)
     }
 
-    fn read_type_param(&mut self) -> Result<SpannedToken<'a>, SpannedLexError<'a>> {
+    fn read_type_param(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
         // greedily grab the apostrophe-prefixed type parameter name
         let program = &self.program[self.offset..];
         let end = program[1..]
@@ -217,7 +220,7 @@ impl<'a> Lexer<'a> {
             let param = &program[..end];
             Ok(SpannedToken::new(Token::TypeParam(param), loc))
         } else {
-            Err(SpannedLexError::new(LexError::InvalidChar('\''), loc))
+            Err(LexError::new(LexErrorKind::InvalidChar('\''), loc))
         }
     }
 }
