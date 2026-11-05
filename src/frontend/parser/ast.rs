@@ -2,45 +2,45 @@ use std::fmt::Display;
 
 use crate::frontend::{lexer::token::TokenKind, types::Spanned};
 
-pub type SpannedExpr<'a, A> = Spanned<Expr<'a, A>>;
-pub type SpannedStmt<'a, A> = Spanned<Stmt<'a, A>>;
-pub type SpannedDefn<'a, A> = Spanned<Defn<'a, A>>;
-pub type SpannedBinding<'a> = Spanned<Binding<'a>>;
-pub type SpannedMatchArm<'a, A> = Spanned<MatchArm<'a, A>>;
+pub type SpannedExpr<'src, A> = Spanned<Expr<'src, A>>;
+pub type SpannedStmt<'src, A> = Spanned<Stmt<'src, A>>;
+pub type SpannedDefn<'src, A> = Spanned<Defn<'src, A>>;
+pub type SpannedBinding<'src> = Spanned<Binding<'src>>;
+pub type SpannedMatchArm<'src, A> = Spanned<MatchArm<'src, A>>;
 
-pub type ParsedExpr<'a> = SpannedExpr<'a, ()>;
-pub type ParsedStmt<'a> = SpannedStmt<'a, ()>;
-pub type ParsedDefn<'a> = SpannedDefn<'a, ()>;
-pub type ParsedBinding<'a> = SpannedBinding<'a>;
-pub type ParsedMatchArm<'a> = SpannedMatchArm<'a, ()>;
-pub type ParsedType<'a> = Spanned<Type<'a>>;
-pub type ParsedConstructorArm<'a> = Spanned<ConstructorArm<'a>>;
+pub type ParsedExpr<'src> = SpannedExpr<'src, ()>;
+pub type ParsedStmt<'src> = SpannedStmt<'src, ()>;
+pub type ParsedDefn<'src> = SpannedDefn<'src, ()>;
+pub type ParsedBinding<'src> = SpannedBinding<'src>;
+pub type ParsedMatchArm<'src> = SpannedMatchArm<'src, ()>;
+pub type ParsedType<'src> = Spanned<Type<'src>>;
+pub type ParsedConstructorArm<'src> = Spanned<ConstructorArm<'src>>;
 
 #[derive(Debug, PartialEq)]
-pub enum Defn<'a, A> {
+pub enum Defn<'src, A> {
     // typedef <typeId> (ty_vars, ... )? { <id> ( <binding> , ... ) , ... }
     Typedef {
-        id: &'a str,
-        ty_vars: Vec<&'a str>,
-        arms: Vec<ParsedConstructorArm<'a>>,
+        id: &'src str,
+        ty_vars: Vec<&'src str>,
+        arms: Vec<ParsedConstructorArm<'src>>,
     },
 
     // fn <id>( <binding> , ... ) -> <type> { <stmnt>; ... }
     Fn {
-        name: &'a str,
-        bindings: Vec<SpannedBinding<'a>>,
-        ret_ty: ParsedType<'a>,
-        body: Vec<SpannedStmt<'a, A>>,
+        name: &'src str,
+        bindings: Vec<SpannedBinding<'src>>,
+        ret_ty: ParsedType<'src>,
+        body: Vec<SpannedStmt<'src, A>>,
     },
 }
 
-impl<'a> ParsedDefn<'a> {
+impl<'src> ParsedDefn<'src> {
     pub fn make_fn(
         offset: usize,
-        id: &'a str,
-        bindings: Vec<ParsedBinding<'a>>,
-        ret: ParsedType<'a>,
-        stmts: Vec<ParsedStmt<'a>>,
+        id: &'src str,
+        bindings: Vec<ParsedBinding<'src>>,
+        ret: ParsedType<'src>,
+        stmts: Vec<ParsedStmt<'src>>,
     ) -> Self {
         Spanned {
             offset,
@@ -55,9 +55,9 @@ impl<'a> ParsedDefn<'a> {
 
     pub fn make_typedef(
         offset: usize,
-        id: &'a str,
-        ty_vars: Vec<&'a str>,
-        arms: Vec<ParsedConstructorArm<'a>>,
+        id: &'src str,
+        ty_vars: Vec<&'src str>,
+        arms: Vec<ParsedConstructorArm<'src>>,
     ) -> Self {
         Spanned {
             offset,
@@ -67,36 +67,36 @@ impl<'a> ParsedDefn<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Stmt<'a, A> {
-    Let(&'a str, SpannedExpr<'a, A>),         // let <id> = <expr>;
-    Read(ParsedType<'a>, &'a str),            // read <type> <id>;
-    Echo(ParsedType<'a>, SpannedExpr<'a, A>), // echo <type> <expr>;
-    Return(SpannedExpr<'a, A>),               // return <expr>;
+pub enum Stmt<'src, A> {
+    Let(&'src str, SpannedExpr<'src, A>), // let <id> = <expr>;
+    Read(ParsedType<'src>, &'src str),    // read <type> <id>;
+    Echo(ParsedType<'src>, SpannedExpr<'src, A>), // echo <type> <expr>;
+    Return(SpannedExpr<'src, A>),         // return <expr>;
 }
 
-impl<'a> ParsedStmt<'a> {
-    pub fn make_let(offset: usize, id: &'a str, expr: ParsedExpr<'a>) -> Self {
+impl<'src> ParsedStmt<'src> {
+    pub fn make_let(offset: usize, id: &'src str, expr: ParsedExpr<'src>) -> Self {
         Spanned {
             offset,
             node: Stmt::Let(id, expr),
         }
     }
 
-    pub fn make_read(offset: usize, typ: ParsedType<'a>, id: &'a str) -> Self {
+    pub fn make_read(offset: usize, typ: ParsedType<'src>, id: &'src str) -> Self {
         Spanned {
             offset,
             node: Stmt::Read(typ, id),
         }
     }
 
-    pub fn make_echo(offset: usize, typ: ParsedType<'a>, expr: ParsedExpr<'a>) -> Self {
+    pub fn make_echo(offset: usize, typ: ParsedType<'src>, expr: ParsedExpr<'src>) -> Self {
         Spanned {
             offset,
             node: Stmt::Echo(typ, expr),
         }
     }
 
-    pub fn make_return(offset: usize, expr: ParsedExpr<'a>) -> Self {
+    pub fn make_return(offset: usize, expr: ParsedExpr<'src>) -> Self {
         Spanned {
             offset,
             node: Stmt::Return(expr),
@@ -105,76 +105,76 @@ impl<'a> ParsedStmt<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Expr<'a, A> {
+pub struct Expr<'src, A> {
     pub ann: A,
-    pub kind: ExprKind<'a, A>,
+    pub kind: ExprKind<'src, A>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ExprKind<'a, A> {
+pub enum ExprKind<'src, A> {
     // atomic expressions
     Int(i64),
     Float(f64),
     Bool(bool),
 
     // idents
-    Id(&'a str),
+    Id(&'src str),
 
     // closures
-    Fn(SpannedBinding<'a>, Box<SpannedExpr<'a, A>>), // fn ( <binding> ) -> <expr>
+    Fn(SpannedBinding<'src>, Box<SpannedExpr<'src, A>>), // fn ( <binding> ) -> <expr>
 
     // unary operators
-    Neg(Box<SpannedExpr<'a, A>>),  // - <expr>
-    FNeg(Box<SpannedExpr<'a, A>>), // -. <expr>
-    Bang(Box<SpannedExpr<'a, A>>), // ! <expr>
+    Neg(Box<SpannedExpr<'src, A>>),  // - <expr>
+    FNeg(Box<SpannedExpr<'src, A>>), // -. <expr>
+    Bang(Box<SpannedExpr<'src, A>>), // ! <expr>
 
     // function calls
-    Call(Box<SpannedExpr<'a, A>>, Vec<SpannedExpr<'a, A>>), // <left>(<right>, ...)
+    Call(Box<SpannedExpr<'src, A>>, Vec<SpannedExpr<'src, A>>), // <left>(<right>, ...)
 
     // binary operators
-    Plus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> + <right>
-    Minus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> - <right>
-    Mult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> * <right>
-    Div(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> / <right>
-    FPlus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> +. <right>
-    FMinus(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> -. <right>
-    FMult(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> *. <right>
-    FDiv(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> /. <right>
-    Pipe(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> |> <right>
-    Lt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> < <right>
-    LtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <= <right>
-    Gt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> > <right>
-    GtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >= <right>
-    FLt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> <. <right>
-    FLtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> <=. <right>
-    FGt(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> >. <right>
-    FGtEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> >=. <right>
-    Eq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> == <right>
-    NotEq(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>), // <left> != <right>
-    Or(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),   // <left> || <right>
-    And(Box<SpannedExpr<'a, A>>, Box<SpannedExpr<'a, A>>),  // <left> && <right>
+    Plus(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> + <right>
+    Minus(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> - <right>
+    Mult(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> * <right>
+    Div(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),  // <left> / <right>
+    FPlus(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> +. <right>
+    FMinus(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> -. <right>
+    FMult(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> *. <right>
+    FDiv(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> /. <right>
+    Pipe(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> |> <right>
+    Lt(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),   // <left> < <right>
+    LtEq(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> <= <right>
+    Gt(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),   // <left> > <right>
+    GtEq(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> >= <right>
+    FLt(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),  // <left> <. <right>
+    FLtEq(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> <=. <right>
+    FGt(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),  // <left> >. <right>
+    FGtEq(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> >=. <right>
+    Eq(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),   // <left> == <right>
+    NotEq(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>), // <left> != <right>
+    Or(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),   // <left> || <right>
+    And(Box<SpannedExpr<'src, A>>, Box<SpannedExpr<'src, A>>),  // <left> && <right>
 
     // if <1> then <2> else <3>
     If(
-        Box<SpannedExpr<'a, A>>,
-        Box<SpannedExpr<'a, A>>,
-        Box<SpannedExpr<'a, A>>,
+        Box<SpannedExpr<'src, A>>,
+        Box<SpannedExpr<'src, A>>,
+        Box<SpannedExpr<'src, A>>,
     ),
 
     // match <expr> { <id>(<id>, ...) -> <expr>, ... }
-    Match(Box<SpannedExpr<'a, A>>, Vec<SpannedMatchArm<'a, A>>),
+    Match(Box<SpannedExpr<'src, A>>, Vec<SpannedMatchArm<'src, A>>),
 }
 
 // Display ignores the annotation entirely.
-impl<'a, A> Display for Expr<'a, A> {
+impl<'src, A> Display for Expr<'src, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.kind.fmt(f)
     }
 }
 
-impl<'a, A> Display for ExprKind<'a, A>
+impl<'src, A> Display for ExprKind<'src, A>
 where
-    Expr<'a, A>: Display,
+    Expr<'src, A>: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -230,8 +230,8 @@ where
     }
 }
 
-impl<'a> ParsedExpr<'a> {
-    pub fn new(offset: usize, kind: ExprKind<'a, ()>) -> Self {
+impl<'src> ParsedExpr<'src> {
+    pub fn new(offset: usize, kind: ExprKind<'src, ()>) -> Self {
         Spanned {
             offset,
             node: Expr { ann: (), kind },
@@ -239,12 +239,12 @@ impl<'a> ParsedExpr<'a> {
     }
 }
 
-impl<'a, A> ExprKind<'a, A> {
+impl<'src, A> ExprKind<'src, A> {
     pub fn binop(
         op: TokenKind,
-        left: SpannedExpr<'a, A>,
-        right: SpannedExpr<'a, A>,
-    ) -> ExprKind<'a, A> {
+        left: SpannedExpr<'src, A>,
+        right: SpannedExpr<'src, A>,
+    ) -> ExprKind<'src, A> {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
             TokenKind::Plus => ExprKind::Plus(left, right),
@@ -274,18 +274,18 @@ impl<'a, A> ExprKind<'a, A> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Type<'a> {
+pub enum Type<'src> {
     Int,
     Float,
     Bool,
-    TypeId(&'a str),
-    TypeParam(&'a str),
-    TypeApp(&'a str, Vec<ParsedType<'a>>),
-    Fn(Box<ParsedType<'a>>, Box<ParsedType<'a>>),
+    TypeId(&'src str),
+    TypeParam(&'src str),
+    TypeApp(&'src str, Vec<ParsedType<'src>>),
+    Fn(Box<ParsedType<'src>>, Box<ParsedType<'src>>),
 }
 
-impl<'a> ParsedType<'a> {
-    pub fn new(offset: usize, typ: Type<'a>) -> Self {
+impl<'src> ParsedType<'src> {
+    pub fn new(offset: usize, typ: Type<'src>) -> Self {
         Spanned { offset, node: typ }
     }
 }
@@ -312,9 +312,9 @@ impl Display for Type<'_> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Binding<'a> {
-    pub id: &'a str,
-    pub typ: ParsedType<'a>,
+pub struct Binding<'src> {
+    pub id: &'src str,
+    pub typ: ParsedType<'src>,
 }
 
 impl Display for Binding<'_> {
@@ -323,8 +323,8 @@ impl Display for Binding<'_> {
     }
 }
 
-impl<'a> ParsedBinding<'a> {
-    pub fn new(offset: usize, id: &'a str, typ: ParsedType<'a>) -> Self {
+impl<'src> ParsedBinding<'src> {
+    pub fn new(offset: usize, id: &'src str, typ: ParsedType<'src>) -> Self {
         Spanned {
             offset,
             node: Binding { id, typ },
@@ -333,10 +333,10 @@ impl<'a> ParsedBinding<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct MatchArm<'a, A> {
-    pub id: &'a str,
-    pub bindings: Vec<&'a str>,
-    pub expr: SpannedExpr<'a, A>,
+pub struct MatchArm<'src, A> {
+    pub id: &'src str,
+    pub bindings: Vec<&'src str>,
+    pub expr: SpannedExpr<'src, A>,
 }
 
 impl<A> Display for MatchArm<'_, A> {
@@ -351,8 +351,13 @@ impl<A> Display for MatchArm<'_, A> {
     }
 }
 
-impl<'a> ParsedMatchArm<'a> {
-    pub fn new(offset: usize, id: &'a str, bindings: Vec<&'a str>, expr: ParsedExpr<'a>) -> Self {
+impl<'src> ParsedMatchArm<'src> {
+    pub fn new(
+        offset: usize,
+        id: &'src str,
+        bindings: Vec<&'src str>,
+        expr: ParsedExpr<'src>,
+    ) -> Self {
         Spanned {
             offset,
             node: MatchArm { id, bindings, expr },
@@ -361,13 +366,13 @@ impl<'a> ParsedMatchArm<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct ConstructorArm<'a> {
-    pub id: &'a str,
-    pub bindings: Vec<ParsedBinding<'a>>,
+pub struct ConstructorArm<'src> {
+    pub id: &'src str,
+    pub bindings: Vec<ParsedBinding<'src>>,
 }
 
-impl<'a> ParsedConstructorArm<'a> {
-    pub fn new(offset: usize, id: &'a str, bindings: Vec<ParsedBinding<'a>>) -> Self {
+impl<'src> ParsedConstructorArm<'src> {
+    pub fn new(offset: usize, id: &'src str, bindings: Vec<ParsedBinding<'src>>) -> Self {
         Spanned {
             offset,
             node: ConstructorArm { id, bindings },

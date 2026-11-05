@@ -8,7 +8,7 @@ use crate::frontend::parser::parse_type::parse_type;
 #[cfg(test)]
 mod tests;
 
-pub(crate) fn parse_stmt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+pub(crate) fn parse_stmt<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedStmt<'src>> {
     match parser.peek().kind() {
         TokenKind::Let => parse_let(parser),
         TokenKind::Read => parse_read(parser),
@@ -26,7 +26,7 @@ pub(crate) fn parse_stmt<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedS
     }
 }
 
-fn parse_let<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+fn parse_let<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedStmt<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::Let)?;
     let id = parser.expect_id()?;
@@ -36,7 +36,7 @@ fn parse_let<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     Ok(ParsedStmt::make_let(loc, id, expr))
 }
 
-fn parse_read<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+fn parse_read<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedStmt<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::Read)?;
     let read_type = parse_type(parser)?;
@@ -45,7 +45,7 @@ fn parse_read<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     Ok(ParsedStmt::make_read(loc, read_type, id))
 }
 
-fn parse_echo<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+fn parse_echo<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedStmt<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::Echo)?;
     let echo_type = parse_type(parser)?;
@@ -54,7 +54,7 @@ fn parse_echo<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
     Ok(ParsedStmt::make_echo(loc, echo_type, expr))
 }
 
-fn parse_return<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedStmt<'a>> {
+fn parse_return<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedStmt<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::Return)?;
     let expr = parse_expr(parser)?;

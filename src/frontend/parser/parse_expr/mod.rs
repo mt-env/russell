@@ -47,14 +47,14 @@ impl Precedence {
     }
 }
 
-pub(crate) fn parse_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+pub(crate) fn parse_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     parse_expr_prec(parser, Precedence::NotBinOp)
 }
 
-fn parse_expr_prec<'a>(
-    parser: &mut Parser<'a>,
+fn parse_expr_prec<'src>(
+    parser: &mut Parser<'src>,
     min_prec: Precedence,
-) -> ParseResult<'a, ParsedExpr<'a>> {
+) -> ParseResult<'src, ParsedExpr<'src>> {
     let mut left = parse_null_denotation(parser)?;
 
     loop {
@@ -79,7 +79,7 @@ fn parse_expr_prec<'a>(
 }
 
 // Null denotation: atoms and prefix operators.
-fn parse_null_denotation<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_null_denotation<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     match parser.peek().kind() {
         TokenKind::Int | TokenKind::Float | TokenKind::Bool | TokenKind::Id => {
             parse_atom_expr(parser)
@@ -107,7 +107,7 @@ fn parse_null_denotation<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedE
     }
 }
 
-fn parse_atom_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_atom_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     let loc = parser.peek().offset;
     match parser.peek().kind() {
         TokenKind::Int => Ok(ParsedExpr::new(loc, ExprKind::Int(parser.expect_int()?))),
@@ -121,7 +121,7 @@ fn parse_atom_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a
     }
 }
 
-fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_unary_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     let loc = parser.peek().offset;
     match parser.advance().kind() {
         TokenKind::Minus => Ok(ParsedExpr::new(
@@ -140,7 +140,7 @@ fn parse_unary_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
     }
 }
 
-fn parse_paren_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_paren_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::LParen)?;
     let e = parse_expr(parser)?;
@@ -149,7 +149,7 @@ fn parse_paren_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
 }
 
 // fn ( <binding> ) -> <expr>
-fn parse_closure_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_closure_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::Fn)?;
     parser.expect(TokenKind::LParen)?;
@@ -161,7 +161,7 @@ fn parse_closure_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr
 }
 
 // if <cond> then <then_branch> else <else_branch>
-fn parse_if_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_if_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::If)?;
     let cond = parse_expr(parser)?;
@@ -176,7 +176,7 @@ fn parse_if_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>>
 }
 
 // match <expr> { <id>(<binding>, ...) -> <expr>, ... }
-fn parse_match_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_match_expr<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedExpr<'src>> {
     let loc = parser.peek().offset;
     parser.expect(TokenKind::Match)?;
     let scrutinee = parse_expr(parser)?;
@@ -220,10 +220,10 @@ fn parse_match_expr<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedExpr<'
 }
 
 // <left>( <expr>, ... )
-fn parse_call_expr<'a>(
-    parser: &mut Parser<'a>,
-    left: ParsedExpr<'a>,
-) -> ParseResult<'a, ParsedExpr<'a>> {
+fn parse_call_expr<'src>(
+    parser: &mut Parser<'src>,
+    left: ParsedExpr<'src>,
+) -> ParseResult<'src, ParsedExpr<'src>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut args = Vec::new();

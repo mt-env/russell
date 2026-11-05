@@ -8,7 +8,7 @@ use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
 #[cfg(test)]
 mod tests;
 
-pub(crate) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+pub(crate) fn parse_defn<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedDefn<'src>> {
     match parser.peek().kind() {
         TokenKind::Fn => parse_fndef(parser),
         TokenKind::Typedef => parse_typedef(parser),
@@ -18,7 +18,7 @@ pub(crate) fn parse_defn<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedD
 
 /// Parses a type definition:
 /// typedef <typeId> { <id>(<binding, ...), ... }
-fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+fn parse_typedef<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedDefn<'src>> {
     let loc = parser.peek().offset;
 
     // parse the declaration
@@ -56,7 +56,7 @@ fn parse_typedef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>>
 
 /// Parses a function definition:
 /// fn <id>(<binding>, ...) -> <type> { <stmnt>, ... };
-fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
+fn parse_fndef<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedDefn<'src>> {
     let loc = parser.peek().offset;
 
     // parse the function header (identifier, bindings, return type)
@@ -70,13 +70,7 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 
     let mut statements = Vec::new();
     while parser.peek().kind() != TokenKind::RBrace {
-        match parse_stmt(parser) {
-            Ok(stmnt) => statements.push(stmnt),
-            Err(e) => {
-                parser.push_error(e);
-                parser.synchronize();
-            }
-        }
+        statements.push(parse_stmt(parser)?);
     }
 
     parser.expect(TokenKind::RBrace)?;
@@ -93,15 +87,17 @@ fn parse_fndef<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedDefn<'a>> {
 /// Parse a function signature: <id>(<binding>, ...)
 /// Returns the ID and a list of bindings if successful.
 /// Returns an error otherwise.
-fn parse_fn_sig<'a>(
-    parser: &mut Parser<'a>,
-) -> ParseResult<'a, (&'a str, Vec<SpannedBinding<'a>>)> {
+fn parse_fn_sig<'src>(
+    parser: &mut Parser<'src>,
+) -> ParseResult<'src, (&'src str, Vec<SpannedBinding<'src>>)> {
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;
     Ok((id, bindings))
 }
 
-fn parse_constructor<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedConstructorArm<'a>> {
+fn parse_constructor<'src>(
+    parser: &mut Parser<'src>,
+) -> ParseResult<'src, ParsedConstructorArm<'src>> {
     let loc = parser.peek().offset;
     let id = parser.expect_id()?;
     let bindings = parse_binding_list(parser)?;

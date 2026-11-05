@@ -6,7 +6,7 @@ use crate::frontend::parser::ast::{ParsedBinding, ParsedType, Type};
 #[cfg(test)]
 mod tests;
 
-pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedType<'a>> {
+pub(crate) fn parse_type<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, ParsedType<'src>> {
     let loc = parser.peek().offset;
 
     let l_type = match parser.expect_many(&[
@@ -58,7 +58,9 @@ pub(crate) fn parse_type<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedT
     Ok(l_type)
 }
 
-pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, ParsedBinding<'a>> {
+pub(super) fn parse_binding<'src>(
+    parser: &mut Parser<'src>,
+) -> ParseResult<'src, ParsedBinding<'src>> {
     let loc = parser.peek().offset;
     let id = parser.expect_id()?;
     parser.expect(TokenKind::Colon)?;
@@ -66,9 +68,9 @@ pub(super) fn parse_binding<'a>(parser: &mut Parser<'a>) -> ParseResult<'a, Pars
     Ok(ParsedBinding::new(loc, id, id_type))
 }
 
-pub(super) fn parse_binding_list<'a>(
-    parser: &mut Parser<'a>,
-) -> ParseResult<'a, Vec<ParsedBinding<'a>>> {
+pub(super) fn parse_binding_list<'src>(
+    parser: &mut Parser<'src>,
+) -> ParseResult<'src, Vec<ParsedBinding<'src>>> {
     parser.expect(TokenKind::LParen)?;
 
     let mut bindings = Vec::new();
