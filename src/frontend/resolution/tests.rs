@@ -9,9 +9,10 @@ use crate::frontend::{
 };
 
 fn resolve(input: &str) -> Vec<ResolvedDefn> {
-    let result = super::resolve(parse(
-        lex(input).expect("test input should lex successfully"),
-    ));
+    let result = super::resolve(
+        parse(lex(input).expect("test input should lex successfully"))
+            .expect("test input should parse successfully"),
+    );
     match result {
         Ok(success) => success.resolved_defns,
         Err(_) => panic!("test input should resolve successfully"),
@@ -19,7 +20,8 @@ fn resolve(input: &str) -> Vec<ResolvedDefn> {
 }
 
 fn assert_resolution_error(input: &str, expected: ResolutionError<'_>) {
-    let defns = parse(lex(input).expect("test input should lex successfully"));
+    let defns = parse(lex(input).expect("test input should lex successfully"))
+        .expect("test input should parse successfully");
     let mut ctx = ResolverCtx::new();
     super::init_global_scope(&mut ctx, &defns);
     for defn in defns {
@@ -31,9 +33,10 @@ fn assert_resolution_error(input: &str, expected: ResolutionError<'_>) {
 fn resolve_result<'a>(
     input: &'a str,
 ) -> Result<super::types::ResolutionSuccess<'a>, super::types::ResolutionFailure<'a>> {
-    super::resolve(parse(
-        lex(input).expect("test input should lex successfully"),
-    ))
+    super::resolve(
+        parse(lex(input).expect("test input should lex successfully"))
+            .expect("test input should parse successfully"),
+    )
 }
 
 fn errors<'a>(input: &'a str) -> Vec<ResolutionError<'a>> {

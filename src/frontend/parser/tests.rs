@@ -1,6 +1,10 @@
-use crate::frontend::lexer::lex;
-use crate::frontend::lexer::token::{Token, TokenKind};
-use crate::frontend::parser::{Parser, ast::*};
+use crate::frontend::{
+    lexer::{
+        lex,
+        token::{Token, TokenKind},
+    },
+    parser::{Parser, ast::*},
+};
 
 fn parser_from(input: &str) -> Parser<'_> {
     super::Parser::new(lex(input).expect("test input should lex successfully"))
@@ -14,7 +18,8 @@ fn ty(offset: usize, node: Type<'_>) -> ParsedType<'_> {
 
 #[test]
 fn parse_empty_program() {
-    let defns = super::parse(lex("").expect("test input should lex successfully"));
+    let defns = super::parse(lex("").expect("test input should lex successfully"))
+        .expect("test input should parse successfully");
     assert!(defns.is_empty());
 }
 
@@ -22,7 +27,8 @@ fn parse_empty_program() {
 fn parse_single_fn() {
     let defns = super::parse(
         lex("fn main() -> Int { return 0; }").expect("test input should lex successfully"),
-    );
+    )
+    .expect("test input should parse successfully");
     assert_eq!(defns.len(), 1);
     assert_eq!(
         defns[0],
@@ -42,7 +48,8 @@ fn parse_single_fn() {
 #[test]
 fn parse_single_typedef() {
     let defns =
-        super::parse(lex("typedef Unit { unit() }").expect("test input should lex successfully"));
+        super::parse(lex("typedef Unit { unit() }").expect("test input should lex successfully"))
+            .expect("test input should parse successfully");
     assert_eq!(defns.len(), 1);
     assert_eq!(
         defns[0],
@@ -60,7 +67,8 @@ fn parse_single_generic_typedef() {
     let defns = super::parse(
         lex("typedef Option('a) { some(x: 'a), none() }")
             .expect("test input should lex successfully"),
-    );
+    )
+    .expect("test input should parse successfully");
     assert_eq!(defns.len(), 1);
     assert!(matches!(
         &defns[0].node,
@@ -74,7 +82,8 @@ fn parse_single_generic_typedef() {
 #[test]
 fn parse_multiple_definitions() {
     let src = "typedef Color { red(), blue() } fn main() -> Int { return 0; }";
-    let defns = super::parse(lex(src).expect("test input should lex successfully"));
+    let defns = super::parse(lex(src).expect("test input should lex successfully"))
+        .expect("test input should parse successfully");
     assert_eq!(defns.len(), 2);
     assert!(matches!(&defns[0].node, Defn::Typedef { id, ty_vars: _, arms: _ } if *id == "Color"));
     assert!(
@@ -88,7 +97,8 @@ fn parse_multiple_fns() {
         fn foo() -> Int { return 1; } \
         fn bar() -> Int { return 2; } \
         fn baz() -> Int { return 3; }";
-    let defns = super::parse(lex(src).expect("test input should lex successfully"));
+    let defns = super::parse(lex(src).expect("test input should lex successfully"))
+        .expect("test input should parse successfully");
     assert_eq!(defns.len(), 3);
     assert!(
         matches!(&defns[0].node, Defn::Fn { name, bindings: _, ret_ty: _, body: _ } if *name == "foo")
@@ -108,7 +118,7 @@ fn parse_typedef_then_fn_using_it() {
         fn unwrap(opt: Option) -> Int { \
             return match opt { some(x) -> x, none() -> 0 }; \
         }";
-    let defns = super::parse(lex(src).expect("test input should lex successfully"));
+    let defns = super::parse(lex(src).expect("test input should lex successfully")).expect("test input should parse successfully");
     assert_eq!(defns.len(), 2);
     assert!(
         matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2)
