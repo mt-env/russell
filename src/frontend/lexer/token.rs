@@ -3,9 +3,9 @@ use std::fmt::Display;
 use crate::frontend::types::Spanned;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Token<'a> {
+pub enum Token<'src> {
     // primitive values
-    Id(&'a str),
+    Id(&'src str),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -26,8 +26,8 @@ pub enum Token<'a> {
     IntType,
     FloatType,
     BoolType,
-    TypeId(&'a str),
-    TypeParam(&'a str),
+    TypeId(&'src str),
+    TypeParam(&'src str),
 
     // punctuation
     LParen,
@@ -192,17 +192,17 @@ impl Display for TokenKind {
     }
 }
 
-pub type SpannedToken<'a> = Spanned<Token<'a>>;
+pub type SpannedToken<'src> = Spanned<Token<'src>>;
 
-impl<'a> SpannedToken<'a> {
-    pub fn new(token: Token<'a>, offset: usize) -> Self {
+impl<'src> SpannedToken<'src> {
+    pub fn new(token: Token<'src>, offset: usize) -> Self {
         Spanned {
             node: token,
             offset,
         }
     }
 
-    pub fn token(&self) -> &Token<'a> {
+    pub fn token(&self) -> &Token<'src> {
         &self.node
     }
 

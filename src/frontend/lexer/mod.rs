@@ -92,17 +92,17 @@ pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<LexError<'_>>> {
     }
 }
 
-struct Lexer<'a> {
-    program: &'a str,
+struct Lexer<'src> {
+    program: &'src str,
     offset: usize,
 }
 
-impl<'a> Lexer<'a> {
-    fn new(program: &'a str) -> Self {
+impl<'src> Lexer<'src> {
+    fn new(program: &'src str) -> Self {
         Self { program, offset: 0 }
     }
 
-    fn next_token(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
+    fn next_token(&mut self) -> Result<SpannedToken<'src>, LexError<'src>> {
         self.eat_whitespace();
 
         let program = &self.program[self.offset..];
@@ -161,7 +161,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_num(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
+    fn read_num(&mut self) -> Result<SpannedToken<'src>, LexError<'src>> {
         // greedily grab all characters that form a number (numbers and dots)
         let program = &self.program[self.offset..];
         let end = program
@@ -185,7 +185,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn read_ident(&mut self, make: impl Fn(&'a str) -> Token) -> SpannedToken<'a> {
+    fn read_ident(&mut self, make: impl Fn(&'src str) -> Token) -> SpannedToken<'src> {
         let program = &self.program[self.offset..];
 
         // greedily grab all characters until we see something that's not a letter
@@ -206,7 +206,7 @@ impl<'a> Lexer<'a> {
         SpannedToken::new(make(ident), loc)
     }
 
-    fn read_type_param(&mut self) -> Result<SpannedToken<'a>, LexError<'a>> {
+    fn read_type_param(&mut self) -> Result<SpannedToken<'src>, LexError<'src>> {
         // greedily grab the apostrophe-prefixed type parameter name
         let program = &self.program[self.offset..];
         let end = program[1..]
