@@ -1,9 +1,8 @@
-use crate::frontend::error::parse_error::{ParseError, ParseResult};
-use crate::frontend::lexer::token::TokenKind;
-use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::ParsedStmt;
-use crate::frontend::parser::parse_expr::parse_expr;
-use crate::frontend::parser::parse_type::parse_type;
+use crate::frontend::{
+    error::parse_error::{ParseError, ParseResult},
+    lexer::token::TokenKind,
+    parser::{Parser, ast::ParsedStmt, parse_expr::parse_expr, parse_type::parse_type},
+};
 
 #[cfg(test)]
 mod tests;

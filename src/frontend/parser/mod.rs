@@ -8,13 +8,13 @@ pub(crate) mod parse_type;
 #[cfg(test)]
 mod tests;
 
-use std::iter::Peekable;
-use std::vec::IntoIter;
+use std::{iter::Peekable, vec::IntoIter};
 
-use crate::frontend::error::parse_error::{ParseError, ParseResult};
-use crate::frontend::lexer::token::{SpannedToken, Token, TokenKind};
-use crate::frontend::parser::ast::ParsedDefn;
-use crate::frontend::parser::parse_defn::parse_defn;
+use crate::frontend::{
+    error::parse_error::{ParseError, ParseResult},
+    lexer::token::{SpannedToken, Token, TokenKind},
+    parser::{ast::ParsedDefn, parse_defn::parse_defn},
+};
 
 pub fn parse<'src>(tokens: Vec<SpannedToken<'src>>) -> Vec<ParsedDefn<'src>> {
     let mut parser = Parser::new(tokens);

@@ -1,6 +1,10 @@
-use crate::frontend::lexer::lex;
-use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ExprKind, ParsedExpr, ParsedStmt, ParsedType, Type};
+use crate::frontend::{
+    lexer::lex,
+    parser::{
+        Parser,
+        ast::{ExprKind, ParsedExpr, ParsedStmt, ParsedType, Type},
+    },
+};
 
 fn parser_from(input: &str) -> Parser<'_> {
     Parser::new(lex(input).expect("test input should lex successfully"))

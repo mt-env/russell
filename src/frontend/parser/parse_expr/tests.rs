@@ -1,7 +1,9 @@
-use crate::frontend::lexer::lex;
-use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{
-    ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm, ParsedType, Type,
+use crate::frontend::{
+    lexer::lex,
+    parser::{
+        Parser,
+        ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm, ParsedType, Type},
+    },
 };
 
 fn parser_from(input: &str) -> Parser<'_> {

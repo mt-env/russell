@@ -1,9 +1,13 @@
-use crate::frontend::error::parse_error::{ParseError, ParseResult};
-use crate::frontend::lexer::token::TokenKind;
-use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ParsedConstructorArm, ParsedDefn, SpannedBinding};
-use crate::frontend::parser::parse_stmt::parse_stmt;
-use crate::frontend::parser::parse_type::{parse_binding_list, parse_type};
+use crate::frontend::{
+    error::parse_error::{ParseError, ParseResult},
+    lexer::token::TokenKind,
+    parser::{
+        Parser,
+        ast::{ParsedConstructorArm, ParsedDefn, SpannedBinding},
+        parse_stmt::parse_stmt,
+        parse_type::{parse_binding_list, parse_type},
+    },
+};
 
 #[cfg(test)]
 mod tests;

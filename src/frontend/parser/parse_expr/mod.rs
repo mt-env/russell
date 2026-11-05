@@ -1,8 +1,12 @@
-use crate::frontend::error::parse_error::{ParseError, ParseResult};
-use crate::frontend::lexer::token::{SpannedToken, TokenKind};
-use crate::frontend::parser::Parser;
-use crate::frontend::parser::ast::{ExprKind, ParsedExpr, ParsedMatchArm};
-use crate::frontend::parser::parse_type::parse_binding;
+use crate::frontend::{
+    error::parse_error::{ParseError, ParseResult},
+    lexer::token::{SpannedToken, TokenKind},
+    parser::{
+        Parser,
+        ast::{ExprKind, ParsedExpr, ParsedMatchArm},
+        parse_type::parse_binding,
+    },
+};
 
 #[cfg(test)]
 mod tests;
