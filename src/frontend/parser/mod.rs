@@ -1,3 +1,11 @@
+use std::{iter::Peekable, vec::IntoIter};
+
+use crate::frontend::{
+    error::parse_error::{ParseError, ParseResult},
+    lexer::token::{SpannedToken, Token, TokenKind},
+    parser::{ast::ParsedDefn, parse_defn::parse_defn},
+};
+
 pub(crate) mod ast;
 
 pub(crate) mod parse_defn;
@@ -8,38 +16,25 @@ pub(crate) mod parse_type;
 #[cfg(test)]
 mod tests;
 
-use std::{iter::Peekable, vec::IntoIter};
-
-use crate::frontend::{
-    error::parse_error::{ParseError, ParseResult},
-    lexer::token::{SpannedToken, Token, TokenKind},
-    parser::{ast::ParsedDefn, parse_defn::parse_defn},
-};
-
-pub fn parse<'src>(tokens: Vec<SpannedToken<'src>>) -> Vec<ParsedDefn<'src>> {
+pub fn parse<'src>(tokens: Vec<SpannedToken<'src>>) -> ParseResult<'src, Vec<ParsedDefn<'src>>> {
     let mut parser = Parser::new(tokens);
     let mut defns = Vec::new();
 
     while parser.peek().kind() != TokenKind::EoF {
-        match parse_defn(&mut parser) {
-            Ok(defn) => defns.push(defn),
-            Err(_) => todo!(), // TODO - handle errors
-        }
+        defns.push(parse_defn(&mut parser)?);
     }
 
-    defns
+    Ok(defns)
 }
 
 pub(crate) struct Parser<'src> {
     tokens: Peekable<IntoIter<SpannedToken<'src>>>,
-    errors: Vec<ParseError<'src>>,
 }
 
 impl<'src> Parser<'src> {
     pub(crate) fn new(tokens: Vec<SpannedToken<'src>>) -> Self {
         Parser {
             tokens: tokens.into_iter().peekable(),
-            errors: Vec::new(),
         }
     }
 

@@ -1,16 +1,16 @@
 use std::fmt;
 
-use crate::frontend::lexer::token::{SpannedToken, Token, TokenKind};
+use crate::frontend::{error::CompilerError, lexer::token::{SpannedToken, Token, TokenKind}};
 
 #[derive(Debug)]
-pub struct ParseError<'a> {
+pub struct ParseError<'src> {
     pub expected: Vec<TokenKind>,
-    pub actual: Token<'a>,
+    pub actual: Token<'src>,
     pub offset: usize,
 }
 
-impl<'a> ParseError<'a> {
-    pub fn new<A>(expected: TokenKind, actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
+impl<'src> ParseError<'src> {
+    pub fn new<A>(expected: TokenKind, actual: &SpannedToken<'src>) -> ParseResult<'src, A> {
         Err(ParseError {
             expected: vec![expected],
             actual: *actual.token(),
@@ -18,12 +18,18 @@ impl<'a> ParseError<'a> {
         })
     }
 
-    pub fn many<A>(expected: &[TokenKind], actual: &SpannedToken<'a>) -> ParseResult<'a, A> {
+    pub fn many<A>(expected: &[TokenKind], actual: &SpannedToken<'src>) -> ParseResult<'src, A> {
         Err(ParseError {
             expected: expected.to_vec(),
             actual: *actual.token(),
             offset: actual.offset,
         })
+    }
+}
+
+impl<'src> CompilerError<'src> for ParseError<'src> {
+    fn offset(&self) -> usize {
+        self.offset
     }
 }
 
@@ -47,4 +53,4 @@ impl fmt::Display for ParseError<'_> {
 
 impl std::error::Error for ParseError<'_> {}
 
-pub type ParseResult<'a, A> = Result<A, ParseError<'a>>;
+pub type ParseResult<'src, A> = Result<A, ParseError<'src>>;
