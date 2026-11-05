@@ -2,6 +2,7 @@ use crate::frontend::{error::CompilerError, types::Spanned};
 
 pub type LexError<'src> = Spanned<LexErrorKind<'src>>;
 
+#[derive(Debug, PartialEq)]
 pub enum LexErrorKind<'src> {
     InvalidChar(char),
     InvalidInt(&'src str),

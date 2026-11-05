@@ -1,5 +1,7 @@
+use crate::frontend::error::lex_error::{LexError, LexErrorKind};
+
 use super::lex;
-use super::token::{LexError, SpannedLexError, SpannedToken, Token};
+use super::token::{SpannedToken, Token};
 
 // empty/EoF
 
@@ -99,10 +101,7 @@ fn float_trailing_dot_before_identifier() {
 fn number_with_two_dots() {
     assert_eq!(
         lex("1.2.3"),
-        Err(vec![SpannedLexError::new(
-            LexError::InvalidFloat("1.2.3"),
-            0
-        )])
+        Err(vec![LexError::new(LexErrorKind::InvalidFloat("1.2.3"), 0)])
     );
 }
 
@@ -298,7 +297,7 @@ fn type_param_stops_at_non_alpha() {
 fn invalid_type_param_without_name() {
     assert_eq!(
         lex("'"),
-        Err(vec![SpannedLexError::new(LexError::InvalidChar('\''), 0)])
+        Err(vec![LexError::new(LexErrorKind::InvalidChar('\''), 0)])
     );
 }
 
@@ -306,7 +305,7 @@ fn invalid_type_param_without_name() {
 fn invalid_type_param_with_uppercase() {
     assert_eq!(
         lex("'Abc"),
-        Err(vec![SpannedLexError::new(LexError::InvalidChar('\''), 0)])
+        Err(vec![LexError::new(LexErrorKind::InvalidChar('\''), 0)])
     );
 }
 
@@ -315,8 +314,8 @@ fn invalid_type_param_without_lowercase() {
     assert_eq!(
         lex("'_x"),
         Err(vec![
-            SpannedLexError::new(LexError::InvalidChar('\''), 0),
-            SpannedLexError::new(LexError::InvalidChar('_'), 1),
+            LexError::new(LexErrorKind::InvalidChar('\''), 0),
+            LexError::new(LexErrorKind::InvalidChar('_'), 1),
         ])
     );
 }
@@ -529,7 +528,7 @@ fn comment_between_tokens() {
 fn invalid_character() {
     assert_eq!(
         lex("@"),
-        Err(vec![SpannedLexError::new(LexError::InvalidChar('@'), 0)])
+        Err(vec![LexError::new(LexErrorKind::InvalidChar('@'), 0)])
     );
 }
 
@@ -537,7 +536,7 @@ fn invalid_character() {
 fn invalid_among_valid() {
     assert_eq!(
         lex("1 @ 2"),
-        Err(vec![SpannedLexError::new(LexError::InvalidChar('@'), 2)])
+        Err(vec![LexError::new(LexErrorKind::InvalidChar('@'), 2)])
     );
 }
 
@@ -546,9 +545,9 @@ fn multiple_invalid_chars() {
     assert_eq!(
         lex("~#$"),
         Err(vec![
-            SpannedLexError::new(LexError::InvalidChar('~'), 0),
-            SpannedLexError::new(LexError::InvalidChar('#'), 1),
-            SpannedLexError::new(LexError::InvalidChar('$'), 2),
+            LexError::new(LexErrorKind::InvalidChar('~'), 0),
+            LexError::new(LexErrorKind::InvalidChar('#'), 1),
+            LexError::new(LexErrorKind::InvalidChar('$'), 2),
         ])
     );
 }
@@ -904,7 +903,7 @@ fn underscore_only_identifier() {
     // it's not lowercase either, so it should be invalid
     assert_eq!(
         lex("_"),
-        Err(vec![SpannedLexError::new(LexError::InvalidChar('_'), 0)])
+        Err(vec![LexError::new(LexErrorKind::InvalidChar('_'), 0)])
     );
 }
 
