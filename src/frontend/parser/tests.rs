@@ -118,7 +118,8 @@ fn parse_typedef_then_fn_using_it() {
         fn unwrap(opt: Option) -> Int { \
             return match opt { some(x) -> x, none() -> 0 }; \
         }";
-    let defns = super::parse(lex(src).expect("test input should lex successfully")).expect("test input should parse successfully");
+    let defns = super::parse(lex(src).expect("test input should lex successfully"))
+        .expect("test input should parse successfully");
     assert_eq!(defns.len(), 2);
     assert!(
         matches!(&defns[0].node, Defn::Typedef { id, ty_vars, arms } if *id == "Option" && arms.len() == 2)
@@ -355,4 +356,55 @@ fn take_if_extracts_value() {
         Some(Token::Id(name)) => assert_eq!(name, "foo"),
         other => panic!("expected Some(Id), got {:?}", other),
     }
+}
+
+#[test]
+fn malformed_definitions_report_expected_token_and_location() {
+    let cases = [
+        (
+            "fn Main() -> Int {}",
+            TokenKind::Id,
+            Token::TypeId("Main"),
+            3,
+        ),
+        ("fn f() Int {}", TokenKind::Arrow, Token::IntType, 7),
+        ("fn f() -> Int", TokenKind::LBrace, Token::EoF, 13),
+        ("fn f(x: Int,) -> Int {}", TokenKind::Id, Token::RParen, 12),
+        (
+            "typedef option {}",
+            TokenKind::TypeId,
+            Token::Id("option"),
+            8,
+        ),
+        (
+            "typedef Option() {}",
+            TokenKind::TypeParam,
+            Token::RParen,
+            15,
+        ),
+        (
+            "typedef Option('a,) {}",
+            TokenKind::TypeParam,
+            Token::RParen,
+            18,
+        ),
+        ("typedef Option('a {}", TokenKind::RParen, Token::LBrace, 18),
+        ("typedef Unit { unit()", TokenKind::RBrace, Token::EoF, 21),
+        ("typedef Unit { unit(), }", TokenKind::Id, Token::RBrace, 23),
+    ];
+    for (src, expected, actual, offset) in cases {
+        let error = super::parse(lex(src).unwrap()).unwrap_err();
+        assert_eq!(error.expected, vec![expected], "{src}");
+        assert_eq!(error.actual, actual, "{src}");
+        assert_eq!(error.offset, offset, "{src}");
+    }
+}
+
+#[test]
+fn parse_rejects_trailing_tokens_after_valid_definition() {
+    let src = "fn f() -> Int {} 42";
+    let error = super::parse(lex(src).unwrap()).unwrap_err();
+    assert_eq!(error.expected, vec![TokenKind::Fn, TokenKind::Typedef]);
+    assert_eq!(error.actual, Token::Int(42));
+    assert_eq!(error.offset, 17);
 }

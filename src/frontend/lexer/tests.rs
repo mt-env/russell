@@ -982,3 +982,68 @@ fn lex_includes_eof() {
         ]),
     );
 }
+
+#[test]
+fn integer_range_boundary() {
+    assert_eq!(
+        lex("9223372036854775807"),
+        Ok(vec![
+            SpannedToken::new(Token::Int(i64::MAX), 0),
+            SpannedToken::new(Token::EoF, 19),
+        ])
+    );
+    assert_eq!(
+        lex("9223372036854775808"),
+        Err(vec![LexError::new(
+            LexErrorKind::InvalidInt("9223372036854775808"),
+            0,
+        )])
+    );
+}
+
+#[test]
+fn numeric_errors_recover_and_accumulate() {
+    assert_eq!(
+        lex("1.2.3 + 9223372036854775808 @"),
+        Err(vec![
+            LexError::new(LexErrorKind::InvalidFloat("1.2.3"), 0),
+            LexError::new(LexErrorKind::InvalidInt("9223372036854775808"), 8),
+            LexError::new(LexErrorKind::InvalidChar('@'), 28),
+        ])
+    );
+}
+
+#[test]
+fn unicode_tokens_and_whitespace_use_byte_offsets() {
+    assert_eq!(
+        lex("é\u{2003}É 'α"),
+        Ok(vec![
+            SpannedToken::new(Token::Id("é"), 0),
+            SpannedToken::new(Token::TypeId("É"), 5),
+            SpannedToken::new(Token::TypeParam("'α"), 8),
+            SpannedToken::new(Token::EoF, 11),
+        ])
+    );
+}
+
+#[test]
+fn multibyte_invalid_characters_recover_at_character_boundaries() {
+    assert_eq!(
+        lex("é 💥 @"),
+        Err(vec![
+            LexError::new(LexErrorKind::InvalidChar('💥'), 3),
+            LexError::new(LexErrorKind::InvalidChar('@'), 8),
+        ])
+    );
+}
+
+#[test]
+fn unicode_comment_and_crlf_preserve_offsets() {
+    assert_eq!(
+        lex("// é\r\n42\r\n"),
+        Ok(vec![
+            SpannedToken::new(Token::Int(42), 7),
+            SpannedToken::new(Token::EoF, 11),
+        ])
+    );
+}

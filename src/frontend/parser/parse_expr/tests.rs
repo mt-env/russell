@@ -1655,3 +1655,72 @@ fn error_on_eof() {
     let mut p = parser_from("");
     assert!(super::parse_expr(&mut p).is_err());
 }
+
+#[test]
+fn float_negation_binds_to_call_before_multiplication() {
+    assert_eq!(
+        parse("-.f() *. 2.0"),
+        ParsedExpr::new(
+            0,
+            ExprKind::FMult(
+                Box::new(ParsedExpr::new(
+                    0,
+                    ExprKind::FNeg(Box::new(ParsedExpr::new(
+                        2,
+                        ExprKind::Call(Box::new(ParsedExpr::new(2, ExprKind::Id("f"))), vec![])
+                    )))
+                )),
+                Box::new(ParsedExpr::new(9, ExprKind::Float(2.0))),
+            )
+        )
+    );
+}
+
+#[test]
+fn malformed_compound_expressions_report_delimiter_and_location() {
+    use crate::frontend::lexer::token::{Token, TokenKind};
+
+    let cases = [
+        ("(1", TokenKind::RParen, Token::EoF, 2),
+        ("f(1", TokenKind::RParen, Token::EoF, 3),
+        ("f(1 2)", TokenKind::RParen, Token::Int(2), 4),
+        ("if true 1 else 2", TokenKind::Then, Token::Int(1), 8),
+        ("if true then 1", TokenKind::Else, Token::EoF, 14),
+        ("fn (x: Int) x", TokenKind::Arrow, Token::Id("x"), 12),
+        ("match x { a() 1 }", TokenKind::Arrow, Token::Int(1), 14),
+        ("match x { a() -> 1", TokenKind::RBrace, Token::EoF, 18),
+        (
+            "match x { a() -> 1 b() -> 2 }",
+            TokenKind::RBrace,
+            Token::Id("b"),
+            19,
+        ),
+        ("match x { a(x,) -> x }", TokenKind::Id, Token::RParen, 14),
+    ];
+    for (src, expected, actual, offset) in cases {
+        let mut p = parser_from(src);
+        let error = super::parse_expr(&mut p).unwrap_err();
+        assert_eq!(error.expected, vec![expected], "{src}");
+        assert_eq!(error.actual, actual, "{src}");
+        assert_eq!(error.offset, offset, "{src}");
+    }
+}
+
+#[test]
+fn missing_operands_report_the_unconsumed_token() {
+    use crate::frontend::lexer::token::{Token, TokenKind};
+
+    for (src, actual, offset) in [
+        ("1 +", Token::EoF, 3),
+        ("-.", Token::EoF, 2),
+        ("f(1,)", Token::RParen, 4),
+        ("if true then else 2", Token::Else, 13),
+    ] {
+        let mut p = parser_from(src);
+        let error = super::parse_expr(&mut p).unwrap_err();
+        assert!(error.expected.contains(&TokenKind::Int), "{src}");
+        assert_eq!(error.actual, actual, "{src}");
+        assert_eq!(error.offset, offset, "{src}");
+        assert_eq!(*p.peek().token(), actual, "{src}");
+    }
+}
