@@ -101,6 +101,7 @@ fn parse_null_denotation<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, P
                 TokenKind::Id,
                 TokenKind::Minus,
                 TokenKind::Not,
+                TokenKind::FMinus,
                 TokenKind::LParen,
                 TokenKind::Fn,
                 TokenKind::If,
