@@ -9,7 +9,7 @@ use crate::frontend::{
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_expr<'a>(ctx: &mut ResolverCtx<'a>, expr: ParsedExpr<'a>) -> ResolvedExpr {
+pub fn resolve_expr<'src>(ctx: &mut ResolverCtx<'src>, expr: ParsedExpr<'src>) -> ResolvedExpr {
     let loc = expr.offset;
     match expr.node.kind {
         ExprKind::Int(val) => resolve_primitive(loc, ctx, val, ResolvedExprKind::Int),
@@ -57,10 +57,10 @@ fn resolve_primitive<A>(
     ResolvedExpr::new(offset, id, make(val))
 }
 
-fn resolve_unop<'a>(
+fn resolve_unop<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    inner: ParsedExpr<'a>,
+    ctx: &mut ResolverCtx<'src>,
+    inner: ParsedExpr<'src>,
     make: impl Fn(Box<ResolvedExpr>) -> ResolvedExprKind,
 ) -> ResolvedExpr {
     let resolved_inner = resolve_expr(ctx, inner);
@@ -68,7 +68,7 @@ fn resolve_unop<'a>(
     ResolvedExpr::new(offset, id, make(Box::new(resolved_inner)))
 }
 
-fn resolve_id<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -> ResolvedExpr {
+fn resolve_id<'src>(offset: usize, ctx: &mut ResolverCtx<'src>, name: &'src str) -> ResolvedExpr {
     let id = ctx.next_exprid();
     let value_id = match ctx.lookup_value(name) {
         Some(value_id) => value_id,
@@ -81,11 +81,11 @@ fn resolve_id<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -> Re
     ResolvedExpr::new(offset, id, ResolvedExprKind::Id(value_id))
 }
 
-fn resolve_closure<'a>(
+fn resolve_closure<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    param: ParsedBinding<'a>,
-    body: ParsedExpr<'a>,
+    ctx: &mut ResolverCtx<'src>,
+    param: ParsedBinding<'src>,
+    body: ParsedExpr<'src>,
 ) -> ResolvedExpr {
     ctx.push_scope();
     let binding = resolve_type::add_binding(ctx, param);
@@ -95,11 +95,11 @@ fn resolve_closure<'a>(
     ResolvedExpr::new(offset, id, ResolvedExprKind::Fn(binding, Box::new(body)))
 }
 
-fn resolve_call<'a>(
+fn resolve_call<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    func: ParsedExpr<'a>,
-    args: Vec<ParsedExpr<'a>>,
+    ctx: &mut ResolverCtx<'src>,
+    func: ParsedExpr<'src>,
+    args: Vec<ParsedExpr<'src>>,
 ) -> ResolvedExpr {
     let func = resolve_expr(ctx, func);
     let args = args
@@ -110,11 +110,11 @@ fn resolve_call<'a>(
     ResolvedExpr::new(offset, id, ResolvedExprKind::Call(Box::new(func), args))
 }
 
-fn resolve_binop<'a>(
+fn resolve_binop<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    l: ParsedExpr<'a>,
-    r: ParsedExpr<'a>,
+    ctx: &mut ResolverCtx<'src>,
+    l: ParsedExpr<'src>,
+    r: ParsedExpr<'src>,
     make: impl Fn(Box<ResolvedExpr>, Box<ResolvedExpr>) -> ResolvedExprKind,
 ) -> ResolvedExpr {
     let l = resolve_expr(ctx, l);
@@ -123,12 +123,12 @@ fn resolve_binop<'a>(
     ResolvedExpr::new(offset, id, make(Box::new(l), Box::new(r)))
 }
 
-fn resolve_if<'a>(
+fn resolve_if<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    cond: ParsedExpr<'a>,
-    if_b: ParsedExpr<'a>,
-    then_b: ParsedExpr<'a>,
+    ctx: &mut ResolverCtx<'src>,
+    cond: ParsedExpr<'src>,
+    if_b: ParsedExpr<'src>,
+    then_b: ParsedExpr<'src>,
 ) -> ResolvedExpr {
     let cond = resolve_expr(ctx, cond);
     let if_b = resolve_expr(ctx, if_b);
@@ -141,11 +141,11 @@ fn resolve_if<'a>(
     )
 }
 
-fn resolve_match<'a>(
+fn resolve_match<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    expr: ParsedExpr<'a>,
-    arms: Vec<ParsedMatchArm<'a>>,
+    ctx: &mut ResolverCtx<'src>,
+    expr: ParsedExpr<'src>,
+    arms: Vec<ParsedMatchArm<'src>>,
 ) -> ResolvedExpr {
     let expr = resolve_expr(ctx, expr);
     let mut resolved_arms = Vec::new();

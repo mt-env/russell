@@ -5,7 +5,7 @@ use crate::frontend::{
         ast::{ParsedBinding, ParsedType, Type},
         parse_type::parse_type,
     },
-    resolution::types::{ResolutionErrorKind, ResolvedBinding, ResolvedType, ResolverCtx},
+    resolution::types::{ResolveErrorKind, ResolvedBinding, ResolvedType, ResolverCtx},
     types::Spanned,
 };
 
@@ -64,7 +64,7 @@ fn rejects_unknown_named_type() {
         ctx.errors,
         vec![Spanned {
             offset: 0,
-            node: ResolutionErrorKind::UnknownType { name: "Missing" },
+            node: ResolveErrorKind::UnknownType { name: "Missing" },
         }]
     );
 }

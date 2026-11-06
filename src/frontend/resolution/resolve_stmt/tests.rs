@@ -4,7 +4,7 @@ use crate::frontend::{
     resolution::{
         resolve_stmt,
         types::{
-            ResolutionErrorKind, ResolvedExpr, ResolvedExprKind, ResolvedStmt, ResolvedType,
+            ResolveErrorKind, ResolvedExpr, ResolvedExprKind, ResolvedStmt, ResolvedType,
             ResolverCtx,
         },
     },
@@ -138,7 +138,7 @@ fn return_statement_panics_on_unbound_identifier() {
         ctx.errors,
         vec![Spanned {
             offset: 7,
-            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+            node: ResolveErrorKind::UnknownValue { name: "missing" },
         }]
     );
 }

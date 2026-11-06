@@ -1,6 +1,6 @@
 use crate::frontend::{
     parser::ast::{Defn, ParsedDefn},
-    resolution::types::{ResolutionFailure, ResolutionSuccess, ResolverCtx},
+    resolution::types::{ResolutionFailure, ResolveSuccess, ResolverCtx},
 };
 
 pub mod resolve_defn;
@@ -12,7 +12,7 @@ pub mod types;
 #[cfg(test)]
 mod tests;
 
-pub fn resolve(defns: Vec<ParsedDefn>) -> Result<ResolutionSuccess, ResolutionFailure> {
+pub fn resolve(defns: Vec<ParsedDefn>) -> Result<ResolveSuccess, ResolutionFailure> {
     let mut ctx = ResolverCtx::new();
     init_global_scope(&mut ctx, &defns);
     let mut resolved_defns = Vec::new();
@@ -31,7 +31,7 @@ pub fn resolve(defns: Vec<ParsedDefn>) -> Result<ResolutionSuccess, ResolutionFa
                 "COMPILER BUG: failed to report missing main function. please report this error"
             );
         };
-        Ok(ResolutionSuccess {
+        Ok(ResolveSuccess {
             resolved_defns,
             main_id,
             id_to_name: ctx.ids,
@@ -39,7 +39,7 @@ pub fn resolve(defns: Vec<ParsedDefn>) -> Result<ResolutionSuccess, ResolutionFa
     }
 }
 
-fn init_global_scope<'a>(ctx: &mut ResolverCtx<'a>, defns: &[ParsedDefn<'a>]) {
+fn init_global_scope<'src>(ctx: &mut ResolverCtx<'src>, defns: &[ParsedDefn<'src>]) {
     let mut has_main = false;
     for defn in defns {
         match &defn.node {

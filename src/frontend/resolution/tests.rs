@@ -2,7 +2,7 @@ use crate::frontend::{
     lexer::lex,
     parser::parse,
     resolution::types::{
-        ResolutionError, ResolutionErrorKind, ResolvedBinding, ResolvedConstructorArm,
+        ResolveError, ResolveErrorKind, ResolvedBinding, ResolvedConstructorArm,
         ResolvedDefn, ResolvedExpr, ResolvedExprKind, ResolvedStmt, ResolvedType, ResolverCtx,
     },
     types::Spanned,
@@ -19,7 +19,7 @@ fn resolve(input: &str) -> Vec<ResolvedDefn> {
     }
 }
 
-fn assert_resolution_error(input: &str, expected: ResolutionError<'_>) {
+fn assert_resolution_error(input: &str, expected: ResolveError<'_>) {
     let defns = parse(lex(input).expect("test input should lex successfully"))
         .expect("test input should parse successfully");
     let mut ctx = ResolverCtx::new();
@@ -32,14 +32,14 @@ fn assert_resolution_error(input: &str, expected: ResolutionError<'_>) {
 
 fn resolve_result<'a>(
     input: &'a str,
-) -> Result<super::types::ResolutionSuccess<'a>, super::types::ResolutionFailure<'a>> {
+) -> Result<super::types::ResolveSuccess<'a>, super::types::ResolutionFailure<'a>> {
     super::resolve(
         parse(lex(input).expect("test input should lex successfully"))
             .expect("test input should parse successfully"),
     )
 }
 
-fn errors<'a>(input: &'a str) -> Vec<ResolutionError<'a>> {
+fn errors<'a>(input: &'a str) -> Vec<ResolveError<'a>> {
     match resolve_result(input) {
         Ok(_) => panic!("expected resolution to fail"),
         Err(failure) => failure.errors,
@@ -445,7 +445,7 @@ fn rejects_empty_program() {
         "",
         Spanned {
             offset: 0,
-            node: ResolutionErrorKind::MissingMainFn,
+            node: ResolveErrorKind::MissingMainFn,
         },
     );
 }
@@ -456,7 +456,7 @@ fn rejects_program_without_main_function() {
         "fn helper() -> Int { return 0; }",
         Spanned {
             offset: 0,
-            node: ResolutionErrorKind::MissingMainFn,
+            node: ResolveErrorKind::MissingMainFn,
         },
     );
 }
@@ -467,7 +467,7 @@ fn rejects_typedef_only_program() {
         "typedef Unit { unit() }",
         Spanned {
             offset: 0,
-            node: ResolutionErrorKind::MissingMainFn,
+            node: ResolveErrorKind::MissingMainFn,
         },
     );
 }
@@ -480,7 +480,7 @@ fn rejects_duplicate_function_name() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 36,
-            node: ResolutionErrorKind::DuplicateValue { name: "duplicate" },
+            node: ResolveErrorKind::DuplicateValue { name: "duplicate" },
         },
     );
 }
@@ -493,7 +493,7 @@ fn rejects_duplicate_function_name_with_different_parameters() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 36,
-            node: ResolutionErrorKind::DuplicateValue { name: "duplicate" },
+            node: ResolveErrorKind::DuplicateValue { name: "duplicate" },
         },
     );
 }
@@ -506,7 +506,7 @@ fn rejects_function_and_constructor_name_collision() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 56,
-            node: ResolutionErrorKind::DuplicateValue { name: "duplicate" },
+            node: ResolveErrorKind::DuplicateValue { name: "duplicate" },
         },
     );
 }
@@ -519,7 +519,7 @@ fn rejects_function_and_constructor_name_collision_with_different_parameters() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 56,
-            node: ResolutionErrorKind::DuplicateValue { name: "duplicate" },
+            node: ResolveErrorKind::DuplicateValue { name: "duplicate" },
         },
     );
 }
@@ -532,7 +532,7 @@ fn rejects_duplicate_typedef_name() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 30,
-            node: ResolutionErrorKind::DuplicateType { name: "Duplicate" },
+            node: ResolveErrorKind::DuplicateType { name: "Duplicate" },
         },
     );
 }
@@ -545,7 +545,7 @@ fn rejects_duplicate_typedef_name_with_different_type_parameters() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 30,
-            node: ResolutionErrorKind::DuplicateType { name: "Duplicate" },
+            node: ResolveErrorKind::DuplicateType { name: "Duplicate" },
         },
     );
 }
@@ -558,7 +558,7 @@ fn rejects_nullary_constructor_name_collision_across_typedefs() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 47,
-            node: ResolutionErrorKind::DuplicateValue { name: "duplicate" },
+            node: ResolveErrorKind::DuplicateValue { name: "duplicate" },
         },
     );
 }
@@ -571,7 +571,7 @@ fn rejects_constructor_name_collision_across_typedefs() {
          fn main() -> Int { return 0; }",
         Spanned {
             offset: 47,
-            node: ResolutionErrorKind::DuplicateValue { name: "duplicate" },
+            node: ResolveErrorKind::DuplicateValue { name: "duplicate" },
         },
     );
 }
@@ -671,7 +671,7 @@ fn reports_unknown_type_in_function_return_type_at_the_type_offset() {
         errors(input),
         vec![Spanned {
             offset: 13,
-            node: ResolutionErrorKind::UnknownType { name: "Missing" },
+            node: ResolveErrorKind::UnknownType { name: "Missing" },
         }]
     );
 }
@@ -685,7 +685,7 @@ fn reports_unknown_type_in_typedef_type_application_without_panicking() {
         errors(input),
         vec![Spanned {
             offset: 26,
-            node: ResolutionErrorKind::UnknownType { name: "Missing" },
+            node: ResolveErrorKind::UnknownType { name: "Missing" },
         }]
     );
 }
@@ -699,7 +699,7 @@ fn reports_unknown_type_nested_in_a_typedef_function_type() {
         errors(input),
         vec![Spanned {
             offset: 33,
-            node: ResolutionErrorKind::UnknownType { name: "Missing" },
+            node: ResolveErrorKind::UnknownType { name: "Missing" },
         }]
     );
 }
@@ -714,7 +714,7 @@ fn reports_each_duplicate_global_constructor_name() {
         errors(input),
         vec![Spanned {
             offset: 42,
-            node: ResolutionErrorKind::DuplicateValue { name: "make" },
+            node: ResolveErrorKind::DuplicateValue { name: "make" },
         }]
     );
 }
@@ -728,7 +728,7 @@ fn reports_duplicate_constructor_field_names_at_the_second_field() {
         errors(input),
         vec![Spanned {
             offset: 31,
-            node: ResolutionErrorKind::DuplicateValue { name: "left" },
+            node: ResolveErrorKind::DuplicateValue { name: "left" },
         }]
     );
 }
@@ -745,7 +745,7 @@ fn reports_duplicate_match_binding_names() {
         errors(input),
         vec![Spanned {
             offset: 107,
-            node: ResolutionErrorKind::DuplicateValue { name: "value" },
+            node: ResolveErrorKind::DuplicateValue { name: "value" },
         }]
     );
 }
@@ -780,7 +780,7 @@ fn closure_parameter_does_not_leak_into_the_enclosing_function() {
         errors(input),
         vec![Spanned {
             offset: 52,
-            node: ResolutionErrorKind::UnknownValue { name: "x" },
+            node: ResolveErrorKind::UnknownValue { name: "x" },
         }]
     );
 }
@@ -802,11 +802,11 @@ fn match_bindings_do_not_leak_between_arms_or_after_the_match() {
         vec![
             Spanned {
                 offset: 145,
-                node: ResolutionErrorKind::UnknownValue { name: "value" },
+                node: ResolveErrorKind::UnknownValue { name: "value" },
             },
             Spanned {
                 offset: 161,
-                node: ResolutionErrorKind::UnknownValue { name: "value" },
+                node: ResolveErrorKind::UnknownValue { name: "value" },
             },
         ]
     );
@@ -820,7 +820,7 @@ fn unknown_match_variant_is_reported() {
         errors(input),
         vec![Spanned {
             offset: 36,
-            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+            node: ResolveErrorKind::UnknownValue { name: "missing" },
         }]
     );
 }
@@ -834,11 +834,11 @@ fn unknown_identifier_is_reported_at_each_distinct_source_use() {
         vec![
             Spanned {
                 offset: 26,
-                node: ResolutionErrorKind::UnknownValue { name: "missing" },
+                node: ResolveErrorKind::UnknownValue { name: "missing" },
             },
             Spanned {
                 offset: 36,
-                node: ResolutionErrorKind::UnknownValue { name: "other" },
+                node: ResolveErrorKind::UnknownValue { name: "other" },
             },
         ]
     );
@@ -853,11 +853,11 @@ fn missing_main_is_reported_alongside_other_resolution_errors() {
         vec![
             Spanned {
                 offset: 0,
-                node: ResolutionErrorKind::MissingMainFn,
+                node: ResolveErrorKind::MissingMainFn,
             },
             Spanned {
                 offset: 28,
-                node: ResolutionErrorKind::UnknownValue { name: "missing" },
+                node: ResolveErrorKind::UnknownValue { name: "missing" },
             },
         ]
     );
@@ -872,7 +872,7 @@ fn error_recovery_does_not_create_duplicate_errors_for_repeated_unknown_type_par
         errors(input),
         vec![Spanned {
             offset: 29,
-            node: ResolutionErrorKind::UnknownType { name: "'missing" },
+            node: ResolveErrorKind::UnknownType { name: "'missing" },
         }]
     );
 }
@@ -887,7 +887,7 @@ fn errors_in_one_definition_do_not_prevent_later_definitions_from_being_resolved
         errors(input),
         vec![Spanned {
             offset: 25,
-            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+            node: ResolveErrorKind::UnknownValue { name: "missing" },
         }]
     );
 }

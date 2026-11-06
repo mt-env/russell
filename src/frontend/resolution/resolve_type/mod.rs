@@ -6,7 +6,7 @@ use crate::frontend::{
 #[cfg(test)]
 mod tests;
 
-pub(super) fn add_type<'a>(ctx: &mut ResolverCtx<'a>, ty: ParsedType<'a>) -> ResolvedType {
+pub(super) fn add_type<'src>(ctx: &mut ResolverCtx<'src>, ty: ParsedType<'src>) -> ResolvedType {
     let loc = ty.offset;
     match ty.node {
         Type::Int => ResolvedType::mk_int(loc),
@@ -19,7 +19,7 @@ pub(super) fn add_type<'a>(ctx: &mut ResolverCtx<'a>, ty: ParsedType<'a>) -> Res
     }
 }
 
-fn lookup_type<'a>(ctx: &ResolverCtx<'a>, ty: ParsedType<'a>) -> Option<ResolvedType> {
+fn lookup_type<'src>(ctx: &ResolverCtx<'src>, ty: ParsedType<'src>) -> Option<ResolvedType> {
     let loc = ty.offset;
     match ty.node {
         Type::Int => Some(ResolvedType::mk_int(loc)),
@@ -38,7 +38,7 @@ fn lookup_type<'a>(ctx: &ResolverCtx<'a>, ty: ParsedType<'a>) -> Option<Resolved
     }
 }
 
-fn resolve_typeid<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -> TypeId {
+fn resolve_typeid<'src>(offset: usize, ctx: &mut ResolverCtx<'src>, name: &'src str) -> TypeId {
     match ctx.lookup_type(name) {
         Some(val) => val,
         None => {
@@ -49,18 +49,18 @@ fn resolve_typeid<'a>(offset: usize, ctx: &mut ResolverCtx<'a>, name: &'a str) -
 }
 
 // this adds in a type param if it doesn't exist
-fn add_typeparam<'a>(ctx: &mut ResolverCtx<'a>, name: &'a str) -> TypeParamId {
+fn add_typeparam<'src>(ctx: &mut ResolverCtx<'src>, name: &'src str) -> TypeParamId {
     match ctx.lookup_typeparam(name) {
         Some(val) => val,
         None => ctx.add_typeparam(name),
     }
 }
 
-fn add_typeapp<'a>(
+fn add_typeapp<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    type_constr: &'a str,
-    type_args: Vec<ParsedType<'a>>,
+    ctx: &mut ResolverCtx<'src>,
+    type_constr: &'src str,
+    type_args: Vec<ParsedType<'src>>,
 ) -> ResolvedType {
     let resolved_type_constr = resolve_typeid(offset, ctx, type_constr);
     let mut resolved_type_args = Vec::with_capacity(type_args.len());
@@ -70,11 +70,11 @@ fn add_typeapp<'a>(
     ResolvedType::mk_typeapp(offset, resolved_type_constr, resolved_type_args)
 }
 
-fn lookup_typeapp<'a>(
+fn lookup_typeapp<'src>(
     offset: usize,
-    ctx: &ResolverCtx<'a>,
-    type_constr: &'a str,
-    type_args: Vec<ParsedType<'a>>,
+    ctx: &ResolverCtx<'src>,
+    type_constr: &'src str,
+    type_args: Vec<ParsedType<'src>>,
 ) -> Option<ResolvedType> {
     let resolved_type_constr = ctx.lookup_type(type_constr)?;
     let mut resolved_type_args = Vec::with_capacity(type_args.len());
@@ -88,22 +88,22 @@ fn lookup_typeapp<'a>(
     ))
 }
 
-fn add_fn<'a>(
+fn add_fn<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    domain: ParsedType<'a>,
-    codomain: ParsedType<'a>,
+    ctx: &mut ResolverCtx<'src>,
+    domain: ParsedType<'src>,
+    codomain: ParsedType<'src>,
 ) -> ResolvedType {
     let domain = add_type(ctx, domain);
     let codomain = add_type(ctx, codomain);
     ResolvedType::mk_fn(offset, domain, codomain)
 }
 
-fn lookup_fn<'a>(
+fn lookup_fn<'src>(
     offset: usize,
-    ctx: &ResolverCtx<'a>,
-    domain: ParsedType<'a>,
-    codomain: ParsedType<'a>,
+    ctx: &ResolverCtx<'src>,
+    domain: ParsedType<'src>,
+    codomain: ParsedType<'src>,
 ) -> Option<ResolvedType> {
     let domain = lookup_type(ctx, domain)?;
     let codomain = lookup_type(ctx, codomain)?;
@@ -111,18 +111,18 @@ fn lookup_fn<'a>(
 }
 
 // resolves a binding, adds the value to the context, and returns a ResolvedBinding
-pub(super) fn add_binding<'a>(
-    ctx: &mut ResolverCtx<'a>,
-    binding: ParsedBinding<'a>,
+pub(super) fn add_binding<'src>(
+    ctx: &mut ResolverCtx<'src>,
+    binding: ParsedBinding<'src>,
 ) -> ResolvedBinding {
     let value_id = ctx.add_value(binding.node.id);
     let resolved_type = add_type(ctx, binding.node.typ);
     ResolvedBinding::new(binding.offset, value_id, resolved_type)
 }
 
-pub(super) fn add_binding_no_shadowing<'a>(
-    ctx: &mut ResolverCtx<'a>,
-    binding: ParsedBinding<'a>,
+pub(super) fn add_binding_no_shadowing<'src>(
+    ctx: &mut ResolverCtx<'src>,
+    binding: ParsedBinding<'src>,
 ) -> ResolvedBinding {
     let value_id = ctx.add_value_nodup(binding.node.id, binding.offset);
     let resolved_type = add_type(ctx, binding.node.typ);
@@ -131,9 +131,9 @@ pub(super) fn add_binding_no_shadowing<'a>(
 
 // adds a binding but won't automatically create a new typeparam
 // returns none if the typeparam doesn't exist in the context
-pub(super) fn add_binding_existing_typaram<'a>(
-    ctx: &mut ResolverCtx<'a>,
-    binding: ParsedBinding<'a>,
+pub(super) fn add_binding_existing_typaram<'src>(
+    ctx: &mut ResolverCtx<'src>,
+    binding: ParsedBinding<'src>,
 ) -> Option<ResolvedBinding> {
     let resolved_type = lookup_type(ctx, binding.node.typ)?;
     let value_id = ctx.add_value_nodup(binding.node.id, binding.offset);

@@ -12,7 +12,7 @@ use crate::frontend::{
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> ResolvedDefn {
+pub fn resolve_defn<'src>(ctx: &mut ResolverCtx<'src>, defn: ParsedDefn<'src>) -> ResolvedDefn {
     let loc = defn.offset;
     match defn.node {
         Defn::Typedef { id, ty_vars, arms } => resolve_typedef(loc, ctx, id, ty_vars, arms),
@@ -25,12 +25,12 @@ pub fn resolve_defn<'a>(ctx: &mut ResolverCtx<'a>, defn: ParsedDefn<'a>) -> Reso
     }
 }
 
-fn resolve_typedef<'a>(
+fn resolve_typedef<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    id: &'a str,
-    ty_vars: Vec<&'a str>,
-    arms: Vec<ParsedConstructorArm<'a>>,
+    ctx: &mut ResolverCtx<'src>,
+    id: &'src str,
+    ty_vars: Vec<&'src str>,
+    arms: Vec<ParsedConstructorArm<'src>>,
 ) -> ResolvedDefn {
     // fetch type ID from global scope (should have been added in init_global_scope)
     let Some(type_id) = ctx.lookup_type(id) else {
@@ -97,13 +97,13 @@ fn resolve_typedef<'a>(
     ResolvedDefn::mk_typedef(offset, type_id, resolved_type_params, resolved_arms)
 }
 
-fn resolve_fn<'a>(
+fn resolve_fn<'src>(
     offset: usize,
-    ctx: &mut ResolverCtx<'a>,
-    name: &'a str,
-    bindings: Vec<ParsedBinding<'a>>,
-    ret_ty: ParsedType<'a>,
-    body: Vec<ParsedStmt<'a>>,
+    ctx: &mut ResolverCtx<'src>,
+    name: &'src str,
+    bindings: Vec<ParsedBinding<'src>>,
+    ret_ty: ParsedType<'src>,
+    body: Vec<ParsedStmt<'src>>,
 ) -> ResolvedDefn {
     ctx.push_scope();
 

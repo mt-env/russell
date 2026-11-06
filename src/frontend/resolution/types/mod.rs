@@ -298,30 +298,29 @@ impl ResolvedConstructorArm {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum ResolutionErrorKind<'a> {
-    DuplicateValue { name: &'a str },
-    DuplicateType { name: &'a str },
-    UnknownValue { name: &'a str },
-    UnknownType { name: &'a str },
+pub enum ResolveErrorKind<'src> {
+    DuplicateValue { name: &'src str },
+    DuplicateType { name: &'src str },
+    UnknownValue { name: &'src str },
+    UnknownType { name: &'src str },
     MissingMainFn,
 }
 
-pub type ResolutionError<'a> = Spanned<ResolutionErrorKind<'a>>;
+pub type ResolveError<'src> = Spanned<ResolveErrorKind<'src>>;
+pub type ResolveResult<'src, T> = Result<T, ResolveError<'src>>;
 
-pub struct ResolverCtx<'a> {
+pub struct ResolverCtx<'src> {
     num_typeids: usize,
     num_typeparamids: usize,
     num_valueids: usize,
     num_exprs: usize,
 
-    pub(super) ids: HashMap<Identifier, &'a str>,
+    pub(super) ids: HashMap<Identifier, &'src str>,
 
-    env: Vec<Env<'a>>,
-
-    pub(super) errors: Vec<ResolutionError<'a>>,
+    env: Vec<Env<'src>>,
 }
 
-impl<'a> ResolverCtx<'a> {
+impl<'src> ResolverCtx<'src> {
     pub(crate) fn new() -> Self {
         Self {
             num_typeids: 0,
@@ -330,7 +329,6 @@ impl<'a> ResolverCtx<'a> {
             num_exprs: 0,
             ids: HashMap::new(),
             env: vec![Env::new()],
-            errors: Vec::new(),
         }
     }
 
@@ -358,7 +356,7 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(super) fn add_value(&mut self, name: &'a str) -> ValueId {
+    pub(super) fn add_value(&mut self, name: &'src str) -> ValueId {
         let id = self.next_valueid();
         self.ids.insert(Identifier::ValueId(id), name);
         // insert into the current scope so lookups find newly-declared names
@@ -373,7 +371,7 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(super) fn add_value_nodup(&mut self, name: &'a str, at: usize) -> ValueId {
+    pub(super) fn add_value_nodup(&mut self, name: &'src str, at: usize) -> ValueId {
         match self.lookup_value(name) {
             Some(val) => {
                 self.add_duplicate_value_error(name, at);
@@ -383,7 +381,7 @@ impl<'a> ResolverCtx<'a> {
         }
     }
 
-    pub(super) fn add_type(&mut self, name: &'a str) -> TypeId {
+    pub(super) fn add_type(&mut self, name: &'src str) -> TypeId {
         let id = self.next_typeid();
         self.ids.insert(Identifier::TypeId(id), name);
         if let Some(env) = self.env.last_mut() {
@@ -397,7 +395,34 @@ impl<'a> ResolverCtx<'a> {
         id
     }
 
-    pub(super) fn add_type_nodup(&mut self, name: &'a str, at: usize) -> TypeId {
+    /// adds a type to the current scope but bans duplicate names. if a duplicate is found, an error
+    /// is added to the context, but the existing type is returned so that resolution can continue
+    ///
+    /// # Arguments - `name` - the name of the type to add - `at` - the offset in the source code
+    /// where the type is being added
+    ///
+    /// # Returns
+    ///
+    /// the `TypeId` of the newly added type, or the existing type if a duplicate was found
+    ///
+    /// # Examples
+    ///
+    /// this succeeds, and returns the type id of the newly added type:
+    ///
+    /// ```rust
+    /// let mut ctx = ResolverCtx::new();
+    /// let result = ctx.add_type_nodup("MyType", 42); // adds MyType to the current scope
+    /// ```
+    ///
+    /// this fails, and returns the type id of the existing type, while also adding an error to the
+    /// context:
+    ///
+    /// ```rust
+    /// let mut ctx = ResolverCtx::new();
+    /// ctx.add_type_nodup("MyType", 42); // adds MyType to the current scope
+    /// ctx.add_type_nodup("MyType", 43); // fails, adds an error to the context, and returns the existing type id
+    /// ```
+    pub(super) fn add_type_nodup(&mut self, name: &'src str, at: usize) -> TypeId {
         match self.lookup_type(name) {
             Some(val) => {
                 self.add_duplicate_type_error(name, at);
@@ -407,7 +432,7 @@ impl<'a> ResolverCtx<'a> {
         }
     }
 
-    pub(super) fn add_typeparam(&mut self, name: &'a str) -> TypeParamId {
+    pub(super) fn add_typeparam(&mut self, name: &'src str) -> TypeParamId {
         let id = self.next_typeparamid();
         self.ids.insert(Identifier::TypeParamId(id), name);
         if let Some(env) = self.env.last_mut() {
@@ -458,54 +483,19 @@ impl<'a> ResolverCtx<'a> {
             _ => None,
         }
     }
-
-    pub(super) fn add_unbound_val_error(&mut self, name: &'a str, at: usize) {
-        self.errors.push(Spanned {
-            offset: at,
-            node: ResolutionErrorKind::UnknownValue { name },
-        });
-    }
-
-    pub(super) fn add_unbound_type_error(&mut self, name: &'a str, at: usize) {
-        self.errors.push(Spanned {
-            offset: at,
-            node: ResolutionErrorKind::UnknownType { name },
-        });
-    }
-
-    pub(super) fn add_duplicate_value_error(&mut self, name: &'a str, at: usize) {
-        self.errors.push(Spanned {
-            offset: at,
-            node: ResolutionErrorKind::DuplicateValue { name },
-        });
-    }
-
-    pub(super) fn add_duplicate_type_error(&mut self, name: &'a str, at: usize) {
-        self.errors.push(Spanned {
-            offset: at,
-            node: ResolutionErrorKind::DuplicateType { name },
-        });
-    }
-
-    pub(super) fn add_missing_main_fn_error(&mut self) {
-        self.errors.push(Spanned {
-            offset: 0, // placeholder value; nothing else makes sense except end?
-            node: ResolutionErrorKind::MissingMainFn,
-        });
-    }
 }
 
-pub struct Env<'a> {
-    values: HashMap<&'a str, Identifier>,
+pub struct Env<'src> {
+    values: HashMap<&'src str, Identifier>,
 }
 
-impl<'a> Default for Env<'a> {
+impl<'src> Default for Env<'src> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a> Env<'a> {
+impl<'src> Env<'src> {
     pub fn new() -> Self {
         Self {
             values: HashMap::new(),
@@ -513,13 +503,8 @@ impl<'a> Env<'a> {
     }
 }
 
-pub struct ResolutionSuccess<'a> {
+pub struct ResolveSuccess<'src> {
     pub resolved_defns: Vec<ResolvedDefn>,
     pub main_id: ValueId,
-    pub id_to_name: HashMap<Identifier, &'a str>,
-}
-
-pub struct ResolutionFailure<'a> {
-    pub errors: Vec<ResolutionError<'a>>,
-    pub id_to_name: HashMap<Identifier, &'a str>,
+    pub id_to_name: HashMap<Identifier, &'src str>,
 }

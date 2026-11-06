@@ -2,7 +2,7 @@ use crate::frontend::{
     lexer::lex,
     parser::{Parser, parse_expr::parse_expr},
     resolution::types::{
-        ResolutionErrorKind, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchArm,
+        ResolveErrorKind, ResolvedBinding, ResolvedExpr, ResolvedExprKind, ResolvedMatchArm,
         ResolvedType, ResolverCtx,
     },
     types::Spanned,
@@ -55,7 +55,7 @@ fn rejects_unbound_identifier() {
         ctx.errors,
         vec![Spanned {
             offset: 0,
-            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+            node: ResolveErrorKind::UnknownValue { name: "missing" },
         }]
     );
 }
@@ -476,7 +476,7 @@ fn rejects_match_with_unknown_variant() {
         ctx.errors,
         vec![Spanned {
             offset: 14,
-            node: ResolutionErrorKind::UnknownValue { name: "missing" },
+            node: ResolveErrorKind::UnknownValue { name: "missing" },
         }]
     );
 }
@@ -493,7 +493,7 @@ fn rejects_duplicate_match_binding_names() {
         ctx.errors,
         vec![Spanned {
             offset: 15,
-            node: ResolutionErrorKind::DuplicateValue { name: "x" },
+            node: ResolveErrorKind::DuplicateValue { name: "x" },
         }]
     );
 }

@@ -2,7 +2,7 @@ use crate::frontend::{
     lexer::lex,
     parser::{Parser, parse_defn::parse_defn},
     resolution::types::{
-        ResolutionErrorKind, ResolvedBinding, ResolvedConstructorArm, ResolvedDefn, ResolvedExpr,
+        ResolveErrorKind, ResolvedBinding, ResolvedConstructorArm, ResolvedDefn, ResolvedExpr,
         ResolvedExprKind, ResolvedStmt, ResolvedType, ResolverCtx,
     },
     types::Spanned,
@@ -386,7 +386,7 @@ fn rejects_undefined_typedef_type_parameter() {
         ctx.errors.as_slice(),
         &[Spanned {
             offset: 38,
-            node: ResolutionErrorKind::UnknownType { name: "'missing" },
+            node: ResolveErrorKind::UnknownType { name: "'missing" },
         }]
     );
 }
@@ -403,7 +403,7 @@ fn rejects_undefined_typedef_type() {
         ctx.errors,
         vec![Spanned {
             offset: 26,
-            node: ResolutionErrorKind::UnknownType { name: "Missing" },
+            node: ResolveErrorKind::UnknownType { name: "Missing" },
         }]
     );
 }
@@ -420,7 +420,7 @@ fn rejects_duplicate_typedef_binding_names() {
         ctx.errors,
         vec![Spanned {
             offset: 28,
-            node: ResolutionErrorKind::DuplicateValue { name: "x" },
+            node: ResolveErrorKind::DuplicateValue { name: "x" },
         }]
     );
 }
@@ -438,7 +438,7 @@ fn rejects_duplicate_function_parameter_names() {
         ctx.errors,
         vec![Spanned {
             offset: 21,
-            node: ResolutionErrorKind::DuplicateValue { name: "x" },
+            node: ResolveErrorKind::DuplicateValue { name: "x" },
         }]
     );
 }
