@@ -7,6 +7,7 @@ pub enum LexErrorKind<'src> {
     InvalidChar(char),
     InvalidInt(&'src str),
     InvalidFloat(&'src str),
+    NonAsciiChar(char),
 }
 
 impl<'src> LexError<'src> {
@@ -30,6 +31,7 @@ impl<'src> std::fmt::Display for LexError<'src> {
             LexErrorKind::InvalidChar(c) => write!(f, "invalid character '{}'", c),
             LexErrorKind::InvalidInt(s) => write!(f, "invalid integer '{}'", s),
             LexErrorKind::InvalidFloat(s) => write!(f, "invalid float '{}'", s),
+            LexErrorKind::NonAsciiChar(c) => write!(f, "non-ascii character '{}'", c),
         }
     }
 }

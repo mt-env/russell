@@ -67,10 +67,20 @@ const OPERATORS: [(&str, Token); 31] = [
 ];
 
 pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<LexError<'_>>> {
+    // data structures
     let mut lexer = Lexer::new(program);
-    // todo - should this be in lexer struct, maybe?
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
+
+    // ascii validation prepassing
+    for (i, c) in program.char_indices() {
+        if !c.is_ascii() {
+            errors.push(LexError::new(LexErrorKind::NonAsciiChar(c), i));
+        }
+        return Err(errors);
+    }
+
+    // main lexing loop
     loop {
         match lexer.next_token() {
             Ok(token) => {
