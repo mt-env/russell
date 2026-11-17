@@ -371,13 +371,15 @@ impl<'src> ResolverCtx<'src> {
         id
     }
 
-    pub(super) fn add_value_nodup(&mut self, name: &'src str, at: usize) -> ValueId {
+    pub(super) fn add_value_nodup(&mut self, name: &'src str, at: usize) -> ResolveResult<'src, ValueId> {
         match self.lookup_value(name) {
-            Some(val) => {
-                self.add_duplicate_value_error(name, at);
-                val
+            Some(_) => {
+                Err(Spanned {
+                    offset: at,
+                    node: ResolveErrorKind::DuplicateValue { name },
+                })
             }
-            None => self.add_value(name),
+            None => Ok(self.add_value(name)),
         }
     }
 
@@ -395,40 +397,17 @@ impl<'src> ResolverCtx<'src> {
         id
     }
 
-    /// adds a type to the current scope but bans duplicate names. if a duplicate is found, an error
-    /// is added to the context, but the existing type is returned so that resolution can continue
-    ///
-    /// # Arguments - `name` - the name of the type to add - `at` - the offset in the source code
-    /// where the type is being added
-    ///
-    /// # Returns
-    ///
-    /// the `TypeId` of the newly added type, or the existing type if a duplicate was found
-    ///
-    /// # Examples
-    ///
-    /// this succeeds, and returns the type id of the newly added type:
-    ///
-    /// ```rust
-    /// let mut ctx = ResolverCtx::new();
-    /// let result = ctx.add_type_nodup("MyType", 42); // adds MyType to the current scope
-    /// ```
-    ///
-    /// this fails, and returns the type id of the existing type, while also adding an error to the
-    /// context:
-    ///
-    /// ```rust
-    /// let mut ctx = ResolverCtx::new();
-    /// ctx.add_type_nodup("MyType", 42); // adds MyType to the current scope
-    /// ctx.add_type_nodup("MyType", 43); // fails, adds an error to the context, and returns the existing type id
-    /// ```
-    pub(super) fn add_type_nodup(&mut self, name: &'src str, at: usize) -> TypeId {
+    pub(super) fn add_type_nodup(&mut self, name: &'src str, at: usize) -> ResolveResult<'src, TypeId> {
+        // TODO - is this architecture good? having add_type_nodup and add_value_nodup are kind of
+        // hacky feeling
         match self.lookup_type(name) {
             Some(val) => {
-                self.add_duplicate_type_error(name, at);
-                val
+                Err(Spanned {
+                    offset: at,
+                    node: ResolveErrorKind::DuplicateType { name },
+                })
             }
-            None => self.add_type(name),
+            None => Ok(self.add_type(name)),
         }
     }
 

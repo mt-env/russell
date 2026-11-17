@@ -1,6 +1,9 @@
 use crate::frontend::{
     parser::ast::{Defn, ParsedDefn},
-    resolution::types::{ResolutionFailure, ResolveSuccess, ResolverCtx},
+    resolution::types::{
+        ResolveErrorKind, ResolveResult, ResolveSuccess, ResolverCtx,
+    },
+    types::Spanned,
 };
 
 pub mod resolve_defn;
@@ -12,34 +15,30 @@ pub mod types;
 #[cfg(test)]
 mod tests;
 
-pub fn resolve(defns: Vec<ParsedDefn>) -> Result<ResolveSuccess, ResolutionFailure> {
+pub fn resolve<'src>(defns: Vec<ParsedDefn<'src>>) -> ResolveResult<'src, ResolveSuccess<'src>> {
     let mut ctx = ResolverCtx::new();
-    init_global_scope(&mut ctx, &defns);
+    init_global_scope(&mut ctx, &defns)?;
     let mut resolved_defns = Vec::new();
     for defn in defns {
         resolved_defns.push(resolve_defn::resolve_defn(&mut ctx, defn));
     }
 
-    if ctx.errors.len() > 0 {
-        Err(ResolutionFailure {
-            errors: ctx.errors,
-            id_to_name: ctx.ids,
-        })
-    } else {
-        let Some(main_id) = ctx.lookup_value("main") else {
-            unreachable!(
-                "COMPILER BUG: failed to report missing main function. please report this error"
-            );
-        };
-        Ok(ResolveSuccess {
-            resolved_defns,
-            main_id,
-            id_to_name: ctx.ids,
-        })
-    }
+    let Some(main_id) = ctx.lookup_value("main") else {
+        unreachable!(
+            "COMPILER BUG: failed to report missing main function. please report this error"
+        );
+    };
+    Ok(ResolveSuccess {
+        resolved_defns,
+        main_id,
+        id_to_name: ctx.ids,
+    })
 }
 
-fn init_global_scope<'src>(ctx: &mut ResolverCtx<'src>, defns: &[ParsedDefn<'src>]) {
+fn init_global_scope<'src>(
+    ctx: &mut ResolverCtx<'src>,
+    defns: &[ParsedDefn<'src>],
+) -> ResolveResult<'src, ()> {
     let mut has_main = false;
     for defn in defns {
         match &defn.node {
@@ -59,6 +58,12 @@ fn init_global_scope<'src>(ctx: &mut ResolverCtx<'src>, defns: &[ParsedDefn<'src
     }
 
     if !has_main {
-        ctx.add_missing_main_fn_error();
+        return Err(Spanned {
+            offset: 0, // TODO placeholder value - maybe should be end of program? that'd be
+            // annoying to thread through everything though
+            node: ResolveErrorKind::MissingMainFn,
+        });
     }
+
+    Ok(())
 }
