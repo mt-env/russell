@@ -2,19 +2,26 @@ use crate::frontend::{
     parser::ast::{ExprKind, ParsedBinding, ParsedExpr, ParsedMatchArm},
     resolution::{
         resolve_type,
-        types::{ResolvedExpr, ResolvedExprKind, ResolvedMatchArm, ResolverCtx},
+        types::{
+            ResolveErrorKind, ResolveResult, ResolvedExpr, ResolvedExprKind, ResolvedMatchArm,
+            ResolverCtx,
+        },
     },
+    types::Spanned,
 };
 
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_expr<'src>(ctx: &mut ResolverCtx<'src>, expr: ParsedExpr<'src>) -> ResolvedExpr {
+pub fn resolve_expr<'src>(
+    ctx: &mut ResolverCtx<'src>,
+    expr: ParsedExpr<'src>,
+) -> ResolveResult<'src, ResolvedExpr> {
     let loc = expr.offset;
     match expr.node.kind {
-        ExprKind::Int(val) => resolve_primitive(loc, ctx, val, ResolvedExprKind::Int),
-        ExprKind::Float(val) => resolve_primitive(loc, ctx, val, ResolvedExprKind::Float),
-        ExprKind::Bool(val) => resolve_primitive(loc, ctx, val, ResolvedExprKind::Bool),
+        ExprKind::Int(val) => Ok(resolve_primitive(loc, ctx, val, ResolvedExprKind::Int)),
+        ExprKind::Float(val) => Ok(resolve_primitive(loc, ctx, val, ResolvedExprKind::Float)),
+        ExprKind::Bool(val) => Ok(resolve_primitive(loc, ctx, val, ResolvedExprKind::Bool)),
         ExprKind::Id(name) => resolve_id(loc, ctx, name),
         ExprKind::Fn(param, body) => resolve_closure(loc, ctx, param, *body),
         ExprKind::Neg(inner) => resolve_unop(loc, ctx, *inner, ResolvedExprKind::Neg),
@@ -62,23 +69,34 @@ fn resolve_unop<'src>(
     ctx: &mut ResolverCtx<'src>,
     inner: ParsedExpr<'src>,
     make: impl Fn(Box<ResolvedExpr>) -> ResolvedExprKind,
-) -> ResolvedExpr {
-    let resolved_inner = resolve_expr(ctx, inner);
+) -> ResolveResult<'src, ResolvedExpr> {
+    let resolved_inner = resolve_expr(ctx, inner)?;
     let id = ctx.next_exprid();
-    ResolvedExpr::new(offset, id, make(Box::new(resolved_inner)))
+    Ok(ResolvedExpr::new(
+        offset,
+        id,
+        make(Box::new(resolved_inner)),
+    ))
 }
 
-fn resolve_id<'src>(offset: usize, ctx: &mut ResolverCtx<'src>, name: &'src str) -> ResolvedExpr {
+fn resolve_id<'src>(
+    offset: usize,
+    ctx: &mut ResolverCtx<'src>,
+    name: &'src str,
+) -> ResolveResult<'src, ResolvedExpr> {
     let id = ctx.next_exprid();
-    let value_id = match ctx.lookup_value(name) {
-        Some(value_id) => value_id,
-        None => {
-            ctx.add_unbound_val_error(name, offset);
-            ctx.add_value(name) // add a placeholder to continue
-        }
+    let Some(value_id) = ctx.lookup_value(name) else {
+        return Err(Spanned {
+            offset,
+            node: ResolveErrorKind::UnknownValue { name },
+        });
     };
 
-    ResolvedExpr::new(offset, id, ResolvedExprKind::Id(value_id))
+    Ok(ResolvedExpr::new(
+        offset,
+        id,
+        ResolvedExprKind::Id(value_id),
+    ))
 }
 
 fn resolve_closure<'src>(
@@ -86,13 +104,17 @@ fn resolve_closure<'src>(
     ctx: &mut ResolverCtx<'src>,
     param: ParsedBinding<'src>,
     body: ParsedExpr<'src>,
-) -> ResolvedExpr {
+) -> ResolveResult<'src, ResolvedExpr> {
     ctx.push_scope();
     let binding = resolve_type::add_binding(ctx, param);
-    let body = resolve_expr(ctx, body);
+    let body = resolve_expr(ctx, body)?;
     ctx.pop_scope();
     let id = ctx.next_exprid();
-    ResolvedExpr::new(offset, id, ResolvedExprKind::Fn(binding, Box::new(body)))
+    Ok(ResolvedExpr::new(
+        offset,
+        id,
+        ResolvedExprKind::Fn(binding, Box::new(body)),
+    ))
 }
 
 fn resolve_call<'src>(
@@ -100,14 +122,18 @@ fn resolve_call<'src>(
     ctx: &mut ResolverCtx<'src>,
     func: ParsedExpr<'src>,
     args: Vec<ParsedExpr<'src>>,
-) -> ResolvedExpr {
-    let func = resolve_expr(ctx, func);
-    let args = args
+) -> ResolveResult<'src, ResolvedExpr> {
+    let func = resolve_expr(ctx, func)?;
+    let args: Vec<ResolvedExpr> = args
         .into_iter()
         .map(|arg| resolve_expr(ctx, arg))
-        .collect::<Vec<_>>();
+        .collect::<ResolveResult<Vec<ResolvedExpr>>>()?;
     let id = ctx.next_exprid();
-    ResolvedExpr::new(offset, id, ResolvedExprKind::Call(Box::new(func), args))
+    Ok(ResolvedExpr::new(
+        offset,
+        id,
+        ResolvedExprKind::Call(Box::new(func), args),
+    ))
 }
 
 fn resolve_binop<'src>(
@@ -116,11 +142,15 @@ fn resolve_binop<'src>(
     l: ParsedExpr<'src>,
     r: ParsedExpr<'src>,
     make: impl Fn(Box<ResolvedExpr>, Box<ResolvedExpr>) -> ResolvedExprKind,
-) -> ResolvedExpr {
-    let l = resolve_expr(ctx, l);
-    let r = resolve_expr(ctx, r);
+) -> ResolveResult<'src, ResolvedExpr> {
+    let l = resolve_expr(ctx, l)?;
+    let r = resolve_expr(ctx, r)?;
     let id = ctx.next_exprid();
-    ResolvedExpr::new(offset, id, make(Box::new(l), Box::new(r)))
+    Ok(ResolvedExpr::new(
+        offset,
+        id,
+        make(Box::new(l), Box::new(r)),
+    ))
 }
 
 fn resolve_if<'src>(
@@ -129,16 +159,16 @@ fn resolve_if<'src>(
     cond: ParsedExpr<'src>,
     if_b: ParsedExpr<'src>,
     then_b: ParsedExpr<'src>,
-) -> ResolvedExpr {
-    let cond = resolve_expr(ctx, cond);
-    let if_b = resolve_expr(ctx, if_b);
-    let then_b = resolve_expr(ctx, then_b);
+) -> ResolveResult<'src, ResolvedExpr> {
+    let cond = resolve_expr(ctx, cond)?;
+    let if_b = resolve_expr(ctx, if_b)?;
+    let then_b = resolve_expr(ctx, then_b)?;
     let id = ctx.next_exprid();
-    ResolvedExpr::new(
+    Ok(ResolvedExpr::new(
         offset,
         id,
         ResolvedExprKind::If(Box::new(cond), Box::new(if_b), Box::new(then_b)),
-    )
+    ))
 }
 
 fn resolve_match<'src>(
@@ -146,19 +176,18 @@ fn resolve_match<'src>(
     ctx: &mut ResolverCtx<'src>,
     expr: ParsedExpr<'src>,
     arms: Vec<ParsedMatchArm<'src>>,
-) -> ResolvedExpr {
-    let expr = resolve_expr(ctx, expr);
+) -> ResolveResult<'src, ResolvedExpr> {
+    let expr = resolve_expr(ctx, expr)?;
     let mut resolved_arms = Vec::new();
 
     for arm in arms {
         let arm_data = arm.node;
 
-        let variant = match ctx.lookup_value(arm_data.id) {
-            Some(variant) => variant,
-            None => {
-                ctx.add_unbound_val_error(arm_data.id, arm.offset);
-                ctx.add_value(arm_data.id) // add a placeholder to continue
-            }
+        let Some(variant) = ctx.lookup_value(arm_data.id) else {
+            return Err(Spanned {
+                offset: arm.offset,
+                node: ResolveErrorKind::UnknownValue { name: arm_data.id },
+            });
         };
 
         // bind the pattern variables in a new scope and resolve the body
@@ -167,19 +196,18 @@ fn resolve_match<'src>(
         for binding in arm_data.bindings {
             binding_ids.push(ctx.add_value(binding));
         }
-        let resolved_body = resolve_expr(ctx, arm_data.expr);
+        let resolved_body = resolve_expr(ctx, arm_data.expr)?;
         ctx.pop_scope();
 
         let resolved_arm = ResolvedMatchArm::new(arm.offset, variant, binding_ids, resolved_body);
-
         resolved_arms.push(resolved_arm);
     }
 
     let id = ctx.next_exprid();
 
-    ResolvedExpr::new(
+    Ok(ResolvedExpr::new(
         offset,
         id,
         ResolvedExprKind::Match(Box::new(expr), resolved_arms),
-    )
+    ))
 }
