@@ -1,8 +1,6 @@
 use crate::frontend::{
     parser::ast::{Defn, ParsedDefn},
-    resolution::types::{
-        ResolveErrorKind, ResolveResult, ResolveSuccess, ResolverCtx,
-    },
+    resolution::types::{ResolveErrorKind, ResolveResult, ResolveSuccess, ResolverCtx},
     types::Spanned,
 };
 

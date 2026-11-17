@@ -2,8 +2,8 @@ use crate::frontend::{
     lexer::lex,
     parser::parse,
     resolution::types::{
-        ResolveError, ResolveErrorKind, ResolvedBinding, ResolvedConstructorArm,
-        ResolvedDefn, ResolvedExpr, ResolvedExprKind, ResolvedStmt, ResolvedType, ResolverCtx,
+        ResolveError, ResolveErrorKind, ResolvedBinding, ResolvedConstructorArm, ResolvedDefn,
+        ResolvedExpr, ResolvedExprKind, ResolvedStmt, ResolvedType, ResolverCtx,
     },
     types::Spanned,
 };

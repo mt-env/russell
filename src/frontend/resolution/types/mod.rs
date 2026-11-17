@@ -371,14 +371,16 @@ impl<'src> ResolverCtx<'src> {
         id
     }
 
-    pub(super) fn add_value_nodup(&mut self, name: &'src str, at: usize) -> ResolveResult<'src, ValueId> {
+    pub(super) fn add_value_nodup(
+        &mut self,
+        name: &'src str,
+        at: usize,
+    ) -> ResolveResult<'src, ValueId> {
         match self.lookup_value(name) {
-            Some(_) => {
-                Err(Spanned {
-                    offset: at,
-                    node: ResolveErrorKind::DuplicateValue { name },
-                })
-            }
+            Some(_) => Err(Spanned {
+                offset: at,
+                node: ResolveErrorKind::DuplicateValue { name },
+            }),
             None => Ok(self.add_value(name)),
         }
     }
@@ -397,16 +399,18 @@ impl<'src> ResolverCtx<'src> {
         id
     }
 
-    pub(super) fn add_type_nodup(&mut self, name: &'src str, at: usize) -> ResolveResult<'src, TypeId> {
+    pub(super) fn add_type_nodup(
+        &mut self,
+        name: &'src str,
+        at: usize,
+    ) -> ResolveResult<'src, TypeId> {
         // TODO - is this architecture good? having add_type_nodup and add_value_nodup are kind of
         // hacky feeling
         match self.lookup_type(name) {
-            Some(val) => {
-                Err(Spanned {
-                    offset: at,
-                    node: ResolveErrorKind::DuplicateType { name },
-                })
-            }
+            Some(val) => Err(Spanned {
+                offset: at,
+                node: ResolveErrorKind::DuplicateType { name },
+            }),
             None => Ok(self.add_type(name)),
         }
     }

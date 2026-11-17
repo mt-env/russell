@@ -1,6 +1,9 @@
 use std::fmt;
 
-use crate::frontend::{error::CompilerError, lexer::token::{SpannedToken, Token, TokenKind}};
+use crate::frontend::{
+    error::CompilerError,
+    lexer::token::{SpannedToken, Token, TokenKind},
+};
 
 #[derive(Debug)]
 pub struct ParseError<'src> {
