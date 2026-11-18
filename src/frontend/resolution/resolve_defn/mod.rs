@@ -1,18 +1,15 @@
 use crate::frontend::{
     parser::ast::{
         Defn, ParsedBinding, ParsedConstructorArm, ParsedDefn, ParsedStmt, ParsedType, Type,
+    }, resolution::{
+        resolve_stmt, resolve_type, types::{ResolveResult, ResolvedConstructorArm, ResolvedDefn, ResolverCtx},
     },
-    resolution::{
-        resolve_stmt, resolve_type,
-        types::{ResolvedConstructorArm, ResolvedDefn, ResolverCtx},
-    },
-    types::Spanned,
 };
 
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_defn<'src>(ctx: &mut ResolverCtx<'src>, defn: ParsedDefn<'src>) -> ResolvedDefn {
+pub fn resolve_defn<'src>(ctx: &mut ResolverCtx<'src>, defn: ParsedDefn<'src>) -> ResolveResult<'src, ResolvedDefn> {
     let loc = defn.offset;
     match defn.node {
         Defn::Typedef { id, ty_vars, arms } => resolve_typedef(loc, ctx, id, ty_vars, arms),
@@ -31,7 +28,7 @@ fn resolve_typedef<'src>(
     id: &'src str,
     ty_vars: Vec<&'src str>,
     arms: Vec<ParsedConstructorArm<'src>>,
-) -> ResolvedDefn {
+) -> ResolveResult<'src, ResolvedDefn> {
     // fetch type ID from global scope (should have been added in init_global_scope)
     let Some(type_id) = ctx.lookup_type(id) else {
         unreachable!(
@@ -94,7 +91,7 @@ fn resolve_typedef<'src>(
 
     ctx.pop_scope();
 
-    ResolvedDefn::mk_typedef(offset, type_id, resolved_type_params, resolved_arms)
+    Ok(ResolvedDefn::mk_typedef(offset, type_id, resolved_type_params, resolved_arms))
 }
 
 fn resolve_fn<'src>(
@@ -104,7 +101,7 @@ fn resolve_fn<'src>(
     bindings: Vec<ParsedBinding<'src>>,
     ret_ty: ParsedType<'src>,
     body: Vec<ParsedStmt<'src>>,
-) -> ResolvedDefn {
+) -> ResolveResult<'src, ResolvedDefn> {
     ctx.push_scope();
 
     // find function name ID and return type
@@ -126,16 +123,16 @@ fn resolve_fn<'src>(
     // resolve function body
     let mut resolved_body = Vec::new();
     for stmt in body {
-        resolved_body.push(resolve_stmt::resolve_stmt(ctx, stmt));
+        resolved_body.push(resolve_stmt::resolve_stmt(ctx, stmt)?);
     }
 
     ctx.pop_scope();
 
-    ResolvedDefn::mk_fn(
+    Ok(ResolvedDefn::mk_fn(
         offset,
         fn_id,
         resolved_bindings,
         resolved_ret_ty,
         resolved_body,
-    )
+    ))
 }
