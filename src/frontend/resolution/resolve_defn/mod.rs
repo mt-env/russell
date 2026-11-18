@@ -1,15 +1,18 @@
 use crate::frontend::{
-    parser::ast::{
-        Defn, ParsedBinding, ParsedConstructorArm, ParsedDefn, ParsedStmt, ParsedType, Type,
-    }, resolution::{
-        resolve_stmt, resolve_type, types::{ResolveResult, ResolvedConstructorArm, ResolvedDefn, ResolverCtx},
+    parser::ast::{Defn, ParsedBinding, ParsedConstructorArm, ParsedDefn, ParsedStmt, ParsedType},
+    resolution::{
+        resolve_stmt, resolve_type,
+        types::{ResolveResult, ResolvedConstructorArm, ResolvedDefn, ResolverCtx},
     },
 };
 
 #[cfg(test)]
 mod tests;
 
-pub fn resolve_defn<'src>(ctx: &mut ResolverCtx<'src>, defn: ParsedDefn<'src>) -> ResolveResult<'src, ResolvedDefn> {
+pub fn resolve_defn<'src>(
+    ctx: &mut ResolverCtx<'src>,
+    defn: ParsedDefn<'src>,
+) -> ResolveResult<'src, ResolvedDefn> {
     let loc = defn.offset;
     match defn.node {
         Defn::Typedef { id, ty_vars, arms } => resolve_typedef(loc, ctx, id, ty_vars, arms),
@@ -59,25 +62,7 @@ fn resolve_typedef<'src>(
         let mut resolved_bindings = Vec::new();
         for binding in arm.node.bindings {
             let resolved_binding =
-            // TODO - nuke the clone if possible
-                match resolve_type::add_binding_existing_typaram(ctx, binding.clone()) {
-                    Some(val) => val,
-                    None => {
-                        let type_loc = binding.node.typ.offset;
-                        let type_name = match binding.node.typ.node {
-                            Type::TypeParam(name) => name,
-                            Type::TypeId(name) => name,
-                            _ => {
-                                unreachable!(
-                                    "COMPILER BUG: improperly resolved type param for binding {}. please report this error",
-                                    binding.node.id
-                                );
-                            }
-                        };
-                        ctx.add_unbound_type_error(type_name, type_loc);
-                        resolve_type::add_binding_no_shadowing(ctx, binding) // placeholder binding
-                    }
-                };
+                resolve_type::add_binding_existing_typaram(ctx, binding.clone())?;
             resolved_bindings.push(resolved_binding);
         }
         ctx.pop_scope();
@@ -91,7 +76,12 @@ fn resolve_typedef<'src>(
 
     ctx.pop_scope();
 
-    Ok(ResolvedDefn::mk_typedef(offset, type_id, resolved_type_params, resolved_arms))
+    Ok(ResolvedDefn::mk_typedef(
+        offset,
+        type_id,
+        resolved_type_params,
+        resolved_arms,
+    ))
 }
 
 fn resolve_fn<'src>(
@@ -112,12 +102,12 @@ fn resolve_fn<'src>(
         );
     };
 
-    let resolved_ret_ty = resolve_type::add_type(ctx, ret_ty);
+    let resolved_ret_ty = resolve_type::add_type(ctx, ret_ty)?;
 
     // add all bindings to scope
     let mut resolved_bindings = Vec::new();
     for param in bindings {
-        resolved_bindings.push(resolve_type::add_binding_no_shadowing(ctx, param));
+        resolved_bindings.push(resolve_type::add_binding_no_shadowing(ctx, param)?);
     }
 
     // resolve function body

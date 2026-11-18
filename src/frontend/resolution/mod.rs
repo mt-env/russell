@@ -18,7 +18,7 @@ pub fn resolve<'src>(defns: Vec<ParsedDefn<'src>>) -> ResolveResult<'src, Resolv
     init_global_scope(&mut ctx, &defns)?;
     let mut resolved_defns = Vec::new();
     for defn in defns {
-        resolved_defns.push(resolve_defn::resolve_defn(&mut ctx, defn));
+        resolved_defns.push(resolve_defn::resolve_defn(&mut ctx, defn)?);
     }
 
     let Some(main_id) = ctx.lookup_value("main") else {
@@ -41,16 +41,16 @@ fn init_global_scope<'src>(
     for defn in defns {
         match &defn.node {
             Defn::Typedef { id, arms, .. } => {
-                ctx.add_type_nodup(id, defn.offset);
+                ctx.add_type_nodup(id, defn.offset)?;
                 for arm in arms {
-                    ctx.add_value_nodup(arm.node.id, arm.offset);
+                    ctx.add_value_nodup(arm.node.id, arm.offset)?;
                 }
             }
             Defn::Fn { name, .. } => {
                 if *name == "main" {
                     has_main = true;
                 }
-                ctx.add_value_nodup(name, defn.offset);
+                ctx.add_value_nodup(name, defn.offset)?;
             }
         }
     }

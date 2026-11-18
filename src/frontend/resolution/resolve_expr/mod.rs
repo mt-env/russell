@@ -106,7 +106,7 @@ fn resolve_closure<'src>(
     body: ParsedExpr<'src>,
 ) -> ResolveResult<'src, ResolvedExpr> {
     ctx.push_scope();
-    let binding = resolve_type::add_binding(ctx, param);
+    let binding = resolve_type::add_binding(ctx, param)?;
     let body = resolve_expr(ctx, body)?;
     ctx.pop_scope();
     let id = ctx.next_exprid();
