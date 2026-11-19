@@ -25,14 +25,12 @@ enum Precedence {
 }
 
 impl Precedence {
-    fn of(token: &SpannedToken) -> Precedence {
+    const fn of(token: &SpannedToken) -> Self {
         match token.kind() {
             TokenKind::Times | TokenKind::FTimes | TokenKind::Divide | TokenKind::FDivide => {
-                Precedence::Mult
+                Self::Mult
             }
-            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => {
-                Precedence::Add
-            }
+            TokenKind::Plus | TokenKind::FPlus | TokenKind::Minus | TokenKind::FMinus => Self::Add,
             TokenKind::LessThan
             | TokenKind::LessThanOrEq
             | TokenKind::GreaterThan
@@ -40,13 +38,13 @@ impl Precedence {
             | TokenKind::FLessThan
             | TokenKind::FLessThanOrEq
             | TokenKind::FGreaterThan
-            | TokenKind::FGreaterThanOrEq => Precedence::Rel,
-            TokenKind::Eq | TokenKind::NotEq => Precedence::Eq,
-            TokenKind::And => Precedence::And,
-            TokenKind::Or => Precedence::Or,
-            TokenKind::Pipe => Precedence::Pipe,
-            TokenKind::LParen => Precedence::Call,
-            _ => Precedence::NotBinOp,
+            | TokenKind::FGreaterThanOrEq => Self::Rel,
+            TokenKind::Eq | TokenKind::NotEq => Self::Eq,
+            TokenKind::And => Self::And,
+            TokenKind::Or => Self::Or,
+            TokenKind::Pipe => Self::Pipe,
+            TokenKind::LParen => Self::Call,
+            _ => Self::NotBinOp,
         }
     }
 }

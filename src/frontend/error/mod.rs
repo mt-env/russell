@@ -54,6 +54,7 @@ pub fn report<'src>(
 }
 
 /// Convert a byte offset to a 1-indexed (line, column) pair.
+#[must_use]
 pub fn offset_to_location(source: &str, offset: usize) -> (usize, usize) {
     let mut line = 1;
     let mut col = 1;
@@ -72,11 +73,11 @@ pub fn offset_to_location(source: &str, offset: usize) -> (usize, usize) {
 }
 
 /// Return the source line containing the given byte offset.
+#[must_use]
 pub fn source_line_at(source: &str, offset: usize) -> &str {
-    let start = source[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let start = source[..offset].rfind('\n').map_or(0, |i| i + 1);
     let end = source[offset..]
         .find('\n')
-        .map(|i| offset + i)
-        .unwrap_or(source.len());
+        .map_or(source.len(), |i| offset + i);
     &source[start..end]
 }

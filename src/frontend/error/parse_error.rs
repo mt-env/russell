@@ -46,7 +46,7 @@ impl fmt::Display for ParseError<'_> {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", kind)?;
+                    write!(f, "{kind}")?;
                 }
                 write!(f, "; found {}", self.actual.kind())
             }

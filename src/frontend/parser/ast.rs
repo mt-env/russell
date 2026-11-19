@@ -35,7 +35,8 @@ pub enum Defn<'src, A> {
 }
 
 impl<'src> ParsedDefn<'src> {
-    pub fn make_fn(
+    #[must_use]
+    pub const fn make_fn(
         offset: usize,
         id: &'src str,
         bindings: Vec<ParsedBinding<'src>>,
@@ -53,7 +54,8 @@ impl<'src> ParsedDefn<'src> {
         }
     }
 
-    pub fn make_typedef(
+    #[must_use]
+    pub const fn make_typedef(
         offset: usize,
         id: &'src str,
         ty_vars: Vec<&'src str>,
@@ -75,28 +77,32 @@ pub enum Stmt<'src, A> {
 }
 
 impl<'src> ParsedStmt<'src> {
-    pub fn make_let(offset: usize, id: &'src str, expr: ParsedExpr<'src>) -> Self {
+    #[must_use]
+    pub const fn make_let(offset: usize, id: &'src str, expr: ParsedExpr<'src>) -> Self {
         Spanned {
             offset,
             node: Stmt::Let(id, expr),
         }
     }
 
-    pub fn make_read(offset: usize, typ: ParsedType<'src>, id: &'src str) -> Self {
+    #[must_use]
+    pub const fn make_read(offset: usize, typ: ParsedType<'src>, id: &'src str) -> Self {
         Spanned {
             offset,
             node: Stmt::Read(typ, id),
         }
     }
 
-    pub fn make_echo(offset: usize, typ: ParsedType<'src>, expr: ParsedExpr<'src>) -> Self {
+    #[must_use]
+    pub const fn make_echo(offset: usize, typ: ParsedType<'src>, expr: ParsedExpr<'src>) -> Self {
         Spanned {
             offset,
             node: Stmt::Echo(typ, expr),
         }
     }
 
-    pub fn make_return(offset: usize, expr: ParsedExpr<'src>) -> Self {
+    #[must_use]
+    pub const fn make_return(offset: usize, expr: ParsedExpr<'src>) -> Self {
         Spanned {
             offset,
             node: Stmt::Return(expr),
@@ -166,7 +172,7 @@ pub enum ExprKind<'src, A> {
 }
 
 // Display ignores the annotation entirely.
-impl<'src, A> Display for Expr<'src, A> {
+impl<A> Display for Expr<'_, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.kind.fmt(f)
     }
@@ -231,7 +237,8 @@ where
 }
 
 impl<'src> ParsedExpr<'src> {
-    pub fn new(offset: usize, kind: ExprKind<'src, ()>) -> Self {
+    #[must_use]
+    pub const fn new(offset: usize, kind: ExprKind<'src, ()>) -> Self {
         Spanned {
             offset,
             node: Expr { ann: (), kind },
@@ -240,11 +247,7 @@ impl<'src> ParsedExpr<'src> {
 }
 
 impl<'src, A> ExprKind<'src, A> {
-    pub fn binop(
-        op: TokenKind,
-        left: SpannedExpr<'src, A>,
-        right: SpannedExpr<'src, A>,
-    ) -> ExprKind<'src, A> {
+    pub fn binop(op: TokenKind, left: SpannedExpr<'src, A>, right: SpannedExpr<'src, A>) -> Self {
         let (left, right) = (Box::new(left), Box::new(right));
         match op {
             TokenKind::Plus => ExprKind::Plus(left, right),
@@ -285,7 +288,8 @@ pub enum Type<'src> {
 }
 
 impl<'src> ParsedType<'src> {
-    pub fn new(offset: usize, typ: Type<'src>) -> Self {
+    #[must_use]
+    pub const fn new(offset: usize, typ: Type<'src>) -> Self {
         Spanned { offset, node: typ }
     }
 }
@@ -296,8 +300,7 @@ impl Display for Type<'_> {
             Type::Int => write!(f, "int"),
             Type::Float => write!(f, "float"),
             Type::Bool => write!(f, "bool"),
-            Type::TypeId(id) => write!(f, "{id}"),
-            Type::TypeParam(id) => write!(f, "{id}"),
+            Type::TypeId(id) | Type::TypeParam(id) => write!(f, "{id}"),
             Type::TypeApp(id, args) => {
                 let args_str = args
                     .iter()
@@ -324,7 +327,8 @@ impl Display for Binding<'_> {
 }
 
 impl<'src> ParsedBinding<'src> {
-    pub fn new(offset: usize, id: &'src str, typ: ParsedType<'src>) -> Self {
+    #[must_use]
+    pub const fn new(offset: usize, id: &'src str, typ: ParsedType<'src>) -> Self {
         Spanned {
             offset,
             node: Binding { id, typ },
@@ -352,7 +356,8 @@ impl<A> Display for MatchArm<'_, A> {
 }
 
 impl<'src> ParsedMatchArm<'src> {
-    pub fn new(
+    #[must_use]
+    pub const fn new(
         offset: usize,
         id: &'src str,
         bindings: Vec<&'src str>,
@@ -372,7 +377,8 @@ pub struct ConstructorArm<'src> {
 }
 
 impl<'src> ParsedConstructorArm<'src> {
-    pub fn new(offset: usize, id: &'src str, bindings: Vec<ParsedBinding<'src>>) -> Self {
+    #[must_use]
+    pub const fn new(offset: usize, id: &'src str, bindings: Vec<ParsedBinding<'src>>) -> Self {
         Spanned {
             offset,
             node: ConstructorArm { id, bindings },

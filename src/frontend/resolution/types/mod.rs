@@ -43,26 +43,28 @@ pub enum ResolvedDefnKind {
 pub type ResolvedDefn = Spanned<ResolvedDefnKind>;
 
 impl ResolvedDefn {
-    pub fn mk_typedef(
+    #[must_use]
+    pub const fn mk_typedef(
         offset: usize,
         id: TypeId,
         params: Vec<TypeParamId>,
         arms: Vec<ResolvedConstructorArm>,
     ) -> Self {
-        Spanned {
+        Self {
             offset,
             node: ResolvedDefnKind::Typedef { id, params, arms },
         }
     }
 
-    pub fn mk_fn(
+    #[must_use]
+    pub const fn mk_fn(
         offset: usize,
         id: ValueId,
         params: Vec<ResolvedBinding>,
         ret_ty: ResolvedType,
         body: Vec<ResolvedStmt>,
     ) -> Self {
-        Spanned {
+        Self {
             offset,
             node: ResolvedDefnKind::Fn {
                 id,
@@ -85,29 +87,33 @@ pub enum ResolvedStmtKind {
 pub type ResolvedStmt = Spanned<ResolvedStmtKind>;
 
 impl ResolvedStmt {
-    pub fn mk_let(offset: usize, id: ValueId, expr: ResolvedExpr) -> Self {
-        Spanned {
+    #[must_use]
+    pub const fn mk_let(offset: usize, id: ValueId, expr: ResolvedExpr) -> Self {
+        Self {
             offset,
             node: ResolvedStmtKind::Let(id, expr),
         }
     }
 
-    pub fn mk_read(offset: usize, id: ValueId, typ: ResolvedType) -> Self {
-        Spanned {
+    #[must_use]
+    pub const fn mk_read(offset: usize, id: ValueId, typ: ResolvedType) -> Self {
+        Self {
             offset,
             node: ResolvedStmtKind::Read(id, typ),
         }
     }
 
-    pub fn mk_echo(offset: usize, typ: ResolvedType, expr: ResolvedExpr) -> Self {
-        Spanned {
+    #[must_use]
+    pub const fn mk_echo(offset: usize, typ: ResolvedType, expr: ResolvedExpr) -> Self {
+        Self {
             offset,
             node: ResolvedStmtKind::Echo(typ, expr),
         }
     }
 
-    pub fn mk_return(offset: usize, expr: ResolvedExpr) -> Self {
-        Spanned {
+    #[must_use]
+    pub const fn mk_return(offset: usize, expr: ResolvedExpr) -> Self {
+        Self {
             offset,
             node: ResolvedStmtKind::Return(expr),
         }
@@ -165,8 +171,9 @@ pub struct ResolvedExprData {
 pub type ResolvedExpr = Spanned<ResolvedExprData>;
 
 impl ResolvedExpr {
-    pub fn new(offset: usize, id: ExprId, kind: ResolvedExprKind) -> Self {
-        Spanned {
+    #[must_use]
+    pub const fn new(offset: usize, id: ExprId, kind: ResolvedExprKind) -> Self {
+        Self {
             offset,
             node: ResolvedExprData { id, kind },
         }
@@ -189,50 +196,57 @@ pub enum ResolvedTypeKind {
 pub type ResolvedType = Spanned<ResolvedTypeKind>;
 
 impl ResolvedType {
-    pub(super) fn mk_int(offset: usize) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) const fn mk_int(offset: usize) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::Int,
         }
     }
 
-    pub(super) fn mk_float(offset: usize) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) const fn mk_float(offset: usize) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::Float,
         }
     }
 
-    pub(super) fn mk_bool(offset: usize) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) const fn mk_bool(offset: usize) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::Bool,
         }
     }
 
-    pub(super) fn mk_typeid(offset: usize, id: TypeId) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) const fn mk_typeid(offset: usize, id: TypeId) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::TypeId(id),
         }
     }
 
-    pub(super) fn mk_typeparam(offset: usize, id: TypeParamId) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) const fn mk_typeparam(offset: usize, id: TypeParamId) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::TypeParam(id),
         }
     }
 
-    pub(super) fn mk_typeapp(offset: usize, id: TypeId, args: Vec<ResolvedType>) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) const fn mk_typeapp(offset: usize, id: TypeId, args: Vec<Self>) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::TypeApp(id, args),
         }
     }
 
-    pub(super) fn mk_fn(offset: usize, domain: ResolvedType, codomain: ResolvedType) -> Self {
-        Spanned {
+    #[must_use]
+    pub(super) fn mk_fn(offset: usize, domain: Self, codomain: Self) -> Self {
+        Self {
             offset,
             node: ResolvedTypeKind::Fn(Box::new(domain), Box::new(codomain)),
         }
@@ -248,8 +262,9 @@ pub struct ResolvedBindingData {
 pub type ResolvedBinding = Spanned<ResolvedBindingData>;
 
 impl ResolvedBinding {
-    pub fn new(offset: usize, id: ValueId, typ: ResolvedType) -> Self {
-        Spanned {
+    #[must_use]
+    pub const fn new(offset: usize, id: ValueId, typ: ResolvedType) -> Self {
+        Self {
             offset,
             node: ResolvedBindingData { id, typ },
         }
@@ -257,7 +272,8 @@ impl ResolvedBinding {
 }
 
 impl ResolvedBindingData {
-    pub fn new(id: ValueId, typ: ResolvedType) -> Self {
+    #[must_use]
+    pub const fn new(id: ValueId, typ: ResolvedType) -> Self {
         Self { id, typ }
     }
 }
@@ -272,7 +288,13 @@ pub struct ResolvedMatchArmData {
 pub type ResolvedMatchArm = Spanned<ResolvedMatchArmData>;
 
 impl ResolvedMatchArm {
-    pub fn new(offset: usize, id: ValueId, bindings: Vec<ValueId>, expr: ResolvedExpr) -> Self {
+    #[must_use]
+    pub const fn new(
+        offset: usize,
+        id: ValueId,
+        bindings: Vec<ValueId>,
+        expr: ResolvedExpr,
+    ) -> Self {
         Self {
             offset,
             node: ResolvedMatchArmData { id, bindings, expr },
@@ -289,7 +311,8 @@ pub struct ResolvedConstructorArmData {
 pub type ResolvedConstructorArm = Spanned<ResolvedConstructorArmData>;
 
 impl ResolvedConstructorArm {
-    pub fn new(offset: usize, id: ValueId, bindings: Vec<ResolvedBinding>) -> Self {
+    #[must_use]
+    pub const fn new(offset: usize, id: ValueId, bindings: Vec<ResolvedBinding>) -> Self {
         Self {
             offset,
             node: ResolvedConstructorArmData { id, bindings },
@@ -332,25 +355,25 @@ impl<'src> ResolverCtx<'src> {
         }
     }
 
-    pub(super) fn next_typeid(&mut self) -> TypeId {
+    pub(super) const fn next_typeid(&mut self) -> TypeId {
         let id = TypeId(self.num_typeids);
         self.num_typeids += 1;
         id
     }
 
-    pub(super) fn next_typeparamid(&mut self) -> TypeParamId {
+    pub(super) const fn next_typeparamid(&mut self) -> TypeParamId {
         let id = TypeParamId(self.num_typeparamids);
         self.num_typeparamids += 1;
         id
     }
 
-    pub(super) fn next_valueid(&mut self) -> ValueId {
+    pub(super) const fn next_valueid(&mut self) -> ValueId {
         let id = ValueId(self.num_valueids);
         self.num_valueids += 1;
         id
     }
 
-    pub(super) fn next_exprid(&mut self) -> ExprId {
+    pub(super) const fn next_exprid(&mut self) -> ExprId {
         let id = ExprId(self.num_exprs);
         self.num_exprs += 1;
         id
@@ -407,7 +430,7 @@ impl<'src> ResolverCtx<'src> {
         // TODO - is this architecture good? having add_type_nodup and add_value_nodup are kind of
         // hacky feeling
         match self.lookup_type(name) {
-            Some(val) => Err(Spanned {
+            Some(_) => Err(Spanned {
                 offset: at,
                 node: ResolveErrorKind::DuplicateType { name },
             }),
@@ -472,13 +495,14 @@ pub struct Env<'src> {
     values: HashMap<&'src str, Identifier>,
 }
 
-impl<'src> Default for Env<'src> {
+impl Default for Env<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'src> Env<'src> {
+impl Env<'_> {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             values: HashMap::new(),

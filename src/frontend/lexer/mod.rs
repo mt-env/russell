@@ -108,7 +108,7 @@ struct Lexer<'src> {
 }
 
 impl<'src> Lexer<'src> {
-    fn new(program: &'src str) -> Self {
+    const fn new(program: &'src str) -> Self {
         Self { program, offset: 0 }
     }
 
@@ -116,9 +116,8 @@ impl<'src> Lexer<'src> {
         self.eat_whitespace();
 
         let program = &self.program[self.offset..];
-        let first_char = match program.chars().next() {
-            Some(c) => c,
-            None => return Ok(SpannedToken::new(Token::EoF, self.offset)),
+        let Some(first_char) = program.chars().next() else {
+            return Ok(SpannedToken::new(Token::EoF, self.offset));
         };
 
         // determine if the token is an operator
@@ -183,15 +182,15 @@ impl<'src> Lexer<'src> {
         self.offset += end;
 
         if digits.contains('.') {
-            match digits.parse::<f64>() {
-                Ok(f) => Ok(SpannedToken::new(Token::Float(f), loc)),
-                Err(_) => Err(LexError::new(LexErrorKind::InvalidFloat(digits), loc)),
-            }
+            digits.parse::<f64>().map_or_else(
+                |_| Err(LexError::new(LexErrorKind::InvalidFloat(digits), loc)),
+                |f| Ok(SpannedToken::new(Token::Float(f), loc)),
+            )
         } else {
-            match digits.parse::<i64>() {
-                Ok(i) => Ok(SpannedToken::new(Token::Int(i), loc)),
-                Err(_) => Err(LexError::new(LexErrorKind::InvalidInt(digits), loc)),
-            }
+            digits.parse::<i64>().map_or_else(
+                |_| Err(LexError::new(LexErrorKind::InvalidInt(digits), loc)),
+                |i| Ok(SpannedToken::new(Token::Int(i), loc)),
+            )
         }
     }
 

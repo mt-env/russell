@@ -13,7 +13,7 @@ pub mod types;
 #[cfg(test)]
 mod tests;
 
-pub fn resolve<'src>(defns: Vec<ParsedDefn<'src>>) -> ResolveResult<'src, ResolveSuccess<'src>> {
+pub fn resolve(defns: Vec<ParsedDefn<'_>>) -> ResolveResult<'_, ResolveSuccess<'_>> {
     let mut ctx = ResolverCtx::new();
     init_global_scope(&mut ctx, &defns)?;
     let mut resolved_defns = Vec::new();

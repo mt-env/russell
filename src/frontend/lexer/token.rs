@@ -137,57 +137,57 @@ pub enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TokenKind::Id => write!(f, "identifier"),
-            TokenKind::Int => write!(f, "integer literal"),
-            TokenKind::Float => write!(f, "float literal"),
-            TokenKind::Bool => write!(f, "boolean literal"),
-            TokenKind::Echo => write!(f, "'echo'"),
-            TokenKind::Else => write!(f, "'else'"),
-            TokenKind::Fn => write!(f, "'fn'"),
-            TokenKind::If => write!(f, "'if'"),
-            TokenKind::Let => write!(f, "'let'"),
-            TokenKind::Match => write!(f, "'match'"),
-            TokenKind::Read => write!(f, "'read'"),
-            TokenKind::Return => write!(f, "'return'"),
-            TokenKind::Then => write!(f, "'then'"),
-            TokenKind::Typedef => write!(f, "'typedef'"),
-            TokenKind::IntType => write!(f, "'Int'"),
-            TokenKind::FloatType => write!(f, "'Float'"),
-            TokenKind::BoolType => write!(f, "'Bool'"),
-            TokenKind::TypeId => write!(f, "type identifier"),
-            TokenKind::TypeParam => write!(f, "type parameter identifier"),
-            TokenKind::LParen => write!(f, "'('"),
-            TokenKind::RParen => write!(f, "')'"),
-            TokenKind::Comma => write!(f, "','"),
-            TokenKind::Arrow => write!(f, "'->'"),
-            TokenKind::Colon => write!(f, "':'"),
-            TokenKind::Semicolon => write!(f, "';'"),
-            TokenKind::LBrace => write!(f, "'{{'"),
-            TokenKind::RBrace => write!(f, "'}}'"),
-            TokenKind::Assign => write!(f, "'='"),
-            TokenKind::Not => write!(f, "'!'"),
-            TokenKind::NotEq => write!(f, "'!='"),
-            TokenKind::And => write!(f, "'&&'"),
-            TokenKind::Plus => write!(f, "'+'"),
-            TokenKind::Minus => write!(f, "'-'"),
-            TokenKind::Times => write!(f, "'*'"),
-            TokenKind::Divide => write!(f, "'/'"),
-            TokenKind::FPlus => write!(f, "'+.'"),
-            TokenKind::FMinus => write!(f, "'-.'"),
-            TokenKind::FTimes => write!(f, "'*.'"),
-            TokenKind::FDivide => write!(f, "'/.'"),
-            TokenKind::LessThan => write!(f, "'<'"),
-            TokenKind::LessThanOrEq => write!(f, "'<='"),
-            TokenKind::GreaterThan => write!(f, "'>'"),
-            TokenKind::GreaterThanOrEq => write!(f, "'>='"),
-            TokenKind::FLessThan => write!(f, "'<.'"),
-            TokenKind::FLessThanOrEq => write!(f, "'<=.'"),
-            TokenKind::FGreaterThan => write!(f, "'>.'"),
-            TokenKind::FGreaterThanOrEq => write!(f, "'>=.'"),
-            TokenKind::Eq => write!(f, "'=='"),
-            TokenKind::Pipe => write!(f, "'|>'"),
-            TokenKind::Or => write!(f, "'||'"),
-            TokenKind::EoF => write!(f, "end of file"),
+            Self::Id => write!(f, "identifier"),
+            Self::Int => write!(f, "integer literal"),
+            Self::Float => write!(f, "float literal"),
+            Self::Bool => write!(f, "boolean literal"),
+            Self::Echo => write!(f, "'echo'"),
+            Self::Else => write!(f, "'else'"),
+            Self::Fn => write!(f, "'fn'"),
+            Self::If => write!(f, "'if'"),
+            Self::Let => write!(f, "'let'"),
+            Self::Match => write!(f, "'match'"),
+            Self::Read => write!(f, "'read'"),
+            Self::Return => write!(f, "'return'"),
+            Self::Then => write!(f, "'then'"),
+            Self::Typedef => write!(f, "'typedef'"),
+            Self::IntType => write!(f, "'Int'"),
+            Self::FloatType => write!(f, "'Float'"),
+            Self::BoolType => write!(f, "'Bool'"),
+            Self::TypeId => write!(f, "type identifier"),
+            Self::TypeParam => write!(f, "type parameter identifier"),
+            Self::LParen => write!(f, "'('"),
+            Self::RParen => write!(f, "')'"),
+            Self::Comma => write!(f, "','"),
+            Self::Arrow => write!(f, "'->'"),
+            Self::Colon => write!(f, "':'"),
+            Self::Semicolon => write!(f, "';'"),
+            Self::LBrace => write!(f, "'{{'"),
+            Self::RBrace => write!(f, "'}}'"),
+            Self::Assign => write!(f, "'='"),
+            Self::Not => write!(f, "'!'"),
+            Self::NotEq => write!(f, "'!='"),
+            Self::And => write!(f, "'&&'"),
+            Self::Plus => write!(f, "'+'"),
+            Self::Minus => write!(f, "'-'"),
+            Self::Times => write!(f, "'*'"),
+            Self::Divide => write!(f, "'/'"),
+            Self::FPlus => write!(f, "'+.'"),
+            Self::FMinus => write!(f, "'-.'"),
+            Self::FTimes => write!(f, "'*.'"),
+            Self::FDivide => write!(f, "'/.'"),
+            Self::LessThan => write!(f, "'<'"),
+            Self::LessThanOrEq => write!(f, "'<='"),
+            Self::GreaterThan => write!(f, "'>'"),
+            Self::GreaterThanOrEq => write!(f, "'>='"),
+            Self::FLessThan => write!(f, "'<.'"),
+            Self::FLessThanOrEq => write!(f, "'<=.'"),
+            Self::FGreaterThan => write!(f, "'>.'"),
+            Self::FGreaterThanOrEq => write!(f, "'>=.'"),
+            Self::Eq => write!(f, "'=='"),
+            Self::Pipe => write!(f, "'|>'"),
+            Self::Or => write!(f, "'||'"),
+            Self::EoF => write!(f, "end of file"),
         }
     }
 }
@@ -195,24 +195,28 @@ impl Display for TokenKind {
 pub type SpannedToken<'src> = Spanned<Token<'src>>;
 
 impl<'src> SpannedToken<'src> {
-    pub fn new(token: Token<'src>, offset: usize) -> Self {
+    #[must_use]
+    pub const fn new(token: Token<'src>, offset: usize) -> Self {
         Spanned {
             node: token,
             offset,
         }
     }
 
-    pub fn token(&self) -> &Token<'src> {
+    #[must_use]
+    pub const fn token(&self) -> &Token<'src> {
         &self.node
     }
 
-    pub fn kind(&self) -> TokenKind {
+    #[must_use]
+    pub const fn kind(&self) -> TokenKind {
         self.node.kind()
     }
 }
 
 impl Token<'_> {
-    pub fn kind(&self) -> TokenKind {
+    #[must_use]
+    pub const fn kind(&self) -> TokenKind {
         match self {
             Token::Id(_) => TokenKind::Id,
             Token::Int(_) => TokenKind::Int,

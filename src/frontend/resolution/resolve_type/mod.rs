@@ -38,20 +38,20 @@ fn lookup_type<'src>(
         Type::Int => Ok(ResolvedType::mk_int(loc)),
         Type::Float => Ok(ResolvedType::mk_float(loc)),
         Type::Bool => Ok(ResolvedType::mk_bool(loc)),
-        Type::TypeId(name) => match ctx.lookup_type(name) {
-            Some(id) => Ok(ResolvedType::mk_typeid(loc, id)),
-            None => Err(Spanned {
+        Type::TypeId(name) => ctx.lookup_type(name).map_or(
+            Err(Spanned {
                 offset: loc,
                 node: ResolveErrorKind::UnknownType { name },
             }),
-        },
-        Type::TypeParam(name) => match ctx.lookup_typeparam(name) {
-            Some(id) => Ok(ResolvedType::mk_typeparam(loc, id)),
-            None => Err(Spanned {
+            |id| Ok(ResolvedType::mk_typeid(loc, id)),
+        ),
+        Type::TypeParam(name) => ctx.lookup_typeparam(name).map_or(
+            Err(Spanned {
                 offset: loc,
                 node: ResolveErrorKind::UnknownType { name },
             }),
-        },
+            |id| Ok(ResolvedType::mk_typeparam(loc, id)),
+        ),
         Type::TypeApp(type_constr, type_args) => lookup_typeapp(loc, ctx, type_constr, type_args),
         Type::Fn(domain, codomain) => lookup_fn(loc, ctx, *domain, *codomain),
     }
@@ -70,10 +70,8 @@ fn resolve_typeid<'src>(
 
 // this adds in a type param if it doesn't exist
 fn add_typeparam<'src>(ctx: &mut ResolverCtx<'src>, name: &'src str) -> TypeParamId {
-    match ctx.lookup_typeparam(name) {
-        Some(val) => val,
-        None => ctx.add_typeparam(name),
-    }
+    ctx.lookup_typeparam(name)
+        .unwrap_or_else(|| ctx.add_typeparam(name))
 }
 
 fn add_typeapp<'src>(

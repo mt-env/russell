@@ -16,7 +16,7 @@ pub(crate) mod parse_type;
 #[cfg(test)]
 mod tests;
 
-pub fn parse<'src>(tokens: Vec<SpannedToken<'src>>) -> ParseResult<'src, Vec<ParsedDefn<'src>>> {
+pub fn parse(tokens: Vec<SpannedToken<'_>>) -> ParseResult<'_, Vec<ParsedDefn<'_>>> {
     let mut parser = Parser::new(tokens);
     let mut defns = Vec::new();
 
