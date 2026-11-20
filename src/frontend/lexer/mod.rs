@@ -68,17 +68,9 @@ const OPERATORS: [(&str, Token); 31] = [
 
 pub fn lex(program: &str) -> Result<Vec<SpannedToken<'_>>, Vec<LexError<'_>>> {
     // data structures
-    let mut lexer = Lexer::new(program);
+    let mut lexer = Lexer::new(program)?;
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
-
-    // ascii validation prepassing
-    for (i, c) in program.char_indices() {
-        if !c.is_ascii() {
-            errors.push(LexError::new(LexErrorKind::NonAsciiChar(c), i));
-        }
-        return Err(errors);
-    }
 
     // main lexing loop
     loop {
@@ -108,10 +100,22 @@ struct Lexer<'src> {
 }
 
 impl<'src> Lexer<'src> {
-    const fn new(program: &'src str) -> Self {
-        Self { program, offset: 0 }
+    fn new(program: &'src str) -> Result<Self, Vec<LexError<'src>>> {
+        // ascii validation prepassing
+        let mut errors = Vec::new();
+        for (i, c) in program.char_indices() {
+            if !c.is_ascii() {
+                errors.push(LexError::new(LexErrorKind::NonAsciiChar(c), i));
+            }
+        }
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        Ok(Self { program, offset: 0 })
     }
 
+    #[allow(clippy::string_slice)]
     fn next_token(&mut self) -> Result<SpannedToken<'src>, LexError<'src>> {
         self.eat_whitespace();
 
@@ -155,6 +159,7 @@ impl<'src> Lexer<'src> {
         Err(LexError::new(LexErrorKind::InvalidChar(first_char), loc))
     }
 
+    #[allow(clippy::string_slice)]
     fn eat_whitespace(&mut self) {
         let remainder = &self.program[self.offset..];
         self.offset += remainder.len() - remainder.trim_start().len();
@@ -170,6 +175,7 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    #[allow(clippy::string_slice)]
     fn read_num(&mut self) -> Result<SpannedToken<'src>, LexError<'src>> {
         // greedily grab all characters that form a number (numbers and dots)
         let program = &self.program[self.offset..];
@@ -194,6 +200,7 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    #[allow(clippy::string_slice)]
     fn read_ident(&mut self, make: impl Fn(&'src str) -> Token) -> SpannedToken<'src> {
         let program = &self.program[self.offset..];
 
@@ -215,6 +222,7 @@ impl<'src> Lexer<'src> {
         SpannedToken::new(make(ident), loc)
     }
 
+    #[allow(clippy::string_slice)]
     fn read_type_param(&mut self) -> Result<SpannedToken<'src>, LexError<'src>> {
         // greedily grab the apostrophe-prefixed type parameter name
         let program = &self.program[self.offset..];
