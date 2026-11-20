@@ -1014,36 +1014,33 @@ fn numeric_errors_recover_and_accumulate() {
 }
 
 #[test]
-fn unicode_tokens_and_whitespace_use_byte_offsets() {
+fn rejects_non_ascii_characters_at_byte_offsets() {
     assert_eq!(
         lex("é\u{2003}É 'α"),
-        Ok(vec![
-            SpannedToken::new(Token::Id("é"), 0),
-            SpannedToken::new(Token::TypeId("É"), 5),
-            SpannedToken::new(Token::TypeParam("'α"), 8),
-            SpannedToken::new(Token::EoF, 11),
+        Err(vec![
+            LexError::new(LexErrorKind::NonAsciiChar('é'), 0),
+            LexError::new(LexErrorKind::NonAsciiChar('\u{2003}'), 2),
+            LexError::new(LexErrorKind::NonAsciiChar('É'), 5),
+            LexError::new(LexErrorKind::NonAsciiChar('α'), 9),
         ])
     );
 }
 
 #[test]
-fn multibyte_invalid_characters_recover_at_character_boundaries() {
+fn rejects_each_non_ascii_character_without_scanning_ascii_errors() {
     assert_eq!(
         lex("é 💥 @"),
         Err(vec![
-            LexError::new(LexErrorKind::InvalidChar('💥'), 3),
-            LexError::new(LexErrorKind::InvalidChar('@'), 8),
+            LexError::new(LexErrorKind::NonAsciiChar('é'), 0),
+            LexError::new(LexErrorKind::NonAsciiChar('💥'), 3),
         ])
     );
 }
 
 #[test]
-fn unicode_comment_and_crlf_preserve_offsets() {
+fn rejects_non_ascii_characters_inside_comments() {
     assert_eq!(
         lex("// é\r\n42\r\n"),
-        Ok(vec![
-            SpannedToken::new(Token::Int(42), 7),
-            SpannedToken::new(Token::EoF, 11),
-        ])
+        Err(vec![LexError::new(LexErrorKind::NonAsciiChar('é'), 3)])
     );
 }
