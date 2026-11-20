@@ -11,7 +11,7 @@ use crate::frontend::{
 fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedDefn {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_defn(&mut parser).unwrap();
-    super::resolve_defn(ctx, parsed)
+    super::resolve_defn(ctx, parsed).expect("test input should resolve successfully")
 }
 
 fn expr(offset: usize, id: usize, kind: ResolvedExprKind) -> ResolvedExpr {
@@ -378,16 +378,18 @@ fn rejects_undefined_typedef_type_parameter() {
     ctx.add_type("ResultErr");
     ctx.add_value("ok");
 
-    resolve(
-        &mut ctx,
-        "typedef ResultErr('a, 'b) { ok(value: 'missing) }",
-    );
     assert_eq!(
-        ctx.errors.as_slice(),
-        &[Spanned {
+        super::resolve_defn(
+            &mut ctx,
+            parse_defn(&mut Parser::new(
+                lex("typedef ResultErr('a, 'b) { ok(value: 'missing) }").unwrap()
+            ))
+            .unwrap(),
+        ),
+        Err(Spanned {
             offset: 38,
             node: ResolveErrorKind::UnknownType { name: "'missing" },
-        }]
+        })
     );
 }
 
@@ -397,14 +399,18 @@ fn rejects_undefined_typedef_type() {
     ctx.add_type("Box");
     ctx.add_value("wrap");
 
-    resolve(&mut ctx, "typedef Box { wrap(value: Missing) }");
-
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        super::resolve_defn(
+            &mut ctx,
+            parse_defn(&mut Parser::new(
+                lex("typedef Box { wrap(value: Missing) }").unwrap()
+            ))
+            .unwrap(),
+        ),
+        Err(Spanned {
             offset: 26,
             node: ResolveErrorKind::UnknownType { name: "Missing" },
-        }]
+        })
     );
 }
 
@@ -414,14 +420,18 @@ fn rejects_duplicate_typedef_binding_names() {
     ctx.add_type("Pair");
     ctx.add_value("pair");
 
-    resolve(&mut ctx, "typedef Pair { pair(x: Int, x: Bool) }");
-
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        super::resolve_defn(
+            &mut ctx,
+            parse_defn(&mut Parser::new(
+                lex("typedef Pair { pair(x: Int, x: Bool) }").unwrap()
+            ))
+            .unwrap(),
+        ),
+        Err(Spanned {
             offset: 28,
             node: ResolveErrorKind::DuplicateValue { name: "x" },
-        }]
+        })
     );
 }
 
@@ -430,16 +440,18 @@ fn rejects_duplicate_function_parameter_names() {
     let mut ctx = ResolverCtx::new();
     ctx.add_value("duplicate");
 
-    resolve(
-        &mut ctx,
-        "fn duplicate(x: Int, x: Float) -> Int { return x + 1; }",
-    );
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        super::resolve_defn(
+            &mut ctx,
+            parse_defn(&mut Parser::new(
+                lex("fn duplicate(x: Int, x: Float) -> Int { return x + 1; }").unwrap()
+            ))
+            .unwrap(),
+        ),
+        Err(Spanned {
             offset: 21,
             node: ResolveErrorKind::DuplicateValue { name: "x" },
-        }]
+        })
     );
 }
 

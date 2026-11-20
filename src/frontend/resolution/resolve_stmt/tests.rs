@@ -14,7 +14,7 @@ use crate::frontend::{
 fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedStmt {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_stmt(&mut parser).unwrap();
-    resolve_stmt::resolve_stmt(ctx, parsed)
+    resolve_stmt::resolve_stmt(ctx, parsed).expect("test input should resolve successfully")
 }
 
 fn expr(offset: usize, id: usize, kind: ResolvedExprKind) -> ResolvedExpr {
@@ -131,14 +131,16 @@ fn resolves_echo_statement() {
 }
 
 #[test]
-fn return_statement_panics_on_unbound_identifier() {
+fn rejects_return_statement_with_unbound_identifier() {
     let mut ctx = ResolverCtx::new();
-    let _ = resolve(&mut ctx, "return missing;");
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        resolve_stmt::resolve_stmt(
+            &mut ctx,
+            parse_stmt(&mut Parser::new(lex("return missing;").unwrap())).unwrap(),
+        ),
+        Err(Spanned {
             offset: 7,
             node: ResolveErrorKind::UnknownValue { name: "missing" },
-        }]
+        })
     );
 }

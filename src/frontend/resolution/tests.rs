@@ -20,19 +20,15 @@ fn resolve(input: &str) -> Vec<ResolvedDefn> {
 }
 
 fn assert_resolution_error(input: &str, expected: ResolveError<'_>) {
-    let defns = parse(lex(input).expect("test input should lex successfully"))
-        .expect("test input should parse successfully");
-    let mut ctx = ResolverCtx::new();
-    super::init_global_scope(&mut ctx, &defns);
-    for defn in defns {
-        super::resolve_defn::resolve_defn(&mut ctx, defn);
+    match resolve_result(input) {
+        Ok(_) => panic!("expected resolution to fail"),
+        Err(error) => assert_eq!(error, expected),
     }
-    assert_eq!(ctx.errors, vec![expected]);
 }
 
 fn resolve_result<'a>(
     input: &'a str,
-) -> Result<super::types::ResolveSuccess<'a>, super::types::ResolutionFailure<'a>> {
+) -> super::types::ResolveResult<'a, super::types::ResolveSuccess<'a>> {
     super::resolve(
         parse(lex(input).expect("test input should lex successfully"))
             .expect("test input should parse successfully"),
@@ -42,7 +38,7 @@ fn resolve_result<'a>(
 fn errors<'a>(input: &'a str) -> Vec<ResolveError<'a>> {
     match resolve_result(input) {
         Ok(_) => panic!("expected resolution to fail"),
-        Err(failure) => failure.errors,
+        Err(error) => vec![error],
     }
 }
 
@@ -642,11 +638,7 @@ fn resolves_all_definition_kinds_independent_of_source_order() {
                  typedef Box { make(value: Int) }";
 
     let result = resolve_result(input);
-    assert!(
-        result.is_ok(),
-        "unexpected errors: {:?}",
-        result.err().map(|failure| failure.errors)
-    );
+    assert!(result.is_ok(), "unexpected errors: {:?}", result.err());
 }
 
 #[test]
@@ -656,11 +648,7 @@ fn resolves_forward_type_references_in_function_signatures() {
                  fn main() -> Int { return 0; }";
 
     let result = resolve_result(input);
-    assert!(
-        result.is_ok(),
-        "unexpected errors: {:?}",
-        result.err().map(|failure| failure.errors)
-    );
+    assert!(result.is_ok(), "unexpected errors: {:?}", result.err());
 }
 
 #[test]
@@ -799,16 +787,10 @@ fn match_bindings_do_not_leak_between_arms_or_after_the_match() {
 
     assert_eq!(
         errors(input),
-        vec![
-            Spanned {
-                offset: 145,
-                node: ResolveErrorKind::UnknownValue { name: "value" },
-            },
-            Spanned {
-                offset: 161,
-                node: ResolveErrorKind::UnknownValue { name: "value" },
-            },
-        ]
+        vec![Spanned {
+            offset: 145,
+            node: ResolveErrorKind::UnknownValue { name: "value" },
+        }]
     );
 }
 
@@ -826,40 +808,28 @@ fn unknown_match_variant_is_reported() {
 }
 
 #[test]
-fn unknown_identifier_is_reported_at_each_distinct_source_use() {
+fn reports_the_first_unknown_identifier() {
     let input = "fn main() -> Int { return missing + other; }";
 
     assert_eq!(
         errors(input),
-        vec![
-            Spanned {
-                offset: 26,
-                node: ResolveErrorKind::UnknownValue { name: "missing" },
-            },
-            Spanned {
-                offset: 36,
-                node: ResolveErrorKind::UnknownValue { name: "other" },
-            },
-        ]
+        vec![Spanned {
+            offset: 26,
+            node: ResolveErrorKind::UnknownValue { name: "missing" },
+        }]
     );
 }
 
 #[test]
-fn missing_main_is_reported_alongside_other_resolution_errors() {
+fn missing_main_prevents_definition_resolution() {
     let input = "fn helper() -> Int { return missing; }";
 
     assert_eq!(
         errors(input),
-        vec![
-            Spanned {
-                offset: 0,
-                node: ResolveErrorKind::MissingMainFn,
-            },
-            Spanned {
-                offset: 28,
-                node: ResolveErrorKind::UnknownValue { name: "missing" },
-            },
-        ]
+        vec![Spanned {
+            offset: 0,
+            node: ResolveErrorKind::MissingMainFn,
+        }]
     );
 }
 

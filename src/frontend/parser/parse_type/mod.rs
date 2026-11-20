@@ -62,7 +62,7 @@ pub(crate) fn parse_type<'src>(parser: &mut Parser<'src>) -> ParseResult<'src, P
     Ok(l_type)
 }
 
-pub(super) fn parse_binding<'src>(
+pub(crate) fn parse_binding<'src>(
     parser: &mut Parser<'src>,
 ) -> ParseResult<'src, ParsedBinding<'src>> {
     let loc = parser.peek().offset;

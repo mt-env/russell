@@ -2,31 +2,36 @@ use crate::frontend::{
     lexer::lex,
     parser::{
         Parser,
-        ast::{ParsedBinding, ParsedType, Type},
-        parse_type::parse_type,
+        ast::ParsedBinding,
+        parse_type::{parse_binding, parse_type},
     },
-    resolution::types::{ResolveErrorKind, ResolvedBinding, ResolvedType, ResolverCtx},
+    resolution::types::{
+        ResolveErrorKind, ResolveResult, ResolvedBinding, ResolvedType, ResolverCtx,
+    },
     types::Spanned,
 };
 
-fn resolve_type<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedType {
+fn resolve_type_result<'a>(
+    ctx: &mut ResolverCtx<'a>,
+    input: &'a str,
+) -> ResolveResult<'a, ResolvedType> {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_type(&mut parser).unwrap();
     super::add_type(ctx, parsed)
 }
 
-fn parsed_type(node: Type<'_>) -> ParsedType<'_> {
-    ParsedType::new(0, node)
+fn resolve_type<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedType {
+    resolve_type_result(ctx, input).expect("test input should resolve successfully")
 }
 
-fn resolve_binding<'a>(
-    ctx: &mut ResolverCtx<'a>,
-    name: &'a str,
-    type_source: &'a str,
-) -> ResolvedBinding {
-    let mut parser = Parser::new(lex(type_source).expect("test input should lex successfully"));
-    let parsed = ParsedBinding::new(0, name, parse_type(&mut parser).unwrap());
-    super::add_binding(ctx, parsed)
+fn parse_test_binding(input: &str) -> ParsedBinding<'_> {
+    let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
+    parse_binding(&mut parser).expect("test input should parse successfully")
+}
+
+fn resolve_binding<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedBinding {
+    let parsed = parse_test_binding(input);
+    super::add_binding(ctx, parsed).expect("test input should resolve successfully")
 }
 
 #[test]
@@ -59,13 +64,12 @@ fn resolves_named_type() {
 #[test]
 fn rejects_unknown_named_type() {
     let mut ctx = ResolverCtx::new();
-    resolve_type(&mut ctx, "Missing");
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        resolve_type_result(&mut ctx, "Missing"),
+        Err(Spanned {
             offset: 0,
             node: ResolveErrorKind::UnknownType { name: "Missing" },
-        }]
+        })
     );
 }
 
@@ -149,8 +153,8 @@ fn resolves_binding_and_registers_its_name() {
     let expected = expected_ctx.add_value("x");
 
     assert_eq!(
-        resolve_binding(&mut ctx, "x", "Int"),
-        ResolvedBinding::new(0, expected, ResolvedType::mk_int(0))
+        resolve_binding(&mut ctx, "x: Int"),
+        ResolvedBinding::new(0, expected, ResolvedType::mk_int(3))
     );
     assert_eq!(ctx.lookup_value("x"), Some(expected));
 }
@@ -162,11 +166,11 @@ fn resolves_binding_with_function_type() {
     let expected = expected_ctx.add_value("f");
 
     assert_eq!(
-        resolve_binding(&mut ctx, "f", "Int -> Float"),
+        resolve_binding(&mut ctx, "f: Int -> Float"),
         ResolvedBinding::new(
             0,
             expected,
-            ResolvedType::mk_fn(0, ResolvedType::mk_int(0), ResolvedType::mk_float(7),),
+            ResolvedType::mk_fn(3, ResolvedType::mk_int(3), ResolvedType::mk_float(10),),
         )
     );
 }
@@ -180,14 +184,14 @@ fn resolves_binding_with_type_application() {
     let value = expected_ctx.add_value("value");
 
     assert_eq!(
-        resolve_binding(&mut ctx, "value", "Result(Int, Bool)"),
+        resolve_binding(&mut ctx, "value: Result(Int, Bool)"),
         ResolvedBinding::new(
             0,
             value,
             ResolvedType::mk_typeapp(
-                0,
+                7,
                 result,
-                vec![ResolvedType::mk_int(7), ResolvedType::mk_bool(12)]
+                vec![ResolvedType::mk_int(14), ResolvedType::mk_bool(19)]
             ),
         )
     );
@@ -197,23 +201,29 @@ fn resolves_binding_with_type_application() {
 fn existing_type_parameter_binding_reuses_parameter() {
     let mut ctx = ResolverCtx::new();
     let parameter = ctx.add_typeparam("'a");
-    let binding = ParsedBinding::new(0, "value", parsed_type(Type::TypeParam("'a")));
+    let binding = parse_test_binding("value: 'a");
 
     let resolved = super::add_binding_existing_typaram(&mut ctx, binding).unwrap();
     let value = ctx.lookup_value("value").unwrap();
 
     assert_eq!(
         resolved,
-        ResolvedBinding::new(0, value, ResolvedType::mk_typeparam(0, parameter))
+        ResolvedBinding::new(0, value, ResolvedType::mk_typeparam(7, parameter))
     );
 }
 
 #[test]
 fn existing_type_parameter_binding_rejects_unknown_parameter() {
     let mut ctx = ResolverCtx::new();
-    let binding = ParsedBinding::new(0, "value", parsed_type(Type::TypeParam("'missing")));
+    let binding = parse_test_binding("value: 'missing");
 
-    assert_eq!(super::add_binding_existing_typaram(&mut ctx, binding), None);
+    assert_eq!(
+        super::add_binding_existing_typaram(&mut ctx, binding),
+        Err(Spanned {
+            offset: 7,
+            node: ResolveErrorKind::UnknownType { name: "'missing" },
+        })
+    );
     assert_eq!(ctx.lookup_value("value"), None);
 }
 
@@ -221,36 +231,36 @@ fn existing_type_parameter_binding_rejects_unknown_parameter() {
 fn existing_type_parameter_binding_resolves_primitive_types() {
     let mut ctx = ResolverCtx::new();
 
-    let int_binding = ParsedBinding::new(0, "integer", parsed_type(Type::Int));
+    let int_binding = parse_test_binding("integer: Int");
     let integer = super::add_binding_existing_typaram(&mut ctx, int_binding).unwrap();
     assert_eq!(
         integer,
         ResolvedBinding::new(
             0,
             ctx.lookup_value("integer").unwrap(),
-            ResolvedType::mk_int(0)
+            ResolvedType::mk_int(9)
         )
     );
 
-    let float_binding = ParsedBinding::new(0, "float", parsed_type(Type::Float));
+    let float_binding = parse_test_binding("float: Float");
     let float = super::add_binding_existing_typaram(&mut ctx, float_binding).unwrap();
     assert_eq!(
         float,
         ResolvedBinding::new(
             0,
             ctx.lookup_value("float").unwrap(),
-            ResolvedType::mk_float(0)
+            ResolvedType::mk_float(7)
         )
     );
 
-    let bool_binding = ParsedBinding::new(0, "boolean", parsed_type(Type::Bool));
+    let bool_binding = parse_test_binding("boolean: Bool");
     let boolean = super::add_binding_existing_typaram(&mut ctx, bool_binding).unwrap();
     assert_eq!(
         boolean,
         ResolvedBinding::new(
             0,
             ctx.lookup_value("boolean").unwrap(),
-            ResolvedType::mk_bool(0)
+            ResolvedType::mk_bool(9)
         )
     );
 }
@@ -259,7 +269,7 @@ fn existing_type_parameter_binding_resolves_primitive_types() {
 fn existing_type_parameter_binding_resolves_named_type() {
     let mut ctx = ResolverCtx::new();
     let option = ctx.add_type("Option");
-    let binding = ParsedBinding::new(0, "value", parsed_type(Type::TypeId("Option")));
+    let binding = parse_test_binding("value: Option");
 
     let resolved = super::add_binding_existing_typaram(&mut ctx, binding).unwrap();
 
@@ -268,7 +278,7 @@ fn existing_type_parameter_binding_resolves_named_type() {
         ResolvedBinding::new(
             0,
             ctx.lookup_value("value").unwrap(),
-            ResolvedType::mk_typeid(0, option),
+            ResolvedType::mk_typeid(7, option),
         )
     );
 }
@@ -277,11 +287,7 @@ fn existing_type_parameter_binding_resolves_named_type() {
 fn existing_type_parameter_binding_resolves_type_application() {
     let mut ctx = ResolverCtx::new();
     let option = ctx.add_type("Option");
-    let binding = ParsedBinding::new(
-        0,
-        "value",
-        parsed_type(Type::TypeApp("Option", vec![parsed_type(Type::Int)])),
-    );
+    let binding = parse_test_binding("value: Option(Int)");
 
     let resolved = super::add_binding_existing_typaram(&mut ctx, binding).unwrap();
 
@@ -290,7 +296,7 @@ fn existing_type_parameter_binding_resolves_type_application() {
         ResolvedBinding::new(
             0,
             ctx.lookup_value("value").unwrap(),
-            ResolvedType::mk_typeapp(0, option, vec![ResolvedType::mk_int(0)]),
+            ResolvedType::mk_typeapp(7, option, vec![ResolvedType::mk_int(14)]),
         )
     );
 }
@@ -298,14 +304,7 @@ fn existing_type_parameter_binding_resolves_type_application() {
 #[test]
 fn existing_type_parameter_binding_resolves_function_type() {
     let mut ctx = ResolverCtx::new();
-    let binding = ParsedBinding::new(
-        0,
-        "function",
-        parsed_type(Type::Fn(
-            Box::new(parsed_type(Type::Int)),
-            Box::new(parsed_type(Type::Bool)),
-        )),
-    );
+    let binding = parse_test_binding("function: Int -> Bool");
 
     let resolved = super::add_binding_existing_typaram(&mut ctx, binding).unwrap();
 
@@ -314,7 +313,7 @@ fn existing_type_parameter_binding_resolves_function_type() {
         ResolvedBinding::new(
             0,
             ctx.lookup_value("function").unwrap(),
-            ResolvedType::mk_fn(0, ResolvedType::mk_int(0), ResolvedType::mk_bool(0),),
+            ResolvedType::mk_fn(10, ResolvedType::mk_int(10), ResolvedType::mk_bool(17),),
         )
     );
 }

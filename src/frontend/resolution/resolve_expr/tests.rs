@@ -11,7 +11,7 @@ use crate::frontend::{
 fn resolve<'a>(ctx: &mut ResolverCtx<'a>, input: &'a str) -> ResolvedExpr {
     let mut parser = Parser::new(lex(input).expect("test input should lex successfully"));
     let parsed = parse_expr(&mut parser).unwrap();
-    super::resolve_expr(ctx, parsed)
+    super::resolve_expr(ctx, parsed).expect("test input should resolve successfully")
 }
 
 fn expr(offset: usize, id: usize, kind: ResolvedExprKind) -> ResolvedExpr {
@@ -50,13 +50,15 @@ fn resolves_identifier_from_context() {
 #[test]
 fn rejects_unbound_identifier() {
     let mut ctx = ResolverCtx::new();
-    resolve(&mut ctx, "missing");
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        super::resolve_expr(
+            &mut ctx,
+            parse_expr(&mut Parser::new(lex("missing").unwrap())).unwrap()
+        ),
+        Err(Spanned {
             offset: 0,
             node: ResolveErrorKind::UnknownValue { name: "missing" },
-        }]
+        })
     );
 }
 
@@ -471,13 +473,18 @@ fn rejects_match_with_unknown_variant() {
     let mut ctx = ResolverCtx::new();
     ctx.add_value("value");
 
-    resolve(&mut ctx, "match value { missing() -> 0 }");
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        super::resolve_expr(
+            &mut ctx,
+            parse_expr(&mut Parser::new(
+                lex("match value { missing() -> 0 }").unwrap()
+            ))
+            .unwrap()
+        ),
+        Err(Spanned {
             offset: 14,
             node: ResolveErrorKind::UnknownValue { name: "missing" },
-        }]
+        })
     );
 }
 
@@ -487,13 +494,17 @@ fn rejects_duplicate_match_binding_names() {
     ctx.add_value("option");
     ctx.add_value("some");
 
-    resolve(&mut ctx, "match option { some(x, x) -> x }");
-
     assert_eq!(
-        ctx.errors,
-        vec![Spanned {
+        super::resolve_expr(
+            &mut ctx,
+            parse_expr(&mut Parser::new(
+                lex("match option { some(x, x) -> x }").unwrap()
+            ))
+            .unwrap()
+        ),
+        Err(Spanned {
             offset: 15,
             node: ResolveErrorKind::DuplicateValue { name: "x" },
-        }]
+        })
     );
 }
